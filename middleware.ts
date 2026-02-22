@@ -2,26 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySessionJwt } from "@/lib/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
-function isPublicPath(pathname: string): boolean {
-  if (pathname === "/") {
-    return true;
-  }
+function isPublicPath(rawPathname: string): boolean {
+  // Normalize pathname by removing trailing slash if present (unless it's exactly "/").
+  const pathname = rawPathname === "/" ? "/" : rawPathname.replace(/\/$/, "");
 
-  if (pathname === "/login") {
-    return true;
-  }
+  if (pathname === "/") return true;
+  if (pathname === "/login") return true;
+  if (pathname === "/api/auth/login") return true;
+  if (pathname === "/api/auth/logout") return true;
 
-  if (pathname === "/api/auth/login") {
-    return true;
-  }
-
-  if (pathname === "/api/auth/logout") {
-    return true;
-  }
-
-  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") {
-    return true;
-  }
+  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
 
   return false;
 }
