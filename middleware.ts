@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionJwt } from "@/lib/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
 function isPublicPath(rawPathname: string): boolean {
