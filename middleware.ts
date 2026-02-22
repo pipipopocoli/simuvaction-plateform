@@ -25,13 +25,11 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
+  // We simply check if the token exists to prevent Edge Runtime crypto crashes.
+  // The ACTUAL strict verification (`verifySessionJwt`) happens securely inside 
+  // the Node.js environment during Server Component rendering via `getUserSession()`.
   if (token) {
-    const payload = await verifySessionJwt(token);
-    // Even if it's the old payload, as long as auth is true we let it through to specific parts
-    // But specific parts check role. If no role, they'll 404/redirect later.
-    if (payload?.auth === true) {
-      return NextResponse.next();
-    }
+    return NextResponse.next();
   }
 
   if (pathname.startsWith("/api/")) {
