@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
-export async function POST() {
-  const response = NextResponse.json({ ok: true });
+export async function POST(request: NextRequest) {
+  const url = new URL("/", request.url);
+  const response = NextResponse.redirect(url);
+
   response.cookies.set({
     name: SESSION_COOKIE_NAME,
     value: "",

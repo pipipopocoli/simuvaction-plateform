@@ -3,7 +3,11 @@ import { verifySessionJwt } from "@/lib/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname === "/unlock") {
+  if (pathname === "/") {
+    return true;
+  }
+
+  if (pathname === "/login") {
     return true;
   }
 
@@ -11,7 +15,7 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
 
-  if (pathname === "/api/cron/weekly-plan") {
+  if (pathname === "/api/auth/logout") {
     return true;
   }
 
@@ -22,7 +26,7 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isPublicPath(pathname)) {
@@ -33,6 +37,8 @@ export async function proxy(request: NextRequest) {
 
   if (token) {
     const payload = await verifySessionJwt(token);
+    // Even if it's the old payload, as long as auth is true we let it through to specific parts
+    // But specific parts check role. If no role, they'll 404/redirect later.
     if (payload?.auth === true) {
       return NextResponse.next();
     }
