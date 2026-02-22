@@ -3,8 +3,8 @@ import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-    req: NextRequest,
-    { params }: { params: { roomId: string } }
+    _req: NextRequest,
+    { params }: { params: Promise<{ roomId: string }> }
 ) {
     const session = await getUserSession();
     if (!session) {
@@ -12,7 +12,7 @@ export async function GET(
     }
 
     const { eventId, userId, role } = session;
-    const { roomId } = params;
+    const { roomId } = await params;
 
     try {
         // Basic verification: Is this room global, am I admin, or am I a member?
@@ -61,7 +61,7 @@ export async function GET(
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { roomId: string } }
+    { params }: { params: Promise<{ roomId: string }> }
 ) {
     const session = await getUserSession();
     if (!session) {
@@ -69,7 +69,7 @@ export async function POST(
     }
 
     const { eventId, userId, role } = session;
-    const { roomId } = params;
+    const { roomId } = await params;
 
     try {
         const { body, replyToId } = await req.json();

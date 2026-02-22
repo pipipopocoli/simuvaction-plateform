@@ -39,13 +39,13 @@ export default async function LandingPage() {
 
             <main className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-4xl mx-auto">
                 <div className="inline-block mb-4 px-3 py-1 rounded-full bg-zinc-900 text-xs font-mono tracking-wider text-zinc-400 border border-zinc-800 uppercase">
-                    Édition 2026 : Intégration de l'IA
+                    Édition 2026 : Intégration de l&apos;IA
                 </div>
                 <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
                     Plateforme SimuVaction
                 </h1>
                 <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl leading-relaxed">
-                    L'environnement interactif de simulation diplomatique pour délégués, journalistes et leaders.
+                    L&apos;environnement interactif de simulation diplomatique pour délégués, journalistes et leaders.
                 </p>
 
                 {!session && (

@@ -1,0 +1,8 @@
+# Non-runtime artifacts
+documentation/
+docs/
+
+# Office/binary documents
+*.docx
+*.pdf
+*.zip

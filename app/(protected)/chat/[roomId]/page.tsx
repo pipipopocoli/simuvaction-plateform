@@ -3,8 +3,9 @@ import { ChatWindow } from "@/components/chat-window";
 import { getUserSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
 
-export default async function ChatRoomPage({ params }: { params: { roomId: string } }) {
+export default async function ChatRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
     const session = await getUserSession();
+    const { roomId } = await params;
 
     if (!session) {
         redirect("/login");
@@ -12,8 +13,8 @@ export default async function ChatRoomPage({ params }: { params: { roomId: strin
 
     return (
         <>
-            <ChatSidebar currentRoomId={params.roomId} />
-            <ChatWindow roomId={params.roomId} currentUserId={session.userId} />
+            <ChatSidebar currentRoomId={roomId} />
+            <ChatWindow roomId={roomId} currentUserId={session.userId} />
         </>
     );
 }

@@ -10,7 +10,7 @@ export default async function JournalistWorkspace() {
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">Newsroom - Salle de Rédaction</h1>
-            <p className="text-zinc-600">Rédigez vos articles ici. Ils seront soumis à un Leader pour approbation avant d'être diffusés mondialement.</p>
+            <p className="text-zinc-600">Rédigez vos articles ici. Ils seront soumis à un Leader pour approbation avant d&apos;être diffusés mondialement.</p>
             {/* Tiptap Editor and Feed will go here */}
         </div>
     );
