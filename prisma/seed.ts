@@ -101,6 +101,7 @@ async function main() {
 
   // Create Users
   const usersToSeed = [
+    { email: "admin@simuvaction.com", name: "Admin", role: "admin", teamId: null },
     { email: "leader@simuvaction.com", name: "Admin Leader", role: "leader", teamId: null },
     { email: "journaliste@simuvaction.com", name: "Journaliste Principal", role: "journalist", teamId: null },
     { email: "lobbyist@simuvaction.com", name: "Lobbyist", role: "lobbyist", teamId: null },

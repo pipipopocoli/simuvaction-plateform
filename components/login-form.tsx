@@ -43,7 +43,7 @@ export function LoginForm() {
       if (role === "journalist") defaultPath = "/workspace/journalist";
       if (role === "leader") defaultPath = "/workspace/leader";
       if (role === "lobbyist") defaultPath = "/workspace/lobbyist";
-      if (role === "admin") defaultPath = "/workspace/admin";
+      if (role === "admin") defaultPath = "/workspace/leader";
 
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : defaultPath);
       router.refresh();
