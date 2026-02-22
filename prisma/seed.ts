@@ -121,6 +121,34 @@ async function main() {
       },
     });
   }
+
+  // Fetch the created leader to be the creator of the global chat room
+  const leaderUser = await prisma.user.findUnique({ where: { email: "leader@simuvaction.com" } });
+
+  if (leaderUser) {
+    const globalRoomName = "Global Assembly";
+    const existingRoom = await prisma.chatRoom.findFirst({
+      where: { eventId, roomType: "global", name: globalRoomName }
+    });
+
+    if (!existingRoom) {
+      await prisma.chatRoom.create({
+        data: {
+          eventId,
+          name: globalRoomName,
+          roomType: "global",
+          createdById: leaderUser.id,
+          // Since it's global, explicit memberships aren't strictly required for access based on our API logic,
+          // but we can add the owner just in case.
+          memberships: {
+            create: [
+              { userId: leaderUser.id, role: "owner" }
+            ]
+          }
+        }
+      });
+    }
+  }
 }
 
 main()
