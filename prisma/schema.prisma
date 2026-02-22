@@ -175,10 +175,13 @@ model Event {
 
   users           User[]
   teams           Team[]
-  chatChannels    ChatChannel[]
-  chatMessages    ChatMessage[]
-  newsPosts       NewsPost[]
-  votingPolls     VotingPoll[]
+  chatRooms         ChatRoom[]
+  chatMessages      ChatMessage[]
+  newsPosts         NewsPost[]
+  votes             Vote[]
+  voteBallots       VoteBallot[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
 }
 
 model User {
@@ -194,10 +197,21 @@ model User {
   team        Team?     @relation(fields: [teamId], references: [id])
   event       Event     @relation(fields: [eventId], references: [id])
 
-  chatMessages    ChatMessage[]
-  newsPosts       NewsPost[]
-  votingPolls     VotingPoll[]
-  votingResponses VotingResponse[]
+  chatRoomsCreated  ChatRoom[]
+  chatMemberships   ChatMembership[]
+  chatReads         ChatRead[]
+  chatMessages      ChatMessage[]
+  
+  newsPosts         NewsPost[]
+  newsApprovals     NewsApproval[]
+  
+  votesCreated      Vote[]
+  voteBallots       VoteBallot[]
+  voteRollcalls     VoteRollcall[]
+  
+  notifications     Notification[]
+  deviceTokens      UserDeviceToken[]
+  auditLogs         AuditLog[]
 
   @@index([eventId])
   @@index([teamId])
@@ -215,83 +229,273 @@ model Team {
 
   event       Event     @relation(fields: [eventId], references: [id])
   users       User[]
-  chatChannels ChatChannel[]
-  votingResponses VotingResponse[]
+  
+  chatRooms   ChatRoom[]
+  voteEligibilityTeams VoteEligibilityTeam[]
+  voteBallots VoteBallot[]
 
   @@unique([eventId, countryCode])
 }
 
-model ChatChannel {
-  id            String   @id @default(cuid())
-  eventId       String
-  name          String
-  isPrivate     Boolean  @default(false)
-  teamId        String?
-  allowedRoles  String[]
-  createdAt     DateTime @default(now())
+// ----------------------------------------------------------------------------
+// CHAT v2.1 (Rooms, Memberships, Reads)
+// ----------------------------------------------------------------------------
 
-  event         Event    @relation(fields: [eventId], references: [id])
-  team          Team?    @relation(fields: [teamId], references: [id])
-  messages      ChatMessage[]
+model ChatRoom {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String
+  roomType    String   // 'global', 'team', 'private'
+  teamId      String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  memberships ChatMembership[]
+  messages    ChatMessage[]
+  reads       ChatRead[]
+
+  @@index([eventId, roomType])
+  @@index([eventId, teamId])
+}
+
+model ChatMembership {
+  roomId    String
+  userId    String
+  role      String   @default("member") // 'owner', 'moderator', 'member'
+  joinedAt  DateTime @default(now())
+
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
+  @@index([userId])
+}
+
+model ChatRead {
+  roomId     String
+  userId     String
+  lastReadAt DateTime @default(now())
+
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
 }
 
 model ChatMessage {
-  id          String   @id @default(cuid())
-  channelId   String
-  userId      String
-  eventId     String
-  content     String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  eventId   String
+  roomId    String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+  replyToId String?
 
-  channel     ChatChannel @relation(fields: [channelId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
-  event       Event       @relation(fields: [eventId], references: [id])
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id])
+  replyTo   ChatMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   ChatMessage[] @relation("MessageReplies")
 
-  @@index([channelId])
+  @@index([roomId, createdAt])
 }
+
+// ----------------------------------------------------------------------------
+// NOTIFICATIONS v2.1
+// ----------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  type      String   // vote_opened, mention, news_published, etc.
+  title     String
+  body      String
+  deepLink  String?
+  priority  String   @default("normal") // low, normal, high, urgent
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([eventId, userId])
+}
+
+model UserDeviceToken {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   String   // web, ios, android
+  token      String
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+}
+
+// ----------------------------------------------------------------------------
+// VOTING v2.1 (Normalized Options & Ballots)
+// ----------------------------------------------------------------------------
+
+model Vote {
+  id              String   @id @default(cuid())
+  eventId         String
+  createdById     String
+  title           String
+  description     String?
+  ballotMode      String   // per_person, per_delegation
+  visibility      String   // public, secret
+  showLiveResults Boolean  @default(false)
+  quorumPercent   Int      @default(0)
+  openAt          DateTime?
+  closeAt         DateTime?
+  status          String   @default("draft") // draft, open, closed, cancelled
+  createdAt       DateTime @default(now())
+
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy       User     @relation(fields: [createdById], references: [id])
+
+  options         VoteOption[]
+  eligibilityRoles VoteEligibilityRole[]
+  eligibilityTeams VoteEligibilityTeam[]
+  ballots         VoteBallot[]
+  rollcalls       VoteRollcall[]
+
+  @@index([eventId, status, closeAt])
+}
+
+model VoteOption {
+  id        String   @id @default(cuid())
+  voteId    String
+  optionKey String
+  label     String
+  sortOrder Int      @default(0)
+
+  vote      Vote     @relation(fields: [voteId], references: [id], onDelete: Cascade)
+  casts     VoteCast[]
+
+  @@unique([voteId, optionKey])
+}
+
+model VoteEligibilityRole {
+  voteId String
+  role   String
+
+  vote   Vote   @relation(fields: [voteId], references: [id], onDelete: Cascade)
+
+  @@id([voteId, role])
+}
+
+model VoteEligibilityTeam {
+  voteId String
+  teamId String
+
+  vote   Vote   @relation(fields: [voteId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([voteId, teamId])
+}
+
+model VoteBallot {
+  id          String   @id @default(cuid())
+  voteId      String
+  eventId     String
+  voterUserId String?  // Optional for secret
+  voterTeamId String?
+  castAt      DateTime @default(now())
+
+  vote        Vote     @relation(fields: [voteId], references: [id], onDelete: Cascade)
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [voterUserId], references: [id])
+  team        Team?    @relation(fields: [voterTeamId], references: [id])
+  
+  cast        VoteCast?
+
+  @@unique([voteId, voterUserId]) // For per-person restriction
+}
+
+model VoteCast {
+  ballotId String   @id
+  optionId String
+
+  ballot   VoteBallot @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  option   VoteOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+}
+
+model VoteRollcall {
+  voteId    String
+  userId    String
+  optionKey String
+  castAt    DateTime @default(now())
+
+  vote      Vote     @relation(fields: [voteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@id([voteId, userId])
+}
+
+// ----------------------------------------------------------------------------
+// NEWSROOM v2.1 (Approvals)
+// ----------------------------------------------------------------------------
 
 model NewsPost {
   id          String   @id @default(cuid())
   eventId     String
   authorId    String
   title       String
-  content     String
-  published   Boolean  @default(false)
+  body        String   @db.Text
+  status      String   @default("draft") // draft, submitted, published, rejected
   publishedAt DateTime?
-  approvedBy  String[] 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  event       Event    @relation(fields: [eventId], references: [id])
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   author      User     @relation(fields: [authorId], references: [id])
+  approvals   NewsApproval[]
+
+  @@index([eventId, status, createdAt(sort: Desc)])
 }
 
-model VotingPoll {
-  id            String   @id @default(cuid())
-  eventId       String
-  creatorId     String
-  title         String
-  optionsJson   Json
-  isSecret      Boolean  @default(false)
-  quorumPercent Int      @default(0)
-  status        String   @default("draft")
-  createdAt     DateTime @default(now())
+model NewsApproval {
+  postId       String
+  approverId   String
+  approverRole String   // journalist, leader, admin
+  decision     String   // approve, reject
+  reason       String?  @db.Text
+  decidedAt    DateTime @default(now())
 
-  event         Event    @relation(fields: [eventId], references: [id])
-  creator       User     @relation(fields: [creatorId], references: [id])
-  responses     VotingResponse[]
+  post         NewsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  approver     User     @relation(fields: [approverId], references: [id], onDelete: Cascade)
+
+  @@id([postId, approverId])
+  @@index([postId, approverRole, decision])
 }
 
-model VotingResponse {
-  id          String   @id @default(cuid())
-  pollId      String
-  userId      String
-  teamId      String?
-  optionId    String
-  votedAt     DateTime @default(now())
+// ----------------------------------------------------------------------------
+// AUDIT LOG v2.1
+// ----------------------------------------------------------------------------
 
-  poll        VotingPoll @relation(fields: [pollId], references: [id])
-  user        User       @relation(fields: [userId], references: [id])
-  team        Team?      @relation(fields: [teamId], references: [id])
+model AuditLog {
+  id         String   @id @default(cuid())
+  eventId    String
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
 
-  @@unique([pollId, userId])
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@index([eventId, createdAt(sort: Desc)])
 }
