@@ -1,6 +1,6 @@
-# Simuvaction War Room V1
+# SimuVaction Commons Platform
 
-Desktop-first private web app for two teammates (Olivier + Yvette), built with Next.js App Router, TypeScript, Prisma, and Postgres.
+Desktop-first diplomatic simulation platform built with Next.js App Router, TypeScript, Prisma, and Postgres.
 
 ## Stack
 - Next.js (App Router) + TypeScript

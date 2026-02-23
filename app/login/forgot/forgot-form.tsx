@@ -37,7 +37,7 @@ export function ForgotPasswordForm() {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className="block text-sm font-medium text-zinc-700" htmlFor="email">Email assigné</label>
+                <label className="block text-sm font-medium text-zinc-700" htmlFor="email">Assigned email</label>
                 <input
                     id="email"
                     name="email"

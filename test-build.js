@@ -1,9 +1,11 @@
-const { execSync } = require('child_process');
+import { execSync } from "node:child_process";
+
 try {
-  const out = execSync('npm run build', { encoding: 'utf8', stdio: 'pipe' });
-  console.log('BUILD SUCCESS:\n', out);
-} catch (e) {
-  console.log('BUILD FAILED with error code:', e.status);
-  console.log('--- STDOUT ---\n', e.stdout);
-  console.log('--- STDERR ---\n', e.stderr);
+  const output = execSync("npm run build", { encoding: "utf8", stdio: "pipe" });
+  console.log("BUILD SUCCESS:\n", output);
+} catch (error) {
+  const typedError = /** @type {{status?: number, stdout?: string, stderr?: string}} */ (error);
+  console.log("BUILD FAILED with error code:", typedError.status);
+  console.log("--- STDOUT ---\n", typedError.stdout);
+  console.log("--- STDERR ---\n", typedError.stderr);
 }

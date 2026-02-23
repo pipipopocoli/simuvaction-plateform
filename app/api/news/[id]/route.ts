@@ -10,7 +10,7 @@ export async function GET(
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: postId } = await params;
-    const { eventId, role, userId } = session;
+    const { eventId, userId } = session;
 
     try {
         const post = await prisma.newsPost.findUnique({

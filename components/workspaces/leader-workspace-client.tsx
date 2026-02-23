@@ -1,131 +1,111 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCircle2, FileCheck2, Info, LayoutDashboard } from "lucide-react";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
-import { CheckCircle2, Info, LayoutDashboard, FileCheck2, Settings } from "lucide-react";
+import { Panel, StatTile, StatusBadge } from "@/components/ui/commons";
 
-export function LeaderWorkspaceClient({ userId, role }: { userId: string, role: string }) {
-    const [activeTab, setActiveTab] = useState("dashboard");
+export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-    const tabs = [
-        { id: "dashboard", label: "Dashboard" },
-        { id: "votes", label: "Votes (Admin)" },
-        { id: "approvals", label: "Approvals" },
-        { id: "messages", label: "Global Messages" }
-    ];
+  const tabs = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "votes", label: "Votes" },
+    { id: "approvals", label: "Approvals" },
+    { id: "messages", label: "Messages" },
+  ];
 
-    return (
-        <div className="flex flex-col lg:flex-row gap-8 font-sans text-ink">
+  return (
+    <div className="grid gap-6 xl:grid-cols-12">
+      <div className="xl:col-span-8">
+        <Panel>
+          <div className="mb-4 flex flex-wrap border-b border-ink-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === tab.id
+                    ? "border-b-2 border-alert-red text-alert-red"
+                    : "text-ink/55 hover:text-ink"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Internal Navigation Tabs */}
-                <div className="flex overflow-x-auto border-b-2 border-ink-border mb-6 no-scrollbar">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${activeTab === tab.id
-                                ? "text-alert-red border-b-2 border-alert-red -mb-[2px]"
-                                : "text-ink/50 hover:text-ink/80 hover:bg-ink/5"
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* TAB CONTENT */}
-                <div className="bg-white border border-ink-border rounded-sm p-6 shadow-sm min-h-[500px]">
-
-                    {activeTab === "dashboard" && (
-                        <div className="space-y-6 animate-in fade-in duration-300">
-                            <h2 className="text-xl font-serif font-bold mb-4 flex items-center gap-2">
-                                <LayoutDashboard className="w-5 h-5 text-alert-red" /> Global Command
-                            </h2>
-                            <p className="text-sm text-ink/70 mb-4">Vue d'ensemble des métriques de la session actuelle.</p>
-
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="border border-ink-border p-4 rounded-sm bg-ivory">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Délégations</h4>
-                                    <p className="text-3xl font-serif font-bold text-ink mt-2">12</p>
-                                </div>
-                                <div className="border border-ink-border p-4 rounded-sm bg-ivory">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Résolutions Passées</h4>
-                                    <p className="text-3xl font-serif font-bold text-ink mt-2">4</p>
-                                </div>
-                                <div className="border border-alert-red/30 p-4 rounded-sm bg-alert-red/5">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-alert-red flex justify-between">
-                                        Votes Actifs <span className="relative flex h-2 w-2 mt-0.5"><span className="animate-ping absolute h-full w-full rounded-full bg-alert-red opacity-75"></span><span className="relative rounded-full h-2 w-2 bg-alert-red"></span></span>
-                                    </h4>
-                                    <p className="text-3xl font-serif font-bold text-alert-red mt-2">1</p>
-                                </div>
-                                <div className="border border-ink-border p-4 rounded-sm bg-ivory">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Articles en Attente</h4>
-                                    <p className="text-3xl font-serif font-bold text-ink mt-2">3</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "votes" && (
-                        <div className="animate-in fade-in duration-300">
-                            <h2 className="text-xl font-serif font-bold mb-4 flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5 text-ink-blue" /> Gestion des Résolutions
-                            </h2>
-                            <p className="text-sm text-ink/70 mb-6">Contrôlez les scrutins, ajustez les règles de quorum et suivez la participation en direct.</p>
-                            <AdminVotePanel />
-                        </div>
-                    )}
-
-                    {activeTab === "approvals" && (
-                        <div className="animate-in fade-in duration-300">
-                            <h2 className="text-xl font-serif font-bold mb-4 flex items-center gap-2">
-                                <FileCheck2 className="w-5 h-5 text-alert-red" /> Approbation des Dépêches
-                            </h2>
-                            <p className="text-sm text-ink/70 mb-6">Validation finale des articles. (Requiert 2 approbations préalables de journalistes).</p>
-                            <LeaderNewsApprovalPanel userId={userId} />
-                        </div>
-                    )}
-
-                    {activeTab !== "dashboard" && activeTab !== "votes" && activeTab !== "approvals" && (
-                        <div className="flex flex-col items-center justify-center h-full text-ink/40 space-y-4 py-20">
-                            <Info className="w-8 h-8 opacity-50" />
-                            <p className="text-sm font-medium text-center max-w-sm">Le module {tabs.find((t) => t.id === activeTab)?.label} du Leader est en cours de développement.</p>
-                        </div>
-                    )}
-
-                </div>
+          {activeTab === "dashboard" ? (
+            <div>
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <LayoutDashboard className="h-6 w-6 text-alert-red" /> Command Dashboard
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Global metrics for this simulation event.</p>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <StatTile label="Delegations" value="12" />
+                <StatTile label="Passed resolutions" value="4" />
+                <StatTile label="Active votes" value="1" tone="alert" />
+                <StatTile label="Articles pending" value="3" tone="accent" />
+              </div>
             </div>
+          ) : null}
 
-            {/* SIDEBAR: System Alerts & Queue */}
-            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
-
-                {/* Pending Actions */}
-                <div className="bg-white border border-alert-red/30 rounded-sm shadow-sm overflow-hidden">
-                    <div className="bg-alert-red/10 border-b border-alert-red/20 text-alert-red p-4 flex justify-between items-center">
-                        <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <FileCheck2 className="w-4 h-4" /> Approbations
-                        </h3>
-                        <span className="bg-alert-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">3</span>
-                    </div>
-                    <div className="divide-y divide-ink-border">
-                        <div className="p-4 hover:bg-ivory cursor-pointer transition-colors group">
-                            <div className="flex justify-between items-start mb-1">
-                                <span className="text-[10px] font-bold uppercase text-ink">Newsroom</span>
-                                <span className="text-[10px] text-ink/50 font-mono">10:05</span>
-                            </div>
-                            <p className="text-sm font-semibold group-hover:text-ink-blue transition-colors leading-tight">Crise en Méditerranée Centrale</p>
-                            <p className="text-xs text-ink/70 mt-1 line-clamp-1">Par Journaliste Principal</p>
-                            <div className="flex gap-2 mt-3">
-                                <button className="flex-1 bg-ink text-ivory text-xs font-bold py-1.5 rounded-sm hover:bg-ink-blue">Review</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+          {activeTab === "votes" ? (
+            <div>
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <CheckCircle2 className="h-6 w-6 text-ink-blue" /> Resolution Management
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Launch ballots, set quorum, and monitor participation.</p>
+              <AdminVotePanel />
             </div>
-        </div>
-    );
+          ) : null}
+
+          {activeTab === "approvals" ? (
+            <div>
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <FileCheck2 className="h-6 w-6 text-alert-red" /> News Approval
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Finalize newsroom content once journalist quorum is reached.</p>
+              <LeaderNewsApprovalPanel userId={userId} />
+            </div>
+          ) : null}
+
+          {activeTab === "messages" ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center text-ink/55">
+              <Info className="h-8 w-8" />
+              <p className="text-sm">Global moderation tools for leadership messages are rolling out.</p>
+            </div>
+          ) : null}
+        </Panel>
+      </div>
+
+      <div className="space-y-4 xl:col-span-4">
+        <Panel variant="soft">
+          <div className="flex items-center justify-between">
+            <h3 className="font-serif text-2xl font-bold text-ink">Leadership Queue</h3>
+            <StatusBadge tone="alert">3 pending</StatusBadge>
+          </div>
+          <div className="mt-3 space-y-3">
+            <div className="rounded-lg border border-ink-border bg-white p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Newsroom</p>
+              <p className="mt-1 text-sm font-semibold text-ink">Mediterranean crisis brief</p>
+              <p className="mt-1 text-xs text-ink/65">Requires final leader vote.</p>
+            </div>
+            <div className="rounded-lg border border-ink-border bg-white p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Parliament</p>
+              <p className="mt-1 text-sm font-semibold text-ink">Quorum check in progress</p>
+              <p className="mt-1 text-xs text-ink/65">Climate package vote is at 68% participation.</p>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Current operator</p>
+          <p className="mt-2 font-serif text-2xl font-bold text-ink">{role.toUpperCase()}</p>
+          <p className="mt-1 text-sm text-ink/65">Identity: {userId.slice(0, 10)}</p>
+        </Panel>
+      </div>
+    </div>
+  );
 }

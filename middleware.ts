@@ -6,8 +6,11 @@ function isPublicPath(rawPathname: string): boolean {
   const pathname = rawPathname === "/" ? "/" : rawPathname.replace(/\/$/, "");
 
   if (pathname === "/login") return true;
+  if (pathname === "/login/forgot") return true;
+  if (pathname === "/auth/reset") return true;
   if (pathname === "/api/auth/login") return true;
   if (pathname === "/api/auth/logout") return true;
+  if (pathname === "/api/auth/reset") return true;
 
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
 

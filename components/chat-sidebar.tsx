@@ -1,99 +1,102 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Hash, Target, Lock } from "lucide-react";
+import { Hash, Lock, MessageSquare, Target } from "lucide-react";
+import { StatusBadge } from "@/components/ui/commons";
 
 type ChatRoom = {
-    id: string;
-    name: string;
-    roomType: string;
-    _count?: { messages: number };
+  id: string;
+  name: string;
+  roomType: string;
+  _count?: { messages: number };
 };
 
 export function ChatSidebar({ currentRoomId }: { currentRoomId?: string }) {
-    const [rooms, setRooms] = useState<ChatRoom[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchRooms() {
-            try {
-                const res = await fetch("/api/chat/rooms");
-                if (res.ok) {
-                    const data = await res.json();
-                    setRooms(data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch rooms:", error);
-            } finally {
-                setIsLoading(false);
-            }
+  useEffect(() => {
+    async function fetchRooms() {
+      try {
+        const response = await fetch("/api/chat/rooms");
+        if (!response.ok) {
+          return;
         }
-        fetchRooms();
-    }, []);
 
-    return (
-        <div className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col h-[calc(100vh-80px)] overflow-hidden rounded-l-lg">
-            <div className="p-4 border-b border-zinc-800 font-semibold text-zinc-100 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-zinc-400" />
-                Diplomatic Comms
-            </div>
+        const data = (await response.json()) as ChatRoom[];
+        setRooms(data);
+      } catch (error) {
+        console.error("Failed to fetch rooms:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-6">
-                {isLoading ? (
-                    <div className="text-zinc-500 text-sm p-2 animate-pulse">Loading channels...</div>
-                ) : (
-                    <>
-                        <div>
-                            <div className="text-xs font-bold tracking-wider text-zinc-500 uppercase mb-2 px-2">Global Channels</div>
-                            <div className="space-y-0.5">
-                                {rooms.filter(r => r.roomType === "global").map(room => (
-                                    <Link
-                                        key={room.id}
-                                        href={`/chat/${room.id}`}
-                                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition ${currentRoomId === room.id ? "bg-zinc-800 text-white font-medium" : ""}`}
-                                    >
-                                        <Hash className="w-4 h-4 text-zinc-500" />
-                                        <span className="truncate">{room.name}</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
+    fetchRooms();
+  }, []);
 
-                        <div>
-                            <div className="text-xs font-bold tracking-wider text-zinc-500 uppercase mb-2 px-2">Private Comms</div>
-                            <div className="space-y-0.5">
-                                {rooms.filter(r => r.roomType === "private").map(room => (
-                                    <Link
-                                        key={room.id}
-                                        href={`/workspace/chat/${room.id}`}
-                                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition ${currentRoomId === room.id ? "bg-zinc-800 text-white font-medium" : ""}`}
-                                    >
-                                        <Lock className="w-4 h-4 text-zinc-500" />
-                                        <span className="truncate">{room.name}</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
+  const sections = useMemo(
+    () => [
+      { key: "global", label: "Global channels", icon: Hash },
+      { key: "team", label: "Team channels", icon: Target },
+      { key: "private", label: "Private channels", icon: Lock },
+    ],
+    [],
+  );
 
-                        <div>
-                            <div className="text-xs font-bold tracking-wider text-zinc-500 uppercase mb-2 px-2">Team Factions</div>
-                            <div className="space-y-0.5">
-                                {rooms.filter(r => r.roomType === "team").map(room => (
-                                    <Link
-                                        key={room.id}
-                                        href={`/workspace/chat/${room.id}`}
-                                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition ${currentRoomId === room.id ? "bg-zinc-800 text-white font-medium" : ""}`}
-                                    >
-                                        <Target className="w-4 h-4 text-zinc-500" />
-                                        <span className="truncate">{room.name}</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
+  return (
+    <aside className="w-full max-w-[300px] rounded-l-xl border border-ink-border bg-white">
+      <div className="flex items-center justify-between border-b border-ink-border px-4 py-3">
+        <h2 className="flex items-center gap-2 font-serif text-2xl font-bold text-ink">
+          <MessageSquare className="h-5 w-5 text-ink-blue" /> Messages
+        </h2>
+        <StatusBadge tone="live">LIVE</StatusBadge>
+      </div>
+
+      <div className="h-[calc(100vh-190px)] overflow-y-auto px-3 py-4">
+        {isLoading ? (
+          <p className="px-2 text-sm text-ink/55">Loading channels...</p>
+        ) : (
+          <div className="space-y-5">
+            {sections.map((section) => {
+              const items = rooms.filter((room) => room.roomType === section.key);
+              if (items.length === 0) {
+                return null;
+              }
+
+              const Icon = section.icon;
+              return (
+                <section key={section.key}>
+                  <p className="mb-2 flex items-center gap-2 px-2 text-[11px] font-bold uppercase tracking-[0.12em] text-ink/55">
+                    <Icon className="h-3.5 w-3.5" />
+                    {section.label}
+                  </p>
+                  <div className="space-y-1">
+                    {items.map((room) => {
+                      const active = room.id === currentRoomId;
+                      return (
+                        <Link
+                          key={room.id}
+                          href={`/chat/${room.id}`}
+                          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
+                            active
+                              ? "border border-ink-blue bg-blue-50 text-ink-blue"
+                              : "border border-transparent text-ink/75 hover:border-ink-border hover:bg-ivory"
+                          }`}
+                        >
+                          <span className="truncate">{room.name}</span>
+                          <span className="text-xs text-ink/45">{room._count?.messages ?? 0}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
 }

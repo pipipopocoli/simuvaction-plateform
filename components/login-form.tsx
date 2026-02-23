@@ -3,11 +3,15 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+type CredentialMode = "password" | "passphrase";
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [secret, setSecret] = useState("");
+  const [mode, setMode] = useState<CredentialMode>("password");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
 
@@ -17,24 +21,35 @@ export function LoginForm() {
     setIsPending(true);
 
     try {
+      const body =
+        mode === "password"
+          ? { email, pass: secret }
+          : { email, passphrase: secret };
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pass: password }),
+        body: JSON.stringify(body),
       });
 
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         if (response.status === 429) {
-          setError(`Trop de tentatives. Réessayez dans ${payload.retryAfterSeconds ?? "quelques"} secondes.`);
+          setError(`Too many attempts. Retry in ${payload.retryAfterSeconds ?? "a few"} seconds.`);
           return;
         }
-        setError(payload.error ?? "Échec de connexion.");
+
+        setError(payload.error ?? "Login failed.");
         return;
       }
 
-      // Redirect to specific workspace based on role or fallback to requested URL
+      if (payload.mustChangePassword) {
+        router.push("/auth/setup");
+        router.refresh();
+        return;
+      }
+
       const role = payload.role as string;
       const nextPath = searchParams.get("next");
 
@@ -55,51 +70,79 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-zinc-700" htmlFor="email">Email Address</label>
+        <label className="block text-sm font-medium text-zinc-700" htmlFor="email">
+          Email
+        </label>
         <input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="delegue.france@simuvaction.com"
-          className="mt-1 w-full rounded border border-zinc-400 bg-white px-3 py-2 text-zinc-900 outline-none ring-zinc-700 focus:ring-2"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="delegate.france@simuvaction.com"
+          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none ring-zinc-700 focus:ring-2"
           required
         />
       </div>
 
       <div>
-        <div className="flex justify-between items-center">
-          <label className="block text-sm font-medium text-zinc-700" htmlFor="password">Password</label>
-          <a href="/login/forgot" className="text-xs text-zinc-500 hover:text-black hover:underline transition-colors mt-0">
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-sm font-medium text-zinc-700" htmlFor="secret">
+            {mode === "password" ? "Password" : "Legacy passphrase"}
+          </label>
+          <a
+            href="/login/forgot"
+            className="text-xs text-zinc-500 transition-colors hover:text-black hover:underline"
+          >
             Forgot password?
           </a>
         </div>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-[10px] text-zinc-500">Par défaut: 1234</span>
-        </div>
+
         <input
-          id="password"
-          name="password"
+          id="secret"
+          name="secret"
           type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password..."
-          className="mt-1 w-full rounded border border-zinc-400 bg-white px-3 py-2 text-zinc-900 outline-none ring-zinc-700 focus:ring-2"
+          value={secret}
+          onChange={(event) => setSecret(event.target.value)}
+          placeholder={mode === "password" ? "Enter your account password" : "Enter legacy passphrase"}
+          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none ring-zinc-700 focus:ring-2"
           required
         />
       </div>
 
-      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Login mode</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setMode("password")}
+            className={`rounded-md px-2 py-1.5 text-xs font-semibold transition ${
+              mode === "password" ? "bg-blue-900 text-white" : "bg-white text-zinc-600"
+            }`}
+          >
+            Individual password
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("passphrase")}
+            className={`rounded-md px-2 py-1.5 text-xs font-semibold transition ${
+              mode === "passphrase" ? "bg-blue-900 text-white" : "bg-white text-zinc-600"
+            }`}
+          >
+            Legacy passphrase
+          </button>
+        </div>
+      </div>
+
+      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 w-full rounded-none bg-[#1E3A8A] px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-4 w-full rounded-lg bg-[#1E3A8A] px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Authenticating..." : "Enter War Room"}
+        {isPending ? "Authenticating..." : "Enter Commons"}
       </button>
     </form>
   );

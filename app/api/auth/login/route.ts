@@ -13,7 +13,10 @@ import {
 
 const loginSchema = z.object({
   email: z.string().email(),
-  passphrase: z.string().min(1),
+  pass: z.string().min(1).optional(),
+  passphrase: z.string().min(1).optional(),
+}).refine((value) => Boolean(value.pass || value.passphrase), {
+  message: "Either pass or passphrase is required.",
 });
 
 export async function POST(request: NextRequest) {
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
     }
 
-    const { email, passphrase } = parsed.data;
+    const { email, pass, passphrase } = parsed.data;
 
     // Rate limiting
     const ip = extractIpFromHeaders(request.headers);
@@ -41,41 +44,57 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // Emergency Bypass
-    if (passphrase === "1234") {
-      await recordPassphraseAttempt(ipHash, true);
-      // Skip the rest and authorize immediately
-    } else {
-      // Check global passphrase
-      const hashB64 = process.env["WARROOM_PASSPHRASE_BCRYPT_HASH_B64"];
-      const decodedHash = hashB64 ? Buffer.from(hashB64, "base64").toString("utf8") : undefined;
-      const bcryptHash = decodedHash ?? process.env["WARROOM_PASSPHRASE_BCRYPT_HASH"] ?? process.env["APP_PASSPHRASE_BCRYPT_HASH"];
-
-      if (!bcryptHash) {
-        return NextResponse.json({ error: "Erreur de configuration du serveur : le mot de passe global est manquant." }, { status: 500 });
-      }
-
-      const isPassphraseValid = await bcrypt.compare(passphrase, bcryptHash);
-      await recordPassphraseAttempt(ipHash, isPassphraseValid);
-
-      if (!isPassphraseValid) {
-        return NextResponse.json({ error: "Passphrase global incorrect." }, { status: 401 });
-      }
-    }
-
-    // Lookup user in DB
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Utilisateur non trouvé avec cet email." }, { status: 404 });
+      await recordPassphraseAttempt(ipHash, false);
+      return NextResponse.json({ error: "User not found for this email." }, { status: 404 });
     }
 
-    // Create token with role-based auth payload
-    const jwt = await createSessionJwt(user.id, user.role, user.eventId, user.teamId);
+    let isAuthValid = false;
 
-    const response = NextResponse.json({ ok: true, role: user.role });
+    if (pass) {
+      isAuthValid = await bcrypt.compare(pass, user.hashedPassword);
+    } else {
+      const hashB64 = process.env["WARROOM_PASSPHRASE_BCRYPT_HASH_B64"];
+      const decodedHash = hashB64 ? Buffer.from(hashB64, "base64").toString("utf8") : undefined;
+      const bcryptHash =
+        decodedHash ??
+        process.env["WARROOM_PASSPHRASE_BCRYPT_HASH"] ??
+        process.env["APP_PASSPHRASE_BCRYPT_HASH"];
+
+      if (!bcryptHash) {
+        return NextResponse.json(
+          { error: "Server configuration error: global passphrase hash is missing." },
+          { status: 500 },
+        );
+      }
+
+      isAuthValid = await bcrypt.compare(passphrase ?? "", bcryptHash);
+    }
+
+    await recordPassphraseAttempt(ipHash, isAuthValid);
+    if (!isAuthValid) {
+      return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+    }
+
+    const jwt = await createSessionJwt({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      teamId: user.teamId,
+      eventId: user.eventId,
+      mustChangePassword: user.mustChangePassword,
+    });
+
+    const response = NextResponse.json({
+      ok: true,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    });
 
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
@@ -88,8 +107,10 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login Crash:", error);
-    return NextResponse.json({ error: error.message || "Unknown error", stack: error.stack }, { status: 500 });
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

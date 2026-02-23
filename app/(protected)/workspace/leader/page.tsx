@@ -13,9 +13,9 @@ export default async function LeaderWorkspace() {
             <div className="mb-8">
                 <h1 className="text-3xl font-serif font-bold tracking-tight text-alert-red flex items-center gap-3">
                     <span className="w-3 h-3 rounded-full bg-alert-red animate-pulse" />
-                    Haut Commandement
+                    Leadership Command
                 </h1>
-                <p className="text-ink/60 text-sm mt-2">Zone sécurisée. Vous avez les pleins pouvoirs analytiques et administratifs sur la simulation.</p>
+                <p className="mt-2 text-sm text-ink/60">Secured area with full analytical and administrative authority for the simulation.</p>
             </div>
 
             <LeaderWorkspaceClient userId={session.userId} role={session.role} />

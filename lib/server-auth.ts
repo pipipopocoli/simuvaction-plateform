@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { verifySessionJwt, SessionPayload } from "@/lib/auth";
+import { verifySessionJwt, type SessionPayload } from "@/lib/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
 export async function getUserSession(): Promise<SessionPayload | null> {

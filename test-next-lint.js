@@ -1,17 +1,19 @@
-const { execSync } = require('child_process');
+import { execSync } from "node:child_process";
+
 try {
-  // We bypass the npm wrapper and invoke next lint directly
   console.log("Running ESLint...");
-  const out = execSync('npx eslint .', { encoding: 'utf8', stdio: 'pipe' });
-  console.log('LINT SUCCESS:\n', out);
-} catch (e) {
-  console.log('LINT FAILED:\n', e.stdout);
+  const lintOutput = execSync("npx eslint .", { encoding: "utf8", stdio: "pipe" });
+  console.log("LINT SUCCESS:\n", lintOutput);
+} catch (error) {
+  const typedError = /** @type {{stdout?: string}} */ (error);
+  console.log("LINT FAILED:\n", typedError.stdout);
 }
 
 try {
   console.log("\nRunning TSC...");
-  const out2 = execSync('npx tsc --noEmit', { encoding: 'utf8', stdio: 'pipe' });
-  console.log('TSC SUCCESS:\n', out2);
-} catch (e) {
-  console.log('TSC FAILED:\n', e.stdout);
+  const tscOutput = execSync("npx tsc --noEmit", { encoding: "utf8", stdio: "pipe" });
+  console.log("TSC SUCCESS:\n", tscOutput);
+} catch (error) {
+  const typedError = /** @type {{stdout?: string}} */ (error);
+  console.log("TSC FAILED:\n", typedError.stdout);
 }

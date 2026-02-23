@@ -1,151 +1,186 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Users, Eye, EyeOff } from "lucide-react";
+import { Plus, Users, X } from "lucide-react";
+import { ActionButton, Panel, StatusBadge } from "@/components/ui/commons";
 
 export function AdminVotePanel() {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [options, setOptions] = useState<string[]>(["Pour", "Contre", "Abstention"]);
-    const [visibility, setVisibility] = useState<"public" | "secret">("public");
-    const [ballotMode, setBallotMode] = useState<"per_delegation" | "per_person">("per_delegation");
-    const [quorumPercent, setQuorumPercent] = useState<number>(50);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [options, setOptions] = useState<string[]>(["Yes", "No", "Abstain"]);
+  const [visibility, setVisibility] = useState<"public" | "secret">("public");
+  const [ballotMode, setBallotMode] = useState<"per_delegation" | "per_person">("per_delegation");
+  const [quorumPercent, setQuorumPercent] = useState<number>(50);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleCreateVote = async () => {
-        if (!title.trim() || options.length < 2) return;
+  async function handleCreateVote() {
+    if (!title.trim() || options.filter((option) => option.trim()).length < 2) {
+      return;
+    }
 
-        setIsSubmitting(true);
-        try {
-            const res = await fetch("/api/votes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title,
-                    description,
-                    status: "active", // Activate immediately for testing
-                    visibility,
-                    ballotMode,
-                    quorumPercent,
-                    options: options.filter(o => o.trim() !== "")
-                })
-            });
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/votes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          status: "active",
+          visibility,
+          voteType: ballotMode,
+          quorumPercent,
+          options: options.filter((option) => option.trim() !== ""),
+        }),
+      });
 
-            if (res.ok) {
-                setTitle("");
-                setDescription("");
-                // Refresh or trigger event
-                alert("Vote lancé avec succès !");
-            } else {
-                const data = await res.json();
-                alert(`Erreur: ${data.error}`);
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "Vote creation failed." }));
+        alert(payload.error ?? "Vote creation failed.");
+        return;
+      }
 
-    const addOption = () => setOptions([...options, ""]);
-    const updateOption = (index: number, val: string) => {
-        const newOpts = [...options];
-        newOpts[index] = val;
-        setOptions(newOpts);
-    };
-    const removeOption = (index: number) => {
-        setOptions(options.filter((_, i) => i !== index));
-    };
+      setTitle("");
+      setDescription("");
+      setOptions(["Yes", "No", "Abstain"]);
+      alert("Vote launched successfully.");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
-    return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Lancer un Votem (Admin)
-            </h2>
+  function addOption() {
+    setOptions((prev) => [...prev, ""]);
+  }
 
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wider">Titre de la Résolution</label>
-                    <input
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500 transition"
-                        placeholder="Ex: Résolution 45-B sur le Climat"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                </div>
+  function updateOption(index: number, value: string) {
+    setOptions((prev) => prev.map((option, idx) => (idx === index ? value : option)));
+  }
 
-                <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wider">Description (Optionnel)</label>
-                    <textarea
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500 transition min-h-24"
-                        placeholder="Détails du vote..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                    />
-                </div>
+  function removeOption(index: number) {
+    setOptions((prev) => prev.filter((_, idx) => idx !== index));
+  }
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wider">Mode de Scrutin</label>
-                        <select
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500"
-                            value={visibility}
-                            onChange={(e) => setVisibility(e.target.value as "public" | "secret")}
-                        >
-                            <option value="public">Publique (Main Levée)</option>
-                            <option value="secret">Secret (Urne fermée)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wider">Type de Quota</label>
-                        <select
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500"
-                            value={ballotMode}
-                            onChange={(e) => setBallotMode(e.target.value as "per_delegation" | "per_person")}
-                        >
-                            <option value="per_delegation">1 Vote par Pays (Délégation)</option>
-                            <option value="per_person">1 Vote par Personne</option>
-                        </select>
-                    </div>
-                </div>
+  return (
+    <Panel className="space-y-5 p-4" variant="soft">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-serif text-2xl font-bold text-ink">
+          <Users className="h-5 w-5 text-ink-blue" /> Launch Vote
+        </h3>
+        <StatusBadge tone="live">Admin</StatusBadge>
+      </div>
 
-                <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Les Options de Vote</label>
-                    <div className="space-y-2">
-                        {options.map((opt, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <input
-                                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500 transition"
-                                    value={opt}
-                                    onChange={(e) => updateOption(i, e.target.value)}
-                                />
-                                {options.length > 2 && (
-                                    <button onClick={() => removeOption(i)} className="p-2 text-zinc-500 hover:text-red-400 transition" title="Retirer">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    <button
-                        onClick={addOption}
-                        className="mt-3 flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition"
-                    >
-                        <Plus className="w-4 h-4" /> Ajouter une option
-                    </button>
-                </div>
+      <div>
+        <label htmlFor="vote-title" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+          Resolution title
+        </label>
+        <input
+          id="vote-title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="mt-1 w-full rounded-lg border border-ink-border bg-white px-3 py-2 text-sm outline-none focus:border-ink-blue"
+          placeholder="Climate Accord Amendment"
+        />
+      </div>
 
-                <div className="pt-4 border-t border-zinc-800">
-                    <button
-                        onClick={handleCreateVote}
-                        disabled={isSubmitting || !title.trim() || options.length < 2}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? "Lancement en cours..." : "Lancer le Vote Maintenant"}
-                    </button>
-                </div>
-            </div>
+      <div>
+        <label htmlFor="vote-description" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+          Description
+        </label>
+        <textarea
+          id="vote-description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          className="mt-1 min-h-24 w-full rounded-lg border border-ink-border bg-white px-3 py-2 text-sm outline-none focus:border-ink-blue"
+          placeholder="Add context and voting scope"
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <label htmlFor="vote-visibility" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+            Ballot visibility
+          </label>
+          <select
+            id="vote-visibility"
+            value={visibility}
+            onChange={(event) => setVisibility(event.target.value as "public" | "secret")}
+            className="mt-1 w-full rounded-lg border border-ink-border bg-white px-3 py-2 text-sm outline-none focus:border-ink-blue"
+          >
+            <option value="public">Public</option>
+            <option value="secret">Secret</option>
+          </select>
         </div>
-    );
+
+        <div>
+          <label htmlFor="vote-mode" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+            Ballot mode
+          </label>
+          <select
+            id="vote-mode"
+            value={ballotMode}
+            onChange={(event) => setBallotMode(event.target.value as "per_delegation" | "per_person")}
+            className="mt-1 w-full rounded-lg border border-ink-border bg-white px-3 py-2 text-sm outline-none focus:border-ink-blue"
+          >
+            <option value="per_delegation">Per delegation</option>
+            <option value="per_person">Per person</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="vote-quorum" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+          Quorum requirement ({quorumPercent}%)
+        </label>
+        <input
+          id="vote-quorum"
+          type="range"
+          min={10}
+          max={100}
+          step={5}
+          value={quorumPercent}
+          onChange={(event) => setQuorumPercent(Number(event.target.value))}
+          className="mt-2 w-full accent-ink-blue"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">Vote options</label>
+        <div className="mt-2 space-y-2">
+          {options.map((option, index) => (
+            <div key={`${index}-${option}`} className="flex items-center gap-2">
+              <input
+                value={option}
+                onChange={(event) => updateOption(index, event.target.value)}
+                className="flex-1 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm outline-none focus:border-ink-blue"
+              />
+              {options.length > 2 ? (
+                <button
+                  onClick={() => removeOption(index)}
+                  className="rounded-lg border border-ink-border bg-white p-2 text-ink/60 transition hover:text-alert-red"
+                  title="Remove option"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        <button onClick={addOption} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-ink-blue hover:underline">
+          <Plus className="h-4 w-4" /> Add option
+        </button>
+      </div>
+
+      <ActionButton
+        onClick={handleCreateVote}
+        disabled={isSubmitting || !title.trim() || options.filter((option) => option.trim()).length < 2}
+        className="w-full"
+      >
+        {isSubmitting ? "Launching..." : "Launch vote now"}
+      </ActionButton>
+    </Panel>
+  );
 }

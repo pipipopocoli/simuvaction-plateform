@@ -14,7 +14,7 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   title: "SimuVaction Commons",
-  description: "Plateforme de simulation diplomatique interactive.",
+  description: "Interactive diplomatic simulation platform.",
 };
 
 export default function RootLayout({
@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} ${lora.variable}`}>
-      <body className="font-sans bg-[#FFFBF5] text-[#111827] antialiased selection:bg-blue-200 selection:text-blue-900 min-h-screen flex flex-col">
+    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
+      <body className="min-h-screen flex flex-col font-sans text-[#111827] antialiased selection:bg-blue-200 selection:text-blue-900">
         {children}
       </body>
     </html>

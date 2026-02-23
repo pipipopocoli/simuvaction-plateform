@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
     const filter = searchParams.get("filter") || "all";
 
     try {
-        let whereClause: any = { eventId };
+        let whereClause: Prisma.NewsPostWhereInput = { eventId };
 
         // Determine what a user can see based on their role and the requested filter
         if (role === "journalist") {

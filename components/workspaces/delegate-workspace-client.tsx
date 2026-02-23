@@ -1,170 +1,137 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCircle2, FileText, Info } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
-import { FileText, CheckCircle2, MessageSquare, Video, Info, Lock } from "lucide-react";
+import { ActionButton, Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
 
-export function DelegateWorkspaceClient({ userId, role }: { userId: string, role: string }) {
-    const [activeTab, setActiveTab] = useState("briefing");
+export function DelegateWorkspaceClient({ userId, role }: { userId: string; role: string }) {
+  const [activeTab, setActiveTab] = useState("briefing");
+  const [shortStance, setShortStance] = useState(
+    "Conditional support for the green fund if technology transfer guarantees are included.",
+  );
+  const [longStance, setLongStance] = useState("");
 
-    // Mock State for the Editor
-    const [shortStance, setShortStance] = useState("Soutien conditionnel au fonds vert à condition que les transferts technologiques soient garantis.");
-    const [longStance, setLongStance] = useState("");
+  const tabs = [
+    { id: "briefing", label: "Briefing" },
+    { id: "tasks", label: "Tasks" },
+    { id: "drafts", label: "Drafts" },
+    { id: "meetings", label: "Meetings" },
+    { id: "votes", label: "Votes" },
+    { id: "messages", label: "Messages" },
+  ];
 
-    const tabs = [
-        { id: "briefing", label: "Briefing" },
-        { id: "tasks", label: "Tasks" },
-        { id: "drafts", label: "Drafts" },
-        { id: "meetings", label: "Meetings" },
-        { id: "votes", label: "Votes" },
-        { id: "messages", label: "Messages" }
-    ];
+  return (
+    <div className="grid gap-6 xl:grid-cols-12">
+      <div className="xl:col-span-8">
+        <Panel>
+          <div className="mb-4 flex flex-wrap border-b border-ink-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === tab.id
+                    ? "border-b-2 border-ink-blue text-ink-blue"
+                    : "text-ink/55 hover:text-ink"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-    return (
-        <div className="flex flex-col lg:flex-row gap-8 font-sans text-ink">
+          {activeTab === "briefing" ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                  <FileText className="h-6 w-6 text-ink-blue" /> Position Paper
+                </h2>
+                <p className="mt-2 text-sm text-ink/70">
+                  Edit the official delegation stance. Leaders can validate this draft before publication.
+                </p>
+              </div>
 
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Internal Navigation Tabs */}
-                <div className="flex overflow-x-auto border-b-2 border-ink-border mb-6 no-scrollbar">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${activeTab === tab.id
-                                ? "text-ink-blue border-b-2 border-ink-blue -mb-[2px]"
-                                : "text-ink/50 hover:text-ink/80 hover:bg-ink/5"
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+              <div>
+                <label htmlFor="short-stance" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+                  Short stance (max 140)
+                </label>
+                <textarea
+                  id="short-stance"
+                  rows={2}
+                  value={shortStance}
+                  onChange={(event) => setShortStance(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-ink-border bg-ivory px-3 py-2 text-sm outline-none focus:border-ink-blue"
+                />
+              </div>
 
-                {/* TAB CONTENT */}
-                <div className="bg-white border border-ink-border rounded-sm p-6 shadow-sm min-h-[500px]">
+              <div>
+                <label htmlFor="long-stance" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+                  Internal notes
+                </label>
+                <textarea
+                  id="long-stance"
+                  value={longStance}
+                  onChange={(event) => setLongStance(event.target.value)}
+                  placeholder="Negotiation boundaries, red lines, and bilateral strategy."
+                  className="mt-1 min-h-[170px] w-full rounded-lg border border-ink-border bg-ivory px-3 py-2 text-sm outline-none focus:border-ink-blue"
+                />
+              </div>
 
-                    {activeTab === "briefing" && (
-                        <div className="space-y-6 animate-in fade-in duration-300">
-                            <div>
-                                <h2 className="text-xl font-serif font-bold mb-4 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-ink-blue" /> Position Paper
-                                </h2>
-                                <p className="text-sm text-ink/70 mb-4">Éditez la position officielle (stance) de votre délégation. Cette version sera soumise aux leaders et pourra être consultée par d'autres délégations si elle est rendue publique.</p>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-ink/60 mb-2">Stance Courte (140 caractères max)</label>
-                                        <textarea
-                                            className="w-full border border-ink-border bg-ivory focus:bg-white rounded-sm p-3 text-sm font-medium focus:outline-none focus:border-ink-blue transition-colors resize-none"
-                                            rows={2}
-                                            value={shortStance}
-                                            onChange={(e) => setShortStance(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-ink/60 mb-2">Notes Privées / Stance Longue</label>
-                                        <textarea
-                                            className="w-full border border-ink-border bg-ivory focus:bg-white rounded-sm p-3 text-sm focus:outline-none focus:border-ink-blue transition-colors min-h-[150px]"
-                                            placeholder="Stratégie interne, points de négociation non-négociables..."
-                                            value={longStance}
-                                            onChange={(e) => setLongStance(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="flex justify-end pt-2">
-                                        <button className="bg-ink text-ivory hover:bg-ink-blue transition-colors px-6 py-2 text-sm font-bold rounded-sm shadow-sm">
-                                            Submit to Leaders
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "votes" && (
-                        <div className="animate-in fade-in duration-300">
-                            <h2 className="text-xl font-serif font-bold mb-4 flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5 text-ink-blue" /> Salle des Votes
-                            </h2>
-                            <p className="text-sm text-ink/70 mb-6">Examinez les résolutions et scellez le vote de votre délégation.</p>
-                            <VoteDashboard currentUserId={userId} currentUserRole={role} />
-                        </div>
-                    )}
-
-                    {activeTab !== "briefing" && activeTab !== "votes" && (
-                        <div className="flex flex-col items-center justify-center h-full text-ink/40 space-y-4 py-20">
-                            <Info className="w-8 h-8 opacity-50" />
-                            <p className="text-sm font-medium text-center max-w-sm">Le module {tabs.find((t) => t.id === activeTab)?.label} est en cours de déploiement sécurisé par le haut commandement.</p>
-                        </div>
-                    )}
-
-                </div>
+              <div className="flex justify-end">
+                <ActionButton>Submit to leaders</ActionButton>
+              </div>
             </div>
+          ) : null}
 
-            {/* SIDEBAR: Inbox & Deadlines */}
-            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
-
-                {/* Inbox Widget */}
-                <div className="bg-white border border-ink-border rounded-sm shadow-sm overflow-hidden">
-                    <div className="bg-ink text-ivory p-4 flex justify-between items-center">
-                        <h3 className="text-sm font-bold uppercase tracking-wider">Inbox</h3>
-                        <span className="bg-alert-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">2</span>
-                    </div>
-                    <div className="divide-y divide-ink-border">
-                        <div className="p-4 hover:bg-ivory cursor-pointer transition-colors group">
-                            <div className="flex justify-between items-start mb-1">
-                                <span className="text-[10px] font-bold uppercase text-ink-blue">Invitation</span>
-                                <span className="text-[10px] text-ink/50 font-mono">10:05</span>
-                            </div>
-                            <p className="text-sm font-semibold group-hover:text-ink-blue transition-colors">Réunion bilatérale requise</p>
-                            <p className="text-xs text-ink/70 mt-1">La délégation Européenne sollicite un entretien vidéo concernant la résolution Arctique.</p>
-                            <div className="flex gap-2 mt-3">
-                                <button className="flex-1 bg-ink text-ivory text-xs font-bold py-1.5 rounded-sm hover:bg-ink-blue">Accepter</button>
-                                <button className="flex-1 bg-ink-border text-ink text-xs font-bold py-1.5 rounded-sm hover:bg-zinc-300">Décliner</button>
-                            </div>
-                        </div>
-                        <div className="p-4 hover:bg-ivory cursor-pointer transition-colors group">
-                            <div className="flex justify-between items-start mb-1">
-                                <span className="text-[10px] font-bold uppercase text-ink">Système</span>
-                                <span className="text-[10px] text-ink/50 font-mono">Hier</span>
-                            </div>
-                            <p className="text-sm font-semibold group-hover:text-ink-blue transition-colors">Stance approuvée</p>
-                            <p className="text-xs text-ink/70 mt-1">Les Leaders ont validé votre draft de position paper V1.2.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Upcoming Deadlines Widget */}
-                <div className="bg-ivory border border-ink-border rounded-sm shadow-sm overflow-hidden">
-                    <div className="border-b border-ink-border p-4">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-ink/60">Upcoming Deadlines</h3>
-                    </div>
-                    <div className="p-4 space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="flex flex-col items-center justify-center bg-white border border-alert-red/30 w-10 h-11 rounded-sm shadow-sm">
-                                <span className="text-[10px] font-bold text-alert-red uppercase">FEV</span>
-                                <span className="text-sm font-bold text-ink leading-none">23</span>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-ink">Fermeture des Votes</h4>
-                                <p className="text-xs text-ink/60 mt-0.5">La Résolution sur le Climat clôture à 14h00.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                            <div className="flex flex-col items-center justify-center bg-white border border-ink-border w-10 h-11 rounded-sm shadow-sm">
-                                <span className="text-[10px] font-bold text-ink/50 uppercase">FEV</span>
-                                <span className="text-sm font-bold text-ink leading-none">24</span>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-ink">Comité de Rédaction</h4>
-                                <p className="text-xs text-ink/60 mt-0.5">Dépôt final des amendements.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+          {activeTab === "votes" ? (
+            <div>
+              <h2 className="mb-2 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <CheckCircle2 className="h-6 w-6 text-ink-blue" /> Voting Room
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Review active resolutions and cast your delegation ballot.</p>
+              <VoteDashboard currentUserId={userId} currentUserRole={role} />
             </div>
-        </div>
-    );
+          ) : null}
+
+          {activeTab !== "briefing" && activeTab !== "votes" ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center text-ink/55">
+              <Info className="h-8 w-8" />
+              <p className="text-sm">This workspace module is active in progressive rollout for delegates.</p>
+            </div>
+          ) : null}
+        </Panel>
+      </div>
+
+      <div className="space-y-4 xl:col-span-4">
+        <Panel>
+          <div className="flex items-center justify-between">
+            <h3 className="font-serif text-2xl font-bold text-ink">Inbox</h3>
+            <StatusBadge tone="alert">2</StatusBadge>
+          </div>
+
+          <div className="mt-3 space-y-3">
+            <div className="rounded-lg border border-ink-border bg-ivory p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-blue">Invitation</p>
+              <p className="mt-1 text-sm font-semibold text-ink">Bilateral request received</p>
+              <p className="mt-1 text-xs text-ink/65">European delegation requests a video meeting on Arctic terms.</p>
+            </div>
+            <div className="rounded-lg border border-ink-border bg-white p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">System</p>
+              <p className="mt-1 text-sm font-semibold text-ink">Stance accepted</p>
+              <p className="mt-1 text-xs text-ink/65">Leadership validated your latest delegation draft.</p>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel variant="soft">
+          <h3 className="font-serif text-2xl font-bold text-ink">Upcoming Deadlines</h3>
+          <div className="mt-3 space-y-3">
+            <TimelineItem time="Feb 23" title="Vote closes at 14:00" tone="alert" />
+            <TimelineItem time="Feb 24" title="Editorial committee submission" tone="accent" />
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
 }

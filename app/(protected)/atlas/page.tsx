@@ -1,193 +1,231 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Map as MapIcon, Flag, Users, Clock, ArrowRight, MessageSquare, Filter } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Filter,
+  Globe2,
+  MessageSquare,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import {
+  ActionButton,
+  MapOverlayChip,
+  Panel,
+  PageShell,
+  SectionHeader,
+  TimelineItem,
+} from "@/components/ui/commons";
 
-// Mock Data
-const MOCK_COUNTRIES = [
-    { id: "fr", name: "France", region: "Europe", active: true },
-    { id: "br", name: "Brésil", region: "Amériques", active: true },
-    { id: "cn", name: "Chine", region: "Asie", active: false },
-    { id: "us", name: "États-Unis", region: "Amériques", active: true },
+type AtlasCountry = {
+  id: string;
+  name: string;
+  region: string;
+  status: "active" | "watch";
+  stance: string;
+  priorities: string[];
+};
+
+const COUNTRIES: AtlasCountry[] = [
+  {
+    id: "fr",
+    name: "France",
+    region: "Europe",
+    status: "active",
+    stance: "Supports climate enforcement with measurable sovereignty protections.",
+    priorities: ["Arctic governance", "Joint financing", "Cyber diplomacy"],
+  },
+  {
+    id: "br",
+    name: "Brazil",
+    region: "Americas",
+    status: "active",
+    stance: "Requires adaptation funding and technology transfer guarantees.",
+    priorities: ["Green fund", "Food security", "Rainforest safeguards"],
+  },
+  {
+    id: "cn",
+    name: "China",
+    region: "Asia",
+    status: "watch",
+    stance: "Negotiates stronger industrial transition windows and trade protections.",
+    priorities: ["Energy transition", "Trade stability", "Supply chain governance"],
+  },
+  {
+    id: "ke",
+    name: "Kenya",
+    region: "Africa",
+    status: "active",
+    stance: "Pushes for adaptation financing and climate resilience programs.",
+    priorities: ["Water security", "Disaster response", "Regional coordination"],
+  },
 ];
 
 export default function AtlasPage() {
-    const [search, setSearch] = useState("");
-    const [selectedCountry, setSelectedCountry] = useState("fr");
+  const [search, setSearch] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<AtlasCountry>(COUNTRIES[0]);
+  const [showAlliances, setShowAlliances] = useState(true);
+  const [showVotes, setShowVotes] = useState(true);
 
-    // Toggles
-    const [showAlliances, setShowAlliances] = useState(false);
-    const [showVotes, setShowVotes] = useState(true);
+  const filteredCountries = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    if (!normalized) {
+      return COUNTRIES;
+    }
 
-    const filteredCountries = MOCK_COUNTRIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+    return COUNTRIES.filter((country) => country.name.toLowerCase().includes(normalized));
+  }, [search]);
 
-    return (
-        <div className="h-[calc(100vh-8rem)] flex overflow-hidden border border-ink-border rounded-sm bg-ivory font-sans text-ink">
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        eyebrow="Geopolitical Monitor"
+        title="Atlas"
+        subtitle="Track delegation posture, alliances, and negotiation pressure in real time."
+      />
 
-            {/* LEFT SIDEBAR: Filters & Country List */}
-            <div className="w-80 flex-shrink-0 border-r border-ink-border flex flex-col bg-[#FFFBF5]">
-                <div className="p-4 border-b border-ink-border">
-                    <h2 className="font-serif font-bold text-lg mb-4 flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-ink-blue" /> Atlas Navigator
-                    </h2>
+      <div className="grid gap-6 xl:grid-cols-12">
+        <Panel className="xl:col-span-3">
+          <h2 className="flex items-center gap-2 font-serif text-2xl font-bold text-ink">
+            <Filter className="h-5 w-5 text-ink-blue" /> Filters
+          </h2>
 
-                    <div className="relative mb-4">
-                        <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink/50" />
-                        <input
-                            className="w-full bg-white border border-ink-border rounded-sm pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-ink-blue transition-colors placeholder:text-ink/40"
-                            placeholder="Rechercher une délégation..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
+          <label className="mt-4 flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm text-ink/65">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Find a delegation"
+              className="w-full bg-transparent text-ink outline-none placeholder:text-ink/40"
+            />
+          </label>
 
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                            <input type="checkbox" checked={showAlliances} onChange={(e) => setShowAlliances(e.target.checked)} className="accent-ink-blue w-4 h-4 border-ink-border" />
-                            <span className="group-hover:text-ink-blue transition-colors">Afficher les alliances géopolitiques</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                            <input type="checkbox" checked={showVotes} onChange={(e) => setShowVotes(e.target.checked)} className="accent-ink-blue w-4 h-4 border-ink-border" />
-                            <span className="group-hover:text-ink-blue transition-colors">Afficher l'activité de vote (Live)</span>
-                        </label>
-                    </div>
-                </div>
+          <div className="mt-4 space-y-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showAlliances}
+                onChange={(event) => setShowAlliances(event.target.checked)}
+                className="h-4 w-4 accent-ink-blue"
+              />
+              Show alliance arcs
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showVotes}
+                onChange={(event) => setShowVotes(event.target.checked)}
+                className="h-4 w-4 accent-ink-blue"
+              />
+              Show active voting heat
+            </label>
+          </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-ink/50 mb-3">Délégations Actives</h3>
-                    {filteredCountries.map(country => (
-                        <button
-                            key={country.id}
-                            onClick={() => setSelectedCountry(country.id)}
-                            className={`w-full flex flex-col items-start p-3 text-sm rounded-sm transition-colors border ${selectedCountry === country.id ? 'bg-ink-blue/5 border-ink-blue text-ink-blue' : 'bg-transparent border-transparent hover:bg-white hover:border-ink-border text-ink'}`}
-                        >
-                            <span className="font-semibold">{country.name}</span>
-                            <span className="text-[10px] uppercase tracking-wider opacity-70">{country.region}</span>
-                        </button>
-                    ))}
-                </div>
+          <div className="mt-5 space-y-2 border-t border-ink-border pt-4">
+            {filteredCountries.map((country) => {
+              const selected = selectedCountry.id === country.id;
+              return (
+                <button
+                  key={country.id}
+                  onClick={() => setSelectedCountry(country)}
+                  className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                    selected
+                      ? "border-ink-blue bg-blue-50"
+                      : "border-transparent bg-white hover:border-ink-border"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-ink">{country.name}</p>
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-ink/55">{country.region}</p>
+                </button>
+              );
+            })}
+          </div>
+        </Panel>
+
+        <PageShell className="xl:col-span-6">
+          <div className="relative min-h-[640px] overflow-hidden rounded-2xl border border-ink-border bg-[#eaf0fa]">
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-70"
+              style={{
+                backgroundImage:
+                  "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-white/35" />
+
+            <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+              <MapOverlayChip tone="accent" icon={<Globe2 className="h-3.5 w-3.5" />} label="Global projection" />
+              {showAlliances ? <MapOverlayChip label="Alliance paths visible" /> : null}
+              {showVotes ? <MapOverlayChip tone="alert" label="Voting pressure overlay" /> : null}
             </div>
 
-            {/* CENTER: Main Map Area */}
-            <div className="flex-1 relative bg-[#F8F9FA] flex flex-col shadow-inner">
-                {/* Simulated Map Background */}
-                <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')", backgroundSize: "cover", backgroundPosition: "center" }} />
-
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur border border-ink-border rounded-sm px-4 py-2 shadow-sm">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink">
-                        <MapIcon className="w-4 h-4 text-ink-blue" /> Projection Globale
-                    </div>
-                </div>
-
-                {/* Simulated Map Interactive Element (Brazil selected) */}
-                {selectedCountry === "br" && (
-                    <div className="absolute top-[45%] left-[30%] flex flex-col items-center group cursor-pointer">
-                        <span className="relative flex h-5 w-5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ink-blue opacity-30"></span>
-                            <span className="relative inline-flex rounded-full h-5 w-5 bg-ink-blue border-2 border-white shadow-md"></span>
-                        </span>
-                        <div className="mt-2 bg-white px-2 py-1 text-xs font-bold border border-ink-border rounded-sm shadow-sm text-ink group-hover:-translate-y-1 transition-transform">
-                            BRÉSIL
-                        </div>
-                    </div>
-                )}
-                {selectedCountry === "fr" && (
-                    <div className="absolute top-[30%] left-[48%] flex flex-col items-center group cursor-pointer">
-                        <span className="relative flex h-5 w-5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ink-blue opacity-30"></span>
-                            <span className="relative inline-flex rounded-full h-5 w-5 bg-ink-blue border-2 border-white shadow-md"></span>
-                        </span>
-                        <div className="mt-2 bg-white px-2 py-1 text-xs font-bold border border-ink-border rounded-sm shadow-sm text-ink group-hover:-translate-y-1 transition-transform">
-                            FRANCE
-                        </div>
-                    </div>
-                )}
-
-                <div className="absolute bottom-4 left-4 max-w-sm bg-white/95 backdrop-blur border border-ink-border p-4 rounded-sm shadow-md">
-                    <h4 className="font-serif font-bold text-sm mb-1">Activité Récente</h4>
-                    <p className="text-xs text-ink/70">La zone Amériques connaît une forte activité diplomatique bilatérale suite à la résolution 4.</p>
-                </div>
+            <div className="absolute left-[48%] top-[32%]">
+              <span className="relative flex h-4 w-4">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ink-blue/60" />
+                <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-ink-blue" />
+              </span>
             </div>
 
-            {/* RIGHT SIDEBAR: Country Profile */}
-            <div className="w-[400px] flex-shrink-0 border-l border-ink-border bg-white flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-10">
-
-                {/* Header Profile */}
-                <div className="p-6 border-b border-ink-border bg-ivory">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-8 bg-zinc-200 border border-ink-border flex items-center justify-center text-xs text-ink/50 uppercase">
-                            Flag
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-alert-red bg-alert-red/5 px-2 py-1 border border-alert-red/10 rounded-sm">En Négociation</span>
-                    </div>
-                    <h2 className="text-2xl font-serif font-extrabold text-ink leading-none mb-1">
-                        {selectedCountry === 'br' ? "République Fédérative du Brésil" : "République Française"}
-                    </h2>
-                    <p className="text-sm font-medium text-ink/60 uppercase tracking-widest">Délégation Officielle</p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-
-                    {/* Stance Abstract */}
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-ink/50 border-b border-ink-border pb-1 mb-3">Position Officielle</h3>
-                        <p className="font-serif text-ink/90 leading-relaxed text-sm">
-                            La délégation soutient fermement une approche multilatérale pour réduire les émissions globales tout en garantissant un fonds souverain d'adaptation pour les nations en développement. Le compromis technologique est inacceptable sans transferts de brevets.
-                        </p>
-                    </div>
-
-                    {/* Priorities & Team */}
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-ink/50 border-b border-ink-border pb-1 mb-3">Priorités</h3>
-                            <ul className="text-sm space-y-2 list-square list-inside text-ink/80 marker:text-ink-blue">
-                                <li>Fonds d'Adaptation</li>
-                                <li>Transfert Technologique</li>
-                                <li>Souveraineté Amazonienne</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-ink/50 border-b border-ink-border pb-1 mb-3">Équipe</h3>
-                            <div className="flex -space-x-2">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-8 h-8 rounded-full bg-ink/10 border-2 border-white flex items-center justify-center text-ink/40">
-                                        <Users className="w-4 h-4" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="pt-4 flex gap-3">
-                        <button className="flex-1 bg-ink text-ivory hover:bg-ink-blue transition-colors py-2 px-4 flex justify-center items-center gap-2 text-sm font-semibold rounded-sm shadow-sm">
-                            <MessageSquare className="w-4 h-4" /> Request Meeting
-                        </button>
-                    </div>
-
-                </div>
-
-                {/* Timeline / Intel Bottom */}
-                <div className="border-t border-ink-border bg-ivory p-6">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-ink/50 mb-4 flex items-center gap-2">
-                        <Clock className="w-3 h-3" /> Historique d'Activité
-                    </h3>
-                    <div className="space-y-4">
-                        <div className="relative pl-4 border-l-2 border-ink-border">
-                            <div className="absolute w-2 h-2 rounded-full bg-ink-blue -left-[5px] top-1" />
-                            <p className="text-xs font-semibold text-ink">A voté POUR la résolution Climat.</p>
-                            <span className="text-[10px] text-ink/50 font-mono">10:45 AM</span>
-                        </div>
-                        <div className="relative pl-4 border-l-2 border-ink-border">
-                            <div className="absolute w-2 h-2 rounded-full bg-ink-border -left-[5px] top-1" />
-                            <p className="text-xs font-semibold text-ink">Communiqué de presse émis.</p>
-                            <span className="text-[10px] text-ink/50 font-mono">Hier, 15:30 PM</span>
-                        </div>
-                    </div>
-                </div>
-
+            <div className="absolute left-[30%] top-[45%]">
+              <span className="relative flex h-4 w-4">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/60" />
+                <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
+              </span>
             </div>
 
-        </div>
-    );
+            <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-ink-border bg-white/92 p-4 shadow-sm backdrop-blur">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Regional signal</p>
+              <p className="mt-1 text-sm text-ink/80">
+                Diplomatic activity is highest across Europe and the Americas with sustained bilateral coordination.
+              </p>
+            </div>
+          </div>
+        </PageShell>
+
+        <Panel className="xl:col-span-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Delegation Profile</p>
+          <h2 className="mt-2 font-serif text-3xl font-bold text-ink">{selectedCountry.name}</h2>
+          <p className="mt-1 text-sm text-ink/60">{selectedCountry.region} delegation</p>
+
+          <div className="mt-4 rounded-xl border border-ink-border bg-ivory p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Official stance</p>
+            <p className="mt-2 text-sm text-ink/80">{selectedCountry.stance}</p>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-ink-border bg-white p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Priority tracks</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-ink/80">
+              {selectedCountry.priorities.map((priority) => (
+                <li key={priority} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink-blue" />
+                  {priority}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            <ActionButton className="w-full justify-between">
+              Request meeting
+              <MessageSquare className="h-4 w-4" />
+            </ActionButton>
+            <ActionButton variant="secondary" className="w-full justify-between">
+              Open delegation thread
+              <Users className="h-4 w-4" />
+            </ActionButton>
+          </div>
+
+          <div className="mt-6 space-y-3 border-t border-ink-border pt-4">
+            <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">
+              <ShieldCheck className="h-3.5 w-3.5" /> Activity timeline
+            </h3>
+            <TimelineItem time="10:45 UTC" title="Vote cast on climate package" tone="accent" />
+            <TimelineItem time="09:10 UTC" title="Statement submitted" />
+            <TimelineItem time="Yesterday" title="Bilateral consultation opened" tone="alert" />
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
 }

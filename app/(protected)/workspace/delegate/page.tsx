@@ -11,8 +11,8 @@ export default async function DelegateWorkspace() {
     return (
         <div className="w-full">
             <div className="mb-8">
-                <h1 className="text-3xl font-serif font-bold tracking-tight text-ink mb-2">Bureau de la Délégation</h1>
-                <p className="text-ink/60 text-sm">Préparez vos stratégies, négociez en direct et déposez vos suffrages.</p>
+                <h1 className="mb-2 text-3xl font-serif font-bold tracking-tight text-ink">Delegation Workspace</h1>
+                <p className="text-sm text-ink/60">Prepare negotiation strategy, coordinate with allies, and cast delegation votes.</p>
             </div>
 
             <DelegateWorkspaceClient userId={session.userId} role={session.role} />

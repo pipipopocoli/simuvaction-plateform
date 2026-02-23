@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { getUserSession, encrypt } from "@/lib/server-auth";
+import { getUserSession } from "@/lib/server-auth";
+import { createSessionJwt } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
     try {
@@ -39,14 +41,14 @@ export async function POST(req: NextRequest) {
             mustChangePassword: false,
         };
 
-        const sessionToken = await encrypt(updatedPayload);
+        const sessionToken = await createSessionJwt(updatedPayload);
 
-        (await cookies()).set("session", sessionToken, {
+        (await cookies()).set(SESSION_COOKIE_NAME, sessionToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
-            maxAge: 60 * 60 * 24, // 24 hours
+            maxAge: 60 * 60 * 24 * 7,
         });
 
         return NextResponse.json({ success: true });

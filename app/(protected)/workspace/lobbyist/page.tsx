@@ -10,7 +10,7 @@ export default async function LobbyistWorkspace() {
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold">Lobbyist Hub</h1>
-            <p className="text-zinc-600">Accédez aux canaux privés pour négocier et influencer les délégations en temps réel.</p>
+            <p className="text-zinc-600">Access private channels to negotiate and influence delegations in real time.</p>
             {/* Target search and direct message lists go here */}
         </div>
     );

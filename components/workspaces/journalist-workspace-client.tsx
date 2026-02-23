@@ -1,20 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { format } from "luxon";
-import { Plus, Edit3, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { DateTime } from "luxon";
+import { Plus, Edit3, Trash2, CheckCircle } from "lucide-react";
 
 type RolePayload = {
     userId: string;
     role: string | null;
     eventId: string;
     teamId: string | null;
-};
-
-type NewsApproval = {
-    decision: "approve" | "reject";
-    approverRole: string;
-    approver: { name: string; role: string };
 };
 
 type NewsPost = {
@@ -30,6 +24,8 @@ type NewsPost = {
         journalistApprovals: number;
         leaderApprovals: number;
         rejections: number;
+        requiredJournalists: number;
+        requiredLeaders: number;
         canPublish: boolean;
     };
     hasUserVoted: boolean;
@@ -46,7 +42,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
 
-    const fetchNews = async () => {
+    const fetchNews = useCallback(async () => {
         setLoading(true);
         let filter = "all";
         if (activeTab === "drafts") filter = "my_drafts";
@@ -63,11 +59,16 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeTab]);
+
+    const formatDate = (isoDate: string) =>
+        DateTime.fromISO(isoDate).isValid
+            ? DateTime.fromISO(isoDate).toFormat("dd LLL yyyy HH:mm")
+            : "Unknown date";
 
     useEffect(() => {
         fetchNews();
-    }, [activeTab]);
+    }, [fetchNews]);
 
     const handleOpenComposer = (post?: NewsPost) => {
         if (post) {
@@ -99,8 +100,8 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
             } else {
                 alert("Erreur lors de la sauvegarde.");
             }
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -109,7 +110,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         try {
             await fetch(`/api/news/${id}`, { method: "DELETE" });
             fetchNews();
-        } catch (err) { }
+        } catch { }
     };
 
     const handleReview = async (id: string, decision: "approve" | "reject") => {
@@ -120,7 +121,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                 body: JSON.stringify({ decision })
             });
             fetchNews();
-        } catch (err) { }
+        } catch { }
     };
 
     if (isEditing) {
@@ -232,7 +233,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                                     {item.status}
                                 </span>
                                 <span className="text-xs text-zinc-400 font-mono">
-                                    {format(new Date(item.createdAt), "dd MMM yyyy HH:mm")}
+                                    {formatDate(item.createdAt)}
                                 </span>
                             </div>
 

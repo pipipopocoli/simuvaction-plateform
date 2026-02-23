@@ -1,7 +1,3 @@
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex w-full overflow-hidden bg-black shadow-2xl rounded-lg border border-zinc-800">
-            {children}
-        </div>
-    );
+  return <div className="flex w-full overflow-hidden rounded-xl border border-ink-border bg-[#f7f4ee]">{children}</div>;
 }

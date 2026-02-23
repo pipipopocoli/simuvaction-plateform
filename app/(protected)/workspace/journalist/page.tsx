@@ -10,7 +10,7 @@ export default async function JournalistWorkspace() {
 
     return (
         <div className="w-full h-full min-h-[calc(100vh-64px)] bg-ivory">
-            <JournalistWorkspaceClient payload={session as any} />
+            <JournalistWorkspaceClient payload={session} />
         </div>
     );
 }

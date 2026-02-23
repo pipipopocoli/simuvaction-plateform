@@ -1,167 +1,238 @@
-import { getUserSession } from "@/lib/server-auth";
-import { Globe, AlertCircle, FileText, Vote, Video, Plus, Calendar, Megaphone, Flag } from "lucide-react";
+import Link from "next/link";
+import { DateTime } from "luxon";
+import {
+  Calendar,
+  ChevronRight,
+  Globe2,
+  Megaphone,
+  Newspaper,
+  Plus,
+  Siren,
+  Vote,
+} from "lucide-react";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
+import { getUserSession } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
+import {
+  ActionButton,
+  ListCard,
+  MapOverlayChip,
+  PageShell,
+  Panel,
+  SectionHeader,
+  StatTile,
+  StatusBadge,
+  TimelineItem,
+} from "@/components/ui/commons";
 
-export default async function FrontPage() {
-    const session = await getUserSession();
+function formatClock(date: Date | null) {
+  if (!date) {
+    return "TBD";
+  }
 
-    return (
-        <div className="flex flex-col gap-10 font-sans text-ink">
-            {/* 1. HERO SECTION: Map & Breaking News */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                {/* Left: Live Briefing / Map (8 cols) */}
-                <div className="lg:col-span-8 flex flex-col gap-4">
-                    <div className="flex justify-between items-end border-b-2 border-ink pb-2">
-                        <h1 className="text-3xl font-serif font-bold tracking-tight">Live Briefing</h1>
-                        <span className="text-xs font-medium text-ink/60 uppercase tracking-wider">SimuVaction World Map</span>
-                    </div>
-
-                    <div className="relative w-full aspect-video bg-white border border-ink-border rounded-sm shadow-sm flex items-center justify-center overflow-hidden group">
-                        {/* Placeholder for actual MapLibre integration */}
-                        <div className="absolute inset-0 bg-[#F8F9FA] opacity-50" style={{ backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')", backgroundSize: "cover", backgroundPosition: "center" }} />
-                        <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
-
-                        {/* Map Markers (Mock) */}
-                        <div className="absolute top-[30%] left-[45%] flex flex-col items-center">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-alert-red opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-alert-red border border-white"></span>
-                            </span>
-                        </div>
-                        <div className="absolute top-[40%] left-[20%] flex flex-col items-center">
-                            <span className="relative flex h-3 w-3">
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-ink-blue border border-white"></span>
-                            </span>
-                        </div>
-
-                        {/* Overlays / Pastilles */}
-                        <div className="absolute top-4 left-4 flex flex-col gap-2">
-                            <div className="flex items-center gap-2 bg-white/90 backdrop-blur py-1.5 px-3 border border-alert-red/20 shadow-sm rounded-sm text-xs font-bold text-alert-red uppercase tracking-wider">
-                                <span className="h-2 w-2 rounded-full bg-alert-red animate-pulse" /> Vote Open
-                            </div>
-                            <div className="flex items-center gap-2 bg-white/90 backdrop-blur py-1.5 px-3 border border-ink-border shadow-sm rounded-sm text-xs font-semibold text-ink uppercase tracking-wider">
-                                <Calendar className="w-3 h-3 text-ink-blue" /> Dans 45 min
-                            </div>
-                            <div className="flex items-center gap-2 bg-white/90 backdrop-blur py-1.5 px-3 border border-ink-border shadow-sm rounded-sm text-xs font-semibold text-ink uppercase tracking-wider">
-                                <Megaphone className="w-3 h-3 text-ink-blue" /> Press Conf
-                            </div>
-                        </div>
-
-                        <div className="z-10 bg-white/80 px-4 py-2 border border-ink-border rounded text-sm text-ink/70">
-                            Interactive Map Module Loading...
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right: Breaking News Pile (4 cols) */}
-                <div className="lg:col-span-4 flex flex-col gap-4">
-                    <div className="flex justify-between items-end border-b border-ink-border pb-2">
-                        <h2 className="text-xl font-serif font-semibold text-alert-red flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5" /> Breaking
-                        </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-px bg-ink-border/50">
-                        {/* News Card 1 */}
-                        <div className="bg-ivory hover:bg-white transition-colors p-4 group cursor-pointer border-b border-ink-border last:border-0">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-alert-red bg-alert-red/10 px-2 py-0.5 rounded-sm">Urgent</span>
-                                <span className="text-[10px] text-ink/50 font-mono">10:42 AM</span>
-                            </div>
-                            <h3 className="font-serif font-bold text-ink leading-tight mb-2 group-hover:text-ink-blue transition-colors">La Chine annonce une réduction drastique de ses objectifs d'émissions</h3>
-                            <p className="text-sm text-ink/70 line-clamp-2">Dans un revirement surprenant lors de l'assemblée ce matin, la délégation a surpris les observateurs en publiant...</p>
-                        </div>
-                        {/* News Card 2 */}
-                        <div className="bg-ivory hover:bg-white transition-colors p-4 group cursor-pointer border-b border-ink-border last:border-0">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-ink bg-ink/5 px-2 py-0.5 rounded-sm">Diplomatie</span>
-                                <span className="text-[10px] text-ink/50 font-mono">09:15 AM</span>
-                            </div>
-                            <h3 className="font-serif font-semibold text-ink leading-tight mb-2 group-hover:text-ink-blue transition-colors">Tensions autour de la résolution sur l'Océan Arctique</h3>
-                            <p className="text-sm text-ink/70 line-clamp-2">Les pourparlers bilatéraux entre les blocs occidentaux et nordiques patinent.</p>
-                        </div>
-                        {/* News Card 3 */}
-                        <div className="bg-ivory hover:bg-white transition-colors p-4 group cursor-pointer border-b border-ink-border last:border-0">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-blue bg-ink-blue/10 px-2 py-0.5 rounded-sm">Mise à jour</span>
-                                <span className="text-[10px] text-ink/50 font-mono">Hier</span>
-                            </div>
-                            <h3 className="font-serif font-semibold text-ink leading-tight mb-2 group-hover:text-ink-blue transition-colors">Ouverture officielle de la Session 2026</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 2. ACTIONS PANEL & UPCOMING EVENTS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Action Buttons */}
-                <div className="md:col-span-1 flex flex-col gap-3">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-ink/60 border-b border-ink-border pb-2 mb-1">Actions Rapides</h3>
-
-                    {session?.role === "leader" || session?.role === "admin" ? (
-                        <button className="flex items-center gap-3 w-full bg-ink text-ivory hover:bg-ink-blue transition-colors p-3 rounded-sm shadow-sm text-sm font-medium text-left">
-                            <Vote className="w-4 h-4" /> Create Vote / Resolution
-                        </button>
-                    ) : null}
-
-                    {session?.role === "journalist" ? (
-                        <button className="flex items-center gap-3 w-full bg-ink text-ivory hover:bg-ink-blue transition-colors p-3 rounded-sm shadow-sm text-sm font-medium text-left">
-                            <FileText className="w-4 h-4" /> Submit News Article
-                        </button>
-                    ) : null}
-
-                    <button className="flex items-center gap-3 w-full bg-white border border-ink-border hover:border-ink-blue hover:text-ink-blue transition-colors p-3 rounded-sm text-sm font-medium text-left text-ink">
-                        <Plus className="w-4 h-4" /> Request Meeting
-                    </button>
-                    <button className="flex items-center gap-3 w-full bg-white border border-ink-border hover:border-ink-blue hover:text-ink-blue transition-colors p-3 rounded-sm text-sm font-medium text-left text-ink">
-                        <Globe className="w-4 h-4" /> Create Private Comms Room
-                    </button>
-                </div>
-
-                {/* Event Tracker */}
-                <div className="md:col-span-2 flex flex-col gap-3">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-ink/60 border-b border-ink-border pb-2 mb-1">Bandeau d'Événements</h3>
-                    <div className="flex overflow-x-auto gap-4 pb-2 snap-x">
-
-                        {/* Event Card */}
-                        <div className="min-w-[250px] bg-white border border-ink-border p-4 rounded-sm shadow-sm snap-start flex-shrink-0 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-alert-red" />
-                            <div className="flex items-center gap-2 text-xs font-mono text-ink/60 mb-1">
-                                <Calendar className="w-3 h-3" /> 11:00 AM
-                            </div>
-                            <h4 className="font-serif font-semibold text-ink">Clôture des Résolutions</h4>
-                            <p className="text-xs text-ink/60 mt-2">Dépôt final des textes.</p>
-                        </div>
-
-                        <div className="min-w-[250px] bg-white border border-ink-border p-4 rounded-sm shadow-sm snap-start flex-shrink-0 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-ink-blue" />
-                            <div className="flex items-center gap-2 text-xs font-mono text-ink/60 mb-1">
-                                <Video className="w-3 h-3" /> 13:00 PM
-                            </div>
-                            <h4 className="font-serif font-semibold text-ink">Conférence de Presse</h4>
-                            <p className="text-xs text-ink/60 mt-2">Délégation Européenne (Lien Zoom)</p>
-                        </div>
-
-                        <div className="min-w-[250px] bg-ink/5 border border-ink-border p-4 rounded-sm snap-start flex-shrink-0 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-ink/30" />
-                            <div className="flex items-center gap-2 text-xs font-mono text-ink/60 mb-1">
-                                <Flag className="w-3 h-3" /> 16:00 PM
-                            </div>
-                            <h4 className="font-serif font-semibold text-ink">Vote Assemblée Générale</h4>
-                            <p className="text-xs text-ink/60 mt-2">Plénière obligatoire.</p>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. NEWSROOM FEED GRID */}
-            <div className="mt-6">
-                <FrontPageNewsFeed />
-            </div>
-
-        </div>
-    );
+  return DateTime.fromJSDate(date).toUTC().toFormat("HH:mm 'UTC'");
 }
 
+export default async function FrontPage() {
+  const session = await getUserSession();
+  if (!session) {
+    return null;
+  }
+
+  const [recentNews, activeVotes, deadlines, nextMeeting] = await Promise.all([
+    prisma.newsPost.findMany({
+      where: { eventId: session.eventId, status: "published" },
+      include: { author: { select: { name: true } } },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: 4,
+    }),
+    prisma.vote.findMany({
+      where: { eventId: session.eventId, status: "active" },
+      include: { _count: { select: { ballots: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
+    prisma.officialDeadline.findMany({
+      orderBy: { orderIndex: "asc" },
+      take: 4,
+    }),
+    prisma.meeting.findFirst({
+      where: { datetimeCet: { gte: new Date() } },
+      orderBy: { datetimeCet: "asc" },
+    }),
+  ]);
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        eyebrow="SimuVaction Commons"
+        title="Live Briefing"
+        subtitle="Global posture, active votes, and newsroom signals in one command view."
+        actions={
+          <StatusBadge tone="live" className="gap-2">
+            LIVE
+          </StatusBadge>
+        }
+      />
+
+      <div className="grid gap-6 xl:grid-cols-12">
+        <PageShell className="xl:col-span-9">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-ink/60">Global Activity Map</p>
+              <StatusBadge tone={activeVotes.length > 0 ? "alert" : "neutral"}>
+                {activeVotes.length > 0 ? `${activeVotes.length} open vote` : "No open vote"}
+              </StatusBadge>
+            </div>
+
+            <div className="relative min-h-[360px] overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-75"
+                style={{
+                  backgroundImage:
+                    "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/35 to-[#f8f3ec]/65" />
+
+              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                <MapOverlayChip tone="alert" icon={<Vote className="h-3.5 w-3.5" />} label={activeVotes[0]?.title ?? "Security Council vote"} />
+                <MapOverlayChip tone="accent" icon={<Calendar className="h-3.5 w-3.5" />} label={nextMeeting ? `Next briefing ${formatClock(nextMeeting.datetimeCet)}` : "No meeting scheduled"} />
+                <MapOverlayChip icon={<Megaphone className="h-3.5 w-3.5" />} label="Press coordination channel active" />
+              </div>
+
+              <div className="absolute bottom-4 left-4 right-4 grid gap-3 md:grid-cols-3">
+                {activeVotes.slice(0, 3).map((voteItem) => (
+                  <Panel key={voteItem.id} className="bg-white/95 p-3" variant="soft">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink/55">Vote Open</p>
+                    <p className="mt-1 line-clamp-2 font-serif text-lg font-bold text-ink">{voteItem.title}</p>
+                    <p className="mt-2 text-xs text-ink/60">{voteItem._count.ballots} ballots submitted</p>
+                  </Panel>
+                ))}
+                {activeVotes.length === 0 ? (
+                  <Panel className="md:col-span-3" variant="soft">
+                    <p className="text-sm text-ink/70">No active vote right now. The floor is in negotiation mode.</p>
+                  </Panel>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </PageShell>
+
+        <Panel className="xl:col-span-3">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+              <Siren className="h-6 w-6 text-alert-red" /> Breaking
+            </h2>
+            <Link href="/newsroom" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-blue hover:underline">
+              See all
+            </Link>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {recentNews.map((post, index) => {
+              const date = post.publishedAt ?? post.createdAt;
+              return (
+                <ListCard
+                  key={post.id}
+                  title={post.title}
+                  description={post.body.slice(0, 130)}
+                  meta={`${formatClock(date)} • ${post.author.name}`}
+                  aside={index === 0 ? <StatusBadge tone="alert">Breaking</StatusBadge> : <StatusBadge tone="neutral">News</StatusBadge>}
+                  className="p-3"
+                />
+              );
+            })}
+            {recentNews.length === 0 ? <p className="text-sm text-ink/65">No published article yet.</p> : null}
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-12">
+        <PageShell className="xl:col-span-9">
+          <SectionHeader title="Upcoming Events" subtitle="Deadlines and checkpoints for this simulation cycle." />
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {deadlines.map((deadline, index) => (
+              <Panel key={deadline.id} className="p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">Checkpoint {index + 1}</p>
+                <p className="mt-1 font-serif text-xl font-bold text-ink">{deadline.title}</p>
+                <p className="mt-2 text-xs text-ink/65">{DateTime.fromJSDate(deadline.datetimeCet).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")}</p>
+              </Panel>
+            ))}
+          </div>
+        </PageShell>
+
+        <Panel className="xl:col-span-3">
+          <h2 className="font-serif text-3xl font-bold text-ink">Quick Actions</h2>
+          <div className="mt-4 space-y-3">
+            {(session.role === "leader" || session.role === "admin") && (
+              <Link href="/votes" className="block">
+                <ActionButton className="w-full justify-between">
+                  Create Vote
+                  <ChevronRight className="h-4 w-4" />
+                </ActionButton>
+              </Link>
+            )}
+            {(session.role === "journalist" || session.role === "admin") && (
+              <Link href="/newsroom" className="block">
+                <ActionButton variant="secondary" className="w-full justify-between">
+                  Submit Article
+                  <ChevronRight className="h-4 w-4" />
+                </ActionButton>
+              </Link>
+            )}
+            <Link href="/chat" className="block">
+              <ActionButton variant="secondary" className="w-full justify-between">
+                Open Messages
+                <ChevronRight className="h-4 w-4" />
+              </ActionButton>
+            </Link>
+            <ActionButton variant="ghost" className="w-full justify-between">
+              Request Meeting
+              <Plus className="h-4 w-4" />
+            </ActionButton>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink/55">My Agenda</h3>
+            <TimelineItem time="Today" title="Security Council Vote" details="Assembly chamber" tone="alert" />
+            <TimelineItem time="Today" title="Bilateral Negotiation" details="Private room" tone="accent" />
+            <TimelineItem time="Tomorrow" title="Press briefing cycle" details="Newsroom desk" />
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-12">
+        <div className="xl:col-span-9">
+          <FrontPageNewsFeed />
+        </div>
+
+        <Panel className="xl:col-span-3">
+          <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+            <Globe2 className="h-6 w-6 text-ink-blue" /> Situation Snapshot
+          </h2>
+          <div className="mt-4 grid gap-3">
+            <StatTile label="Published News" value={recentNews.length} hint="Latest validated dispatches" />
+            <StatTile label="Active Votes" value={activeVotes.length} tone={activeVotes.length > 0 ? "alert" : "default"} hint="Live parliamentary decisions" />
+            <StatTile label="Role" value={session.role.toUpperCase()} tone="accent" hint="Current access profile" />
+          </div>
+          <Link href="/atlas" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink-blue hover:underline">
+            Open full atlas view
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </Panel>
+      </div>
+
+      <Panel className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink/55">Operational footer</p>
+          <p className="mt-1 text-sm text-ink/70">The legacy project is frozen. Commons updates deploy only to simulvaction-plateforme.</p>
+        </div>
+        <Link href="/archive" className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue hover:text-ink-blue">
+          <Newspaper className="h-4 w-4" />
+          Open Archive
+        </Link>
+      </Panel>
+    </div>
+  );
+}

@@ -1,4 +1,7 @@
 import { PrismaClient } from "@prisma/client";
+import fs from "node:fs";
+import path from "node:path";
+import bcrypt from "bcryptjs";
 import { DateTime } from "luxon";
 import {
   DEFAULT_TAG_NAMES,
@@ -8,6 +11,13 @@ import {
 } from "../lib/constants";
 
 const prisma = new PrismaClient();
+
+type UserSeedInput = {
+  email: string;
+  name: string;
+  role: string;
+  teamName: string | null;
+};
 
 async function main() {
   for (const pillar of PILLARS) {
@@ -79,10 +89,6 @@ async function main() {
   });
 
   // Dynamic CSV Parsing & Seeding
-  const fs = require('fs');
-  const path = require('path');
-  const bcrypt = require('bcryptjs');
-
   const csvPath = path.join(process.cwd(), 'members.csv');
   const csvData = fs.readFileSync(csvPath, 'utf8');
   const rows = csvData.trim().split('\n').slice(1); // Skip header
@@ -92,7 +98,7 @@ async function main() {
 
   // Parse rows into users data
   // Cols: Sort, Family Name, Preferred Name, Gender, email address, WHATSAPP phone, Timezone, Role
-  const usersToSeed: any[] = [];
+  const usersToSeed: UserSeedInput[] = [];
   const teamsToCreate = new Set<string>();
 
   for (const row of rows) {
@@ -156,7 +162,6 @@ async function main() {
         role: u.role,
         teamId
       },
-      // @ts-ignore: Prisma client ungenerated locally (sandbox bypass needed)
       create: {
         email: u.email,
         name: u.name,

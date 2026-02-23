@@ -1,14 +1,14 @@
-import { ChatSidebar } from "@/components/chat-sidebar";
 import { MessageSquareOff } from "lucide-react";
+import { ChatSidebar } from "@/components/chat-sidebar";
 
 export default function ChatIndexPage() {
-    return (
-        <>
-            <ChatSidebar />
-            <div className="flex-1 bg-zinc-950 flex flex-col items-center justify-center rounded-r-lg border border-l-0 border-zinc-800 text-zinc-500 gap-4">
-                <MessageSquareOff className="w-12 h-12 text-zinc-800" />
-                <p>Sélectionnez un canal dans la barre latérale pour commencer à communiquer.</p>
-            </div>
-        </>
-    );
+  return (
+    <>
+      <ChatSidebar />
+      <div className="flex flex-1 flex-col items-center justify-center rounded-r-xl border border-l-0 border-ink-border bg-white text-center text-ink/60">
+        <MessageSquareOff className="h-12 w-12 text-ink/25" />
+        <p className="mt-4 text-sm">Select a channel from the sidebar to start messaging.</p>
+      </div>
+    </>
+  );
 }
