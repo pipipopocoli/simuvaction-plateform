@@ -25,7 +25,7 @@ export async function GET(
                     select: { name: true, role: true }
                 },
                 _count: {
-                    select: { casts: true }
+                    select: { ballots: true }
                 }
             }
         });

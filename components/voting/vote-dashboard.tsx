@@ -10,7 +10,7 @@ type Vote = {
     description: string;
     status: string;
     visibility: "public" | "secret";
-    voteType: "per_delegation" | "per_person";
+    ballotMode: "per_delegation" | "per_person";
     options: VoteOption[];
     isEligible: boolean;
     hasVoted: boolean;
@@ -104,7 +104,7 @@ export function VoteDashboard({ currentUserId, currentUserRole }: { currentUserI
                         </div>
                         <div className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
-                            {vote.voteType === "per_delegation" ? "1 Vote / Pays" : "1 Vote / Délégué"}
+                            {vote.ballotMode === "per_delegation" ? "1 Vote / Pays" : "1 Vote / Délégué"}
                         </div>
                         <div>
                             • {vote._count.casts} Bulletins Déposés
@@ -119,7 +119,7 @@ export function VoteDashboard({ currentUserId, currentUserRole }: { currentUserI
                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-4 text-center text-emerald-400 flex flex-col items-center justify-center gap-2">
                             <CheckCircle2 className="w-6 h-6" />
                             <span className="font-medium">Votre bulletin a été enregistré.</span>
-                            {vote.voteType === "per_delegation" && <span className="text-xs opacity-75">La voix de votre délégation est scellée.</span>}
+                            {vote.ballotMode === "per_delegation" && <span className="text-xs opacity-75">La voix de votre délégation est scellée.</span>}
                         </div>
                     ) : (
                         <div className="grid gap-3">

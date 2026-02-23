@@ -78,47 +78,93 @@ async function main() {
     },
   });
 
-  // Create Teams
-  const franceTeam = await prisma.team.upsert({
-    where: { eventId_countryCode: { eventId, countryCode: "FRA" } },
-    update: {},
-    create: {
-      eventId,
-      countryCode: "FRA",
-      countryName: "France",
-    },
-  });
+  // Dynamic CSV Parsing & Seeding
+  const fs = require('fs');
+  const path = require('path');
+  const bcrypt = require('bcryptjs');
 
-  const brazilTeam = await prisma.team.upsert({
-    where: { eventId_countryCode: { eventId, countryCode: "BRA" } },
-    update: {},
-    create: {
-      eventId,
-      countryCode: "BRA",
-      countryName: "Brazil",
-    },
-  });
+  const csvPath = path.join(process.cwd(), 'members.csv');
+  const csvData = fs.readFileSync(csvPath, 'utf8');
+  const rows = csvData.trim().split('\n').slice(1); // Skip header
+
+  const defaultPassword = "1234";
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+  // Parse rows into users data
+  // Cols: Sort, Family Name, Preferred Name, Gender, email address, WHATSAPP phone, Timezone, Role
+  const usersToSeed: any[] = [];
+  const teamsToCreate = new Set<string>();
+
+  for (const row of rows) {
+    if (!row.trim()) continue;
+    const cols = row.split(',');
+    const email = cols[4]?.trim().toLowerCase();
+    const firstName = cols[2]?.trim();
+    const lastName = cols[1]?.trim();
+    const name = `${firstName} ${lastName}`;
+    const roleOrTeam = cols[7]?.trim();
+
+    let dbRole = "delegate";
+    let teamName: string | null = roleOrTeam;
+
+    if (roleOrTeam === "Secretariat / Leadership") {
+      dbRole = "leader";
+      teamName = null;
+    } else if (roleOrTeam === "Journaliste") {
+      dbRole = "journalist";
+      teamName = null;
+    } else if (roleOrTeam === "Admin" || roleOrTeam === "System Admin") {
+      dbRole = "admin";
+      teamName = null;
+    }
+
+    if (teamName) teamsToCreate.add(teamName);
+
+    usersToSeed.push({
+      email,
+      name,
+      role: dbRole,
+      teamName, // temporary link to fetch DB ID later
+    });
+  }
+
+  // Create Teams
+  const teamMap = new Map<string, string>();
+  for (const tName of teamsToCreate) {
+    const code = tName.substring(0, 3).toUpperCase();
+    const team = await prisma.team.upsert({
+      where: { eventId_countryCode: { eventId, countryCode: code } },
+      update: { countryName: tName },
+      create: {
+        eventId,
+        countryCode: code,
+        countryName: tName,
+      },
+    });
+    teamMap.set(tName, team.id);
+  }
 
   // Create Users
-  const usersToSeed = [
-    { email: "admin@simuvaction.com", name: "Admin", role: "admin", teamId: null },
-    { email: "leader@simuvaction.com", name: "Admin Leader", role: "leader", teamId: null },
-    { email: "journaliste@simuvaction.com", name: "Journaliste Principal", role: "journalist", teamId: null },
-    { email: "lobbyist@simuvaction.com", name: "Lobbyist", role: "lobbyist", teamId: null },
-    { email: "delegue.france@simuvaction.com", name: "Délégué France", role: "delegate", teamId: franceTeam.id },
-    { email: "delegue.brazil@simuvaction.com", name: "Délégué Brazil", role: "delegate", teamId: brazilTeam.id },
-  ];
-
   for (const u of usersToSeed) {
+    if (!u.email) continue;
+    const teamId = u.teamName ? teamMap.get(u.teamName) : null;
+
     await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: {
+        name: u.name,
+        role: u.role,
+        teamId
+      },
+      // @ts-ignore: Prisma client ungenerated locally (sandbox bypass needed)
       create: {
         email: u.email,
         name: u.name,
         role: u.role,
-        teamId: u.teamId,
+        teamId,
         eventId,
+        hashedPassword,
+        mustChangePassword: true,
       },
     });
   }

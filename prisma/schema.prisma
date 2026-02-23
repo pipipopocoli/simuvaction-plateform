@@ -185,14 +185,18 @@ model Event {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  name        String
-  role        String    @default("delegate")
-  teamId      String?
-  eventId     String
-  avatarUrl   String?
-  createdAt   DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  hashedPassword     String    // By default: bcrypt hashed "1234"
+  mustChangePassword Boolean   @default(true)
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  name               String
+  role               String    @default("delegate")
+  teamId             String?
+  eventId            String
+  avatarUrl          String?
+  createdAt          DateTime  @default(now())
 
   team        Team?     @relation(fields: [teamId], references: [id])
   event       Event     @relation(fields: [eventId], references: [id])

@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Simuvaction War Room",
-  description: "Private planning workspace for the Simuvaction delegation.",
+  title: "SimuVaction Commons",
+  description: "Plateforme de simulation diplomatique interactive.",
 };
 
 export default function RootLayout({
@@ -18,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.variable} bg-zinc-100 text-zinc-900 antialiased`}>
+    <html lang="fr" className={`${inter.variable} ${lora.variable}`}>
+      <body className="font-sans bg-[#FFFBF5] text-[#111827] antialiased selection:bg-blue-200 selection:text-blue-900 min-h-screen flex flex-col">
         {children}
       </body>
     </html>

@@ -7,7 +7,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
-  const [passphrase, setPassphrase] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
 
@@ -20,7 +20,7 @@ export function LoginForm() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, passphrase }),
+        body: JSON.stringify({ email, pass: password }),
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -55,7 +55,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-zinc-700" htmlFor="email">Email assigné</label>
+        <label className="block text-sm font-medium text-zinc-700" htmlFor="email">Email Address</label>
         <input
           id="email"
           name="email"
@@ -70,15 +70,23 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700" htmlFor="passphrase">Passphrase secrète (Global)</label>
+        <div className="flex justify-between items-center">
+          <label className="block text-sm font-medium text-zinc-700" htmlFor="password">Password</label>
+          <a href="/login/forgot" className="text-xs text-zinc-500 hover:text-black hover:underline transition-colors mt-0">
+            Forgot password?
+          </a>
+        </div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-[10px] text-zinc-500">Par défaut: 1234</span>
+        </div>
         <input
-          id="passphrase"
-          name="passphrase"
+          id="password"
+          name="password"
           type="password"
           autoComplete="current-password"
-          value={passphrase}
-          onChange={(e) => setPassphrase(e.target.value)}
-          placeholder="Entrez le code d'accès de la session..."
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password..."
           className="mt-1 w-full rounded border border-zinc-400 bg-white px-3 py-2 text-zinc-900 outline-none ring-zinc-700 focus:ring-2"
           required
         />
@@ -91,7 +99,7 @@ export function LoginForm() {
         disabled={isPending}
         className="mt-4 w-full rounded bg-black px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Authentification..." : "Entrer dans la War Room"}
+        {isPending ? "Authenticating..." : "Enter War Room"}
       </button>
     </form>
   );

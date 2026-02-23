@@ -5,7 +5,6 @@ function isPublicPath(rawPathname: string): boolean {
   // Normalize pathname by removing trailing slash if present (unless it's exactly "/").
   const pathname = rawPathname === "/" ? "/" : rawPathname.replace(/\/$/, "");
 
-  if (pathname === "/") return true;
   if (pathname === "/login") return true;
   if (pathname === "/api/auth/login") return true;
   if (pathname === "/api/auth/logout") return true;

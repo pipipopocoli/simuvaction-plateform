@@ -18,14 +18,14 @@ export async function GET(req: NextRequest) {
                 eligibilityRoles: true,
                 eligibilityTeams: true,
                 // Include user's own cast to know if they voted
-                casts: {
-                    where: { userId }
+                ballots: {
+                    where: { voterUserId: userId }
                 },
                 createdBy: {
                     select: { name: true, role: true }
                 },
                 _count: {
-                    select: { casts: true }
+                    select: { ballots: true }
                 }
             },
             orderBy: { createdAt: "desc" }
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
             return {
                 ...vote,
                 isEligible,
-                hasVoted: vote.casts.length > 0,
+                hasVoted: vote.ballots.length > 0,
             };
         });
 
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
                 description: description || null,
                 status: status || "draft",
                 visibility: visibility || "public",
-                voteType: voteType || "per_delegation",
+                ballotMode: voteType || "per_delegation",
                 quorumPercent: quorumPercent || 50,
                 createdById: userId,
                 options: {

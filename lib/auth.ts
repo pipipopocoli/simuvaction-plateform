@@ -1,56 +1,75 @@
 import { jwtVerify, SignJWT } from "jose";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 
-function getSessionSecret(): Uint8Array {
-  const secret = process.env["SESSION_SECRET"];
-  if (!secret || secret.length < 32) {
-    throw new Error("SESSION_SECRET must be set and at least 32 characters.");
-  }
-  return new TextEncoder().encode(secret);
-}
+const fallbackSecret = "Simuvaction2026-Super-Secret-Token-Infaillible-Fallback-Key-1234567890";
+const SECRET_KEY = new TextEncoder().encode(
+  process.env.SESSION_SECRET || fallbackSecret
+);
 
 export interface SessionPayload {
-  auth: true;
   userId: string;
+  email: string;
+  name: string;
   role: string;
+  teamId: string | null;
   eventId: string;
-  teamId?: string | null;
-  iat?: number;
-  exp?: number;
+  mustChangePassword?: boolean;
 }
 
-export async function createSessionJwt(
-  userId: string,
-  role: string,
-  eventId: string,
-  teamId?: string | null
-): Promise<string> {
-  return new SignJWT({ auth: true, userId, role, eventId, teamId })
+export async function encrypt(payload: SessionPayload) {
+  return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(getSessionSecret());
+    .setExpirationTime("24h")
+    .sign(SECRET_KEY);
 }
 
-export async function verifySessionJwt(token: string): Promise<SessionPayload | null> {
+export async function decrypt(token: string | undefined = "") {
   try {
-    const { payload } = await jwtVerify(token, getSessionSecret(), {
+    const { payload } = await jwtVerify(token, SECRET_KEY, {
       algorithms: ["HS256"],
     });
-
-    if (payload.auth !== true) {
-      return null;
-    }
-
-    return {
-      auth: true,
-      userId: payload.userId as string,
-      role: payload.role as string,
-      eventId: payload.eventId as string,
-      teamId: payload.teamId as string | undefined,
-      iat: payload.iat,
-      exp: payload.exp,
-    };
-  } catch {
+    return payload as unknown as SessionPayload;
+  } catch (error) {
     return null;
   }
+}
+
+export async function loginUser(email: string, pass: string) {
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() }
+  });
+
+  if (!user) {
+    return { error: "Identifiants incorrects." };
+  }
+
+  const isValid = await bcrypt.compare(pass, user.hashedPassword);
+  if (!isValid) {
+    return { error: "Identifiants incorrects." };
+  }
+
+  const payload: SessionPayload = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    teamId: user.teamId,
+    eventId: user.eventId,
+    mustChangePassword: user.mustChangePassword,
+  };
+
+  const sessionToken = await encrypt(payload);
+
+  (await cookies()).set("session", sessionToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24, // 24 hours
+  });
+
+  return { success: true, user: payload };
 }

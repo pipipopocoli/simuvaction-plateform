@@ -8,7 +8,7 @@ export function AdminVotePanel() {
     const [description, setDescription] = useState("");
     const [options, setOptions] = useState<string[]>(["Pour", "Contre", "Abstention"]);
     const [visibility, setVisibility] = useState<"public" | "secret">("public");
-    const [voteType, setVoteType] = useState<"per_delegation" | "per_person">("per_delegation");
+    const [ballotMode, setBallotMode] = useState<"per_delegation" | "per_person">("per_delegation");
     const [quorumPercent, setQuorumPercent] = useState<number>(50);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,7 +25,7 @@ export function AdminVotePanel() {
                     description,
                     status: "active", // Activate immediately for testing
                     visibility,
-                    voteType,
+                    ballotMode,
                     quorumPercent,
                     options: options.filter(o => o.trim() !== "")
                 })
@@ -101,8 +101,8 @@ export function AdminVotePanel() {
                         <label className="block text-xs font-medium text-zinc-400 mb-1 uppercase tracking-wider">Type de Quota</label>
                         <select
                             className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white focus:outline-none focus:border-blue-500"
-                            value={voteType}
-                            onChange={(e) => setVoteType(e.target.value as "per_delegation" | "per_person")}
+                            value={ballotMode}
+                            onChange={(e) => setBallotMode(e.target.value as "per_delegation" | "per_person")}
                         >
                             <option value="per_delegation">1 Vote par Pays (Délégation)</option>
                             <option value="per_person">1 Vote par Personne</option>

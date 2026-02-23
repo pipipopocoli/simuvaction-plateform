@@ -1,6 +1,6 @@
 import { getUserSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
-import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
+import { LeaderWorkspaceClient } from "@/components/workspaces/leader-workspace-client";
 
 export default async function LeaderWorkspace() {
     const session = await getUserSession();
@@ -9,19 +9,16 @@ export default async function LeaderWorkspace() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-                <h1 className="text-2xl font-bold">Administration & Leadership</h1>
-                <p className="text-zinc-600">Gérez les résolutions de vote et approuvez les articles de la Newsroom.</p>
-
-                <AdminVotePanel />
+        <div className="w-full">
+            <div className="mb-8">
+                <h1 className="text-3xl font-serif font-bold tracking-tight text-alert-red flex items-center gap-3">
+                    <span className="w-3 h-3 rounded-full bg-alert-red animate-pulse" />
+                    Haut Commandement
+                </h1>
+                <p className="text-ink/60 text-sm mt-2">Zone sécurisée. Vous avez les pleins pouvoirs analytiques et administratifs sur la simulation.</p>
             </div>
 
-            <div className="space-y-6">
-                <h1 className="text-2xl font-bold">Tableau de Bord</h1>
-                <p className="text-zinc-600">Approbations d'articles en attente de votre sceau majeur :</p>
-                {/* News Approval Queue will go here */}
-            </div>
+            <LeaderWorkspaceClient userId={session.userId} role={session.role} />
         </div>
     );
 }
