@@ -98,7 +98,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                 setIsEditing(false);
                 fetchNews();
             } else {
-                alert("Erreur lors de la sauvegarde.");
+                alert("Failed to save article.");
             }
         } catch (error) {
             console.error(error);
@@ -106,7 +106,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Voulez-vous vraiment supprimer cet article ?")) return;
+        if (!confirm("Are you sure you want to delete this article?")) return;
         try {
             await fetch(`/api/news/${id}`, { method: "DELETE" });
             fetchNews();
@@ -129,33 +129,33 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
             <div className="mx-auto max-w-4xl p-6">
                 <div className="mb-6 flex items-center justify-between border-b border-zinc-200 pb-4">
                     <h1 className="text-2xl font-bold font-serif text-zinc-900">
-                        {currentPostId ? "Modifier l'article" : "Nouvel article"}
+                        {currentPostId ? "Edit article" : "New article"}
                     </h1>
                     <button onClick={() => setIsEditing(false)} className="text-sm font-medium text-zinc-500 hover:text-zinc-800">
-                        Annuler & Retour
+                        Cancel and return
                     </button>
                 </div>
 
                 <div className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold uppercase tracking-wider text-zinc-600 mb-2">Titre (Header)</label>
+                        <label className="block text-sm font-semibold uppercase tracking-wider text-zinc-600 mb-2">Title</label>
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full text-xl font-bold p-3 border border-zinc-300 rounded focus:ring-2 focus:ring-blue-800 outline-none"
-                            placeholder="Ex: Tensions grandissantes en Europe..."
+                            placeholder="Example: Growing tensions in Eastern Europe..."
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold uppercase tracking-wider text-zinc-600 mb-2">Contenu (Corps de texte)</label>
+                        <label className="block text-sm font-semibold uppercase tracking-wider text-zinc-600 mb-2">Body</label>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
                             rows={15}
                             className="w-full p-4 border border-zinc-300 rounded font-serif text-lg leading-relaxed focus:ring-2 focus:ring-blue-800 outline-none"
-                            placeholder="Écrivez votre dépêche ici..."
+                            placeholder="Write your dispatch here..."
                         />
                     </div>
 
@@ -164,14 +164,14 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                             onClick={() => handleSaveDraft(false)}
                             className="flex-1 rounded border border-zinc-300 bg-white px-4 py-3 text-sm font-bold uppercase tracking-wider text-zinc-800 hover:bg-zinc-50"
                         >
-                            Sauvegarder Brouillon
+                            Save draft
                         </button>
                         <button
                             onClick={() => handleSaveDraft(true)}
                             disabled={!title || !body}
                             className="flex-1 rounded bg-black px-4 py-3 text-sm font-bold uppercase tracking-wider text-white hover:bg-zinc-800 disabled:opacity-50"
                         >
-                            Soumettre à la Révision (Peer-Review)
+                            Submit for peer review
                         </button>
                     </div>
                 </div>
@@ -184,13 +184,13 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
             <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-200 pb-4">
                 <div>
                     <h1 className="font-serif text-3xl font-bold text-zinc-900">Newsroom Desk</h1>
-                    <p className="mt-1 text-sm text-zinc-500">Agence de Presse SimuVaction • Portail Journaliste</p>
+                    <p className="mt-1 text-sm text-zinc-500">SimuVaction Press Agency • Journalist portal</p>
                 </div>
                 <button
                     onClick={() => handleOpenComposer()}
                     className="inline-flex items-center gap-2 rounded bg-blue-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-800"
                 >
-                    <Plus className="h-4 w-4" /> Nouvel Article
+                    <Plus className="h-4 w-4" /> New article
                 </button>
             </div>
 
@@ -199,27 +199,27 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                     onClick={() => setActiveTab("drafts")}
                     className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "drafts" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
                 >
-                    Mes Brouillons
+                    My drafts
                 </button>
                 <button
                     onClick={() => setActiveTab("queue")}
                     className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "queue" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
                 >
-                    File de Révision (Peer-Review)
+                    Review queue
                 </button>
                 <button
                     onClick={() => setActiveTab("published")}
                     className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "published" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
                 >
-                    Archives Publiées
+                    Published archive
                 </button>
             </div>
 
             {loading ? (
-                <div className="py-12 text-center text-zinc-500">Chargement des dépêches...</div>
+                <div className="py-12 text-center text-zinc-500">Loading dispatches...</div>
             ) : news.length === 0 ? (
                 <div className="border-2 border-dashed border-zinc-200 p-12 text-center rounded">
-                    <p className="font-serif text-lg text-zinc-600">Aucun article dans cette section.</p>
+                    <p className="font-serif text-lg text-zinc-600">No article in this section.</p>
                 </div>
             ) : (
                 <div className="grid gap-6">
@@ -238,7 +238,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                             </div>
 
                             <h3 className="mb-1 font-serif text-xl font-bold leading-tight text-zinc-900">{item.title}</h3>
-                            <p className="mb-4 text-sm font-medium text-zinc-500">Par {item.author.name}</p>
+                            <p className="mb-4 text-sm font-medium text-zinc-500">By {item.author.name}</p>
 
                             <p className="mb-6 line-clamp-3 text-sm text-zinc-700 font-serif leading-relaxed">
                                 {item.body}
@@ -251,14 +251,14 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                                 <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
                                     <div className="flex items-center gap-1">
                                         <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                                        <span>Journalistes: {item.stats.journalistApprovals}/{item.stats.requiredJournalists}</span>
+                                        <span>Journalists: {item.stats.journalistApprovals}/{item.stats.requiredJournalists}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
-                                        <span>Haut Commandement: {item.stats.leaderApprovals}/{item.stats.requiredLeaders}</span>
+                                        <span>Leadership: {item.stats.leaderApprovals}/{item.stats.requiredLeaders}</span>
                                     </div>
                                     {item.stats.rejections > 0 && (
-                                        <span className="text-red-600 font-bold">{item.stats.rejections} Refus</span>
+                                        <span className="text-red-600 font-bold">{item.stats.rejections} Rejections</span>
                                     )}
                                 </div>
 
@@ -266,10 +266,10 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                                     {/* Draft Actions */}
                                     {(item.status === "draft" || item.status === "rejected") && item.authorId === payload.userId && (
                                         <>
-                                            <button onClick={() => handleOpenComposer(item)} className="p-2 text-zinc-400 hover:text-blue-600 transition" title="Modifier">
+                                            <button onClick={() => handleOpenComposer(item)} className="p-2 text-zinc-400 hover:text-blue-600 transition" title="Edit">
                                                 <Edit3 className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-600 transition" title="Supprimer">
+                                            <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-600 transition" title="Delete">
                                                 <Trash2 className="h-5 w-5" />
                                             </button>
                                         </>
@@ -279,15 +279,15 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                                     {item.status === "submitted" && item.authorId !== payload.userId && !item.hasUserVoted && (
                                         <>
                                             <button onClick={() => handleReview(item.id, "reject")} className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition">
-                                                Refuser
+                                                Reject
                                             </button>
                                             <button onClick={() => handleReview(item.id, "approve")} className="rounded bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition">
-                                                Approuver
+                                                Approve
                                             </button>
                                         </>
                                     )}
                                     {item.hasUserVoted && (
-                                        <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2 py-1 rounded">Vote Enregistré</span>
+                                        <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2 py-1 rounded">Vote recorded</span>
                                     )}
                                 </div>
                             </div>

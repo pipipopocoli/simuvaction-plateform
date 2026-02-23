@@ -9,7 +9,7 @@ export async function POST(
     const session = await getUserSession();
     // Only Journalists and Leaders/Admins can approve or reject articles
     if (!session || (session.role !== "journalist" && session.role !== "leader" && session.role !== "admin")) {
-        return NextResponse.json({ error: "Unauthorized. Seuls les Journalistes ou Leaders peuvent évaluer des articles." }, { status: 403 });
+        return NextResponse.json({ error: "Unauthorized. Only journalists and leadership can review articles." }, { status: 403 });
     }
 
     const { eventId, userId, role } = session;
@@ -20,7 +20,7 @@ export async function POST(
         const { decision, reason } = body; // 'approve' or 'reject'
 
         if (decision !== "approve" && decision !== "reject") {
-            return NextResponse.json({ error: "Décision invalide." }, { status: 400 });
+            return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
         }
 
         // Fetch the target article
@@ -30,15 +30,15 @@ export async function POST(
         });
 
         if (!post) {
-            return NextResponse.json({ error: "Article introuvable." }, { status: 404 });
+            return NextResponse.json({ error: "Article not found." }, { status: 404 });
         }
 
         if (post.status !== "submitted") {
-            return NextResponse.json({ error: "Seuls les articles soumis ('submitted') peuvent être évalués." }, { status: 400 });
+            return NextResponse.json({ error: "Only submitted articles can be reviewed." }, { status: 400 });
         }
 
         if (post.authorId === userId) {
-            return NextResponse.json({ error: "Vous ne pouvez pas évaluer ou approuver votre propre article." }, { status: 403 });
+            return NextResponse.json({ error: "You cannot review or approve your own article." }, { status: 403 });
         }
 
         // Determine effective role for the approval record
@@ -73,7 +73,7 @@ export async function POST(
                 where: { id: postId },
                 data: { status: "rejected" }
             });
-            return NextResponse.json({ message: "Article rejeté et renvoyé à l'auteur.", post: rejectedPost });
+            return NextResponse.json({ message: "Article rejected and returned to the author.", post: rejectedPost });
         }
 
         // If it's an approval, check if we hit the quorum (2 journalists + 1 leader)
@@ -96,11 +96,11 @@ export async function POST(
                     publishedAt: new Date()
                 }
             });
-            return NextResponse.json({ message: "Article officiellement publié !", published: true });
+            return NextResponse.json({ message: "Article officially published.", published: true });
         }
 
         return NextResponse.json({
-            message: "Approbation enregistrée.",
+            message: "Approval recorded.",
             status: "pending",
             counts: { journalistApprovals, leaderApprovals }
         });

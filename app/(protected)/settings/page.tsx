@@ -1,25 +1,35 @@
+import { Panel, SectionHeader } from "@/components/ui/commons";
+import { SettingsProfile } from "@/components/settings-profile";
 import { SettingsWhatsApp } from "@/components/settings-whatsapp";
 
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
-      <section className="card-panel rounded-lg p-6">
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Integration placeholders for upcoming notification capabilities.
-        </p>
-      </section>
+      <SectionHeader
+        eyebrow="Account"
+        title="Settings"
+        subtitle="Manage your personal profile and communication integration settings."
+      />
 
-      <section className="card-panel rounded-lg p-6">
-        <h2 className="text-lg font-semibold">WhatsApp Notifications (Coming soon)</h2>
+      <Panel>
+        <h2 className="text-xl font-semibold">Profile</h2>
+        <p className="mt-1 text-sm text-zinc-600">Update your display information and credentials.</p>
+
+        <div className="mt-4">
+          <SettingsProfile />
+        </div>
+      </Panel>
+
+      <Panel>
+        <h2 className="text-xl font-semibold">WhatsApp Notifications (Coming soon)</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          V1 stores setup placeholders only. Sending reminders is not enabled.
+          Placeholders only. Reminder sending is still disabled.
         </p>
 
         <div className="mt-4">
           <SettingsWhatsApp />
         </div>
-      </section>
+      </Panel>
     </div>
   );
 }

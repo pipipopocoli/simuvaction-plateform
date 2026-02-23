@@ -21,11 +21,11 @@ export async function GET(
             }
         });
 
-        if (!post) return NextResponse.json({ error: "Article introuvable" }, { status: 404 });
+        if (!post) return NextResponse.json({ error: "Article not found." }, { status: 404 });
 
         // Privacy check
         if (post.status === "draft" && post.authorId !== userId) {
-            return NextResponse.json({ error: "Ce brouillon est privé." }, { status: 403 });
+            return NextResponse.json({ error: "This draft is private." }, { status: 403 });
         }
 
         // Compute approval metadata for UI convenience
@@ -59,7 +59,7 @@ export async function PATCH(
 ) {
     const session = await getUserSession();
     if (!session || (session.role !== "journalist" && session.role !== "admin")) {
-        return NextResponse.json({ error: "Unauthorized. Seul l'auteur peut modifier son brouillon." }, { status: 403 });
+        return NextResponse.json({ error: "Unauthorized. Only the author can edit this draft." }, { status: 403 });
     }
 
     const { id: postId } = await params;
@@ -71,12 +71,12 @@ export async function PATCH(
 
         // Only the original author can edit their draft/rejected piece, Admin is god mode fallback
         if (post.authorId !== userId && session.role !== "admin") {
-            return NextResponse.json({ error: "Vous n'êtes pas l'auteur." }, { status: 403 });
+            return NextResponse.json({ error: "You are not the author of this article." }, { status: 403 });
         }
 
         // It is strictly forbidden to edit a post that is actively being reviewed or published.
         if (post.status === "submitted" || post.status === "published") {
-            return NextResponse.json({ error: "Impossible de modifier un article actuellement en révision ou publié." }, { status: 400 });
+            return NextResponse.json({ error: "Cannot edit an article that is under review or already published." }, { status: 400 });
         }
 
         const body = await req.json();
@@ -118,7 +118,7 @@ export async function DELETE(
         if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (post.authorId !== userId && role !== "admin") {
-            return NextResponse.json({ error: "Vous n'êtes pas l'auteur." }, { status: 403 });
+            return NextResponse.json({ error: "You are not the author of this article." }, { status: 403 });
         }
 
         await prisma.newsPost.delete({ where: { id: postId } });

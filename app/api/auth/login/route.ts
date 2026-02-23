@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     if (rateLimit.blocked) {
       const response = NextResponse.json(
-        { error: "Trop de tentatives. Réessayez plus tard.", retryAfterSeconds: rateLimit.retryAfterSeconds },
+        { error: "Too many attempts. Try again later.", retryAfterSeconds: rateLimit.retryAfterSeconds },
         { status: 429 },
       );
       response.headers.set("Retry-After", String(rateLimit.retryAfterSeconds));

@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     const session = await getUserSession();
     if (!session || (session.role !== "journalist" && session.role !== "admin")) {
-        return NextResponse.json({ error: "Unauthorized. Seuls les journalistes peuvent créer des articles." }, { status: 403 });
+        return NextResponse.json({ error: "Unauthorized. Only journalists can create articles." }, { status: 403 });
     }
 
     const { eventId, userId } = session;
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         const { title, content, status } = body; // status can be 'draft' or 'submitted'
 
         if (!title || !content) {
-            return NextResponse.json({ error: "Titre et contenu obligatoires." }, { status: 400 });
+            return NextResponse.json({ error: "Title and content are required." }, { status: 400 });
         }
 
         const post = await prisma.newsPost.create({
