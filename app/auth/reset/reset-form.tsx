@@ -82,7 +82,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             <button
                 type="submit"
                 disabled={isPending}
-                className="mt-4 w-full rounded bg-black px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="mt-4 w-full rounded-none bg-[#1E3A8A] px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-70"
             >
                 {isPending ? "Updating..." : "Confirm new password"}
             </button>
