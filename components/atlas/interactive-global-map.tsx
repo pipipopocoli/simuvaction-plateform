@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Info, Loader2, MessageSquare, Users, X } from "lucide-react";
 import type { AtlasDelegation } from "@/lib/atlas";
@@ -25,6 +25,7 @@ export function InteractiveGlobalMap({
   onSelectDelegation,
 }: InteractiveGlobalMapProps) {
   const router = useRouter();
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
   const [isOpeningThread, setIsOpeningThread] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -55,6 +56,32 @@ export function InteractiveGlobalMap({
 
     return filled;
   }, [selectedDelegation]);
+
+  useEffect(() => {
+    if (!selectedDelegationId) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedDelegationId]);
+
+  useEffect(() => {
+    if (!selectedDelegation) {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onSelectDelegation(null);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onSelectDelegation, selectedDelegation]);
 
   async function findTeamContact(teamId: string) {
     const response = await fetch("/api/chat/contacts", { cache: "no-store" });
@@ -144,8 +171,8 @@ export function InteractiveGlobalMap({
   }
 
   return (
-    <div className="relative h-[360px] w-full overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
-      <div className="absolute inset-0 p-2">
+    <div className="relative isolate w-full rounded-2xl border border-ink-border bg-slate-100">
+      <div className="relative h-[clamp(320px,42vh,520px)] overflow-hidden rounded-2xl p-2">
         <ClickableWorldMap
           delegations={delegations}
           selectedDelegationId={selectedDelegationId}
@@ -154,8 +181,17 @@ export function InteractiveGlobalMap({
       </div>
 
       {selectedDelegation ? (
-        <div className="absolute bottom-3 right-3 z-30 w-full max-w-sm rounded-xl border border-ink-border bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+        <div className="absolute inset-0 z-[80] pointer-events-none">
           <button
+            type="button"
+            onClick={() => onSelectDelegation(null)}
+            className="absolute inset-0 bg-transparent md:hidden pointer-events-auto"
+            aria-label="Close delegation card"
+          />
+
+          <div className="pointer-events-auto absolute left-1/2 top-1/2 z-[90] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-ink-border bg-white/95 p-4 shadow-2xl backdrop-blur-sm md:left-auto md:right-3 md:top-3 md:w-full md:max-w-sm md:translate-x-0 md:translate-y-0">
+          <button
+            ref={closeButtonRef}
             onClick={() => onSelectDelegation(null)}
             className="absolute right-2 top-2 rounded-md p-1 text-ink/50 hover:bg-ink/5 hover:text-ink"
             aria-label="Close delegation card"
@@ -233,11 +269,12 @@ export function InteractiveGlobalMap({
           </div>
 
           {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
+          </div>
         </div>
       ) : null}
 
       {!selectedDelegation ? (
-        <div className="absolute bottom-3 left-3 max-w-xs rounded-lg border border-ink-border bg-white/90 p-3 shadow-sm backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-20 max-w-xs rounded-lg border border-ink-border bg-white/90 p-3 shadow-sm backdrop-blur-sm">
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 shrink-0 text-ink-blue" />
             <p className="text-[11px] leading-relaxed text-ink/70">

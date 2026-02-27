@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import worldMap from "@svg-maps/world";
 import type { AtlasDelegation } from "@/lib/atlas";
 import { toSvgCountryIso2 } from "@/lib/atlas";
@@ -27,6 +27,24 @@ type WorldLocation = {
   path: string;
 };
 
+type CountryBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  cx: number;
+  cy: number;
+};
+
+type ViewportSize = {
+  width: number;
+  height: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function parseViewBox(value: string): ParsedViewBox {
   const [minX = 0, minY = 0, width = 1010, height = 666] = value
     .split(" ")
@@ -40,7 +58,12 @@ export function ClickableWorldMap({
   onSelectDelegation,
 }: ClickableWorldMapProps) {
   const locations = worldMap.locations as WorldLocation[];
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const pathRefs = useRef<Record<string, SVGPathElement | null>>({});
+
   const viewBox = useMemo(() => parseViewBox(worldMap.viewBox), []);
+  const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const [countryBoundsByIso, setCountryBoundsByIso] = useState<Map<string, CountryBounds>>(new Map());
 
   const countryDelegations = useMemo(
     () => delegations.filter((delegation) => delegation.kind === "country"),
@@ -63,18 +86,106 @@ export function ClickableWorldMap({
     [delegations, selectedDelegationId],
   );
 
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const first = entries[0];
+      if (!first) return;
+      const { width, height } = first.contentRect;
+      setViewportSize((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      );
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const next = new Map<string, CountryBounds>();
+      for (const location of locations) {
+        const node = pathRefs.current[location.id];
+        if (!node) continue;
+        const box = node.getBBox();
+        next.set(location.id, {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          cx: box.x + box.width / 2,
+          cy: box.y + box.height / 2,
+        });
+      }
+      setCountryBoundsByIso(next);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [locations, viewportSize.height, viewportSize.width]);
+
+  const worldBounds = useMemo(() => {
+    if (countryBoundsByIso.size === 0) return null;
+    const values = Array.from(countryBoundsByIso.values());
+    const minX = Math.min(...values.map((value) => value.x));
+    const minY = Math.min(...values.map((value) => value.y));
+    const maxX = Math.max(...values.map((value) => value.x + value.width));
+    const maxY = Math.max(...values.map((value) => value.y + value.height));
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }, [countryBoundsByIso]);
+
+  const adaptiveZoom = useMemo(() => {
+    if (viewportSize.width === 0 || viewportSize.height === 0) {
+      return ZOOM_SCALE;
+    }
+    const ratio = viewportSize.width / viewportSize.height;
+    if (ratio < 1.25) return 1.08;
+    if (ratio > 2.15) return 1.18;
+    return ZOOM_SCALE;
+  }, [viewportSize.height, viewportSize.width]);
+
   const transform = useMemo(() => {
     if (!selectedDelegation || selectedDelegation.kind !== "country" || !selectedDelegation.mapPoint) {
       return "translate(0 0) scale(1)";
     }
 
-    const focusX = (selectedDelegation.mapPoint.xPct / 100) * viewBox.width;
-    const focusY = (selectedDelegation.mapPoint.yPct / 100) * viewBox.height;
-    const tx = viewBox.width / 2 - ZOOM_SCALE * focusX;
-    const ty = viewBox.height / 2 - ZOOM_SCALE * focusY;
+    const selectedIso = toSvgCountryIso2(selectedDelegation.countryCode).toLowerCase();
+    const fromShape = countryBoundsByIso.get(selectedIso);
+    const focusX = fromShape
+      ? fromShape.cx
+      : viewBox.minX + (selectedDelegation.mapPoint.xPct / 100) * viewBox.width;
+    const focusY = fromShape
+      ? fromShape.cy
+      : viewBox.minY + (selectedDelegation.mapPoint.yPct / 100) * viewBox.height;
 
-    return `translate(${tx} ${ty}) scale(${ZOOM_SCALE})`;
-  }, [selectedDelegation, viewBox.height, viewBox.width]);
+    const content = worldBounds ?? {
+      x: viewBox.minX,
+      y: viewBox.minY,
+      width: viewBox.width,
+      height: viewBox.height,
+    };
+
+    let tx = viewBox.minX + viewBox.width / 2 - adaptiveZoom * focusX;
+    let ty = viewBox.minY + viewBox.height / 2 - adaptiveZoom * focusY;
+
+    const minTx = viewBox.minX + viewBox.width - (content.x + content.width) * adaptiveZoom;
+    const maxTx = viewBox.minX - content.x * adaptiveZoom;
+    const minTy = viewBox.minY + viewBox.height - (content.y + content.height) * adaptiveZoom;
+    const maxTy = viewBox.minY - content.y * adaptiveZoom;
+
+    tx = clamp(tx, minTx, maxTx);
+    ty = clamp(ty, minTy, maxTy);
+
+    return `translate(${tx} ${ty}) scale(${adaptiveZoom})`;
+  }, [adaptiveZoom, countryBoundsByIso, selectedDelegation, viewBox.height, viewBox.minX, viewBox.minY, viewBox.width, worldBounds]);
 
   const tinyCountryMarkers = useMemo(
     () =>
@@ -95,7 +206,7 @@ export function ClickableWorldMap({
   );
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full">
       <svg
         viewBox={worldMap.viewBox}
         preserveAspectRatio="xMidYMid meet"
@@ -111,6 +222,9 @@ export function ClickableWorldMap({
             return (
               <path
                 key={location.id}
+                ref={(node) => {
+                  pathRefs.current[location.id] = node;
+                }}
                 d={location.path}
                 fill={clickable ? (selected ? "#10b981" : "#22c55e") : "#9ca3af"}
                 stroke={selected ? "#0f172a" : "#eef2f7"}
