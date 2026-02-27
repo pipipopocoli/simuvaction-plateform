@@ -119,8 +119,9 @@ export function FrontPageNewsFeed() {
                   )}
                   <div>
                     <p className="text-xs font-semibold text-ink">{author.name}</p>
-                    <p className="text-[11px] text-ink/60">
-                      {author.displayRole?.trim() || "Journalist"} · {author.mediaOutlet?.trim() || "Independent"}
+                    <p className="text-[11px] text-ink/60">{author.mediaOutlet?.trim() || "Independent"}</p>
+                    <p className="text-[11px] text-ink/55">
+                      {(author.positionPaperSummary?.trim() || "No stance provided.").slice(0, 64)}
                     </p>
                   </div>
                 </div>
