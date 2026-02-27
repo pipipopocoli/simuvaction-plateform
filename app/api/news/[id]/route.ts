@@ -3,7 +3,7 @@ import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-    req: NextRequest,
+    _req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getUserSession();
@@ -104,7 +104,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    req: NextRequest,
+    _req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getUserSession();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type ReactNode } from "react";
 import {
     Plus, Trash2, Check, ChevronDown, ChevronRight, GripVertical,
     StickyNote, ListChecks, BookOpen, Link2, PenTool, Save, Clock
@@ -114,7 +114,18 @@ function RefBlock({ block, onChange }: { block: NoteBlock; onChange: (b: NoteBlo
 
 // ─── main export ────────────────────────────────────────────────────
 export function NotionWorkspace({ teamName }: { teamName?: string }) {
-    const [blocks, setBlocks] = useState<NoteBlock[]>(inital);
+    const [blocks, setBlocks] = useState<NoteBlock[]>(() => {
+        if (typeof window === "undefined") {
+            return inital;
+        }
+
+        try {
+            const saved = localStorage.getItem("workspace_blocks");
+            return saved ? (JSON.parse(saved) as NoteBlock[]) : inital;
+        } catch {
+            return inital;
+        }
+    });
     const [saved, setSaved] = useState(false);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({ "1": true, "2": true });
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,11 +138,6 @@ export function NotionWorkspace({ teamName }: { teamName?: string }) {
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
         }, 900);
-    }, []);
-
-    useEffect(() => {
-        const saved = localStorage.getItem("workspace_blocks");
-        if (saved) setBlocks(JSON.parse(saved));
     }, []);
 
     const update = (b: NoteBlock) => {
@@ -159,7 +165,7 @@ export function NotionWorkspace({ teamName }: { teamName?: string }) {
 
     const toggleExpand = (id: string) => setExpanded(e => ({ ...e, [id]: !e[id] }));
 
-    const icons: Record<NoteBlock["type"], React.ReactNode> = {
+    const icons: Record<NoteBlock["type"], ReactNode> = {
         note: <StickyNote className="h-4 w-4 text-amber-500" />,
         checklist: <ListChecks className="h-4 w-4 text-emerald-600" />,
         ref: <BookOpen className="h-4 w-4 text-ink-blue" />,

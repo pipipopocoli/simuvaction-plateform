@@ -19,6 +19,49 @@ type UserSeedInput = {
   teamName: string | null;
 };
 
+async function seedInitialNews(eventId: string, authorId: string) {
+  const existing = await prisma.newsPost.count({
+    where: { eventId, status: "published" },
+  });
+
+  if (existing > 0) {
+    return;
+  }
+
+  const now = Date.now();
+  await prisma.newsPost.createMany({
+    data: [
+      {
+        eventId,
+        authorId,
+        title: "Ceasefire monitoring mission launched",
+        body:
+          "Delegations approved a coordinated observer mission while bilateral talks continue in parallel. Security and humanitarian access remain priority tracks.",
+        status: "published",
+        publishedAt: new Date(now - 20 * 60 * 1000),
+      },
+      {
+        eventId,
+        authorId,
+        title: "Emergency energy package enters final vote window",
+        body:
+          "Policy negotiators converged on a compromise text. Final amendments are expected before the parliamentary close.",
+        status: "published",
+        publishedAt: new Date(now - 60 * 60 * 1000),
+      },
+      {
+        eventId,
+        authorId,
+        title: "Digital governance framework moves to review",
+        body:
+          "Leaders requested an accelerated review cycle after delegates reported broad alignment across regional blocs.",
+        status: "published",
+        publishedAt: new Date(now - 2 * 60 * 60 * 1000),
+      },
+    ],
+  });
+}
+
 async function main() {
   for (const pillar of PILLARS) {
     await prisma.pillar.upsert({
@@ -174,13 +217,20 @@ async function main() {
     });
   }
 
-  // Fetch the created leader to be the creator of the global chat room
-  const leaderUser = await prisma.user.findUnique({ where: { email: "leader@simuvaction.com" } });
+  const ownerUser =
+    (await prisma.user.findFirst({
+      where: { eventId, role: { in: ["leader", "admin"] } },
+      orderBy: { createdAt: "asc" },
+    })) ??
+    (await prisma.user.findFirst({
+      where: { eventId },
+      orderBy: { createdAt: "asc" },
+    }));
 
-  if (leaderUser) {
+  if (ownerUser) {
     const globalRoomName = "Global Assembly";
     const existingRoom = await prisma.chatRoom.findFirst({
-      where: { eventId, roomType: "global", name: globalRoomName }
+      where: { eventId, roomType: "global", name: globalRoomName },
     });
 
     if (!existingRoom) {
@@ -189,17 +239,15 @@ async function main() {
           eventId,
           name: globalRoomName,
           roomType: "global",
-          createdById: leaderUser.id,
-          // Since it's global, explicit memberships aren't strictly required for access based on our API logic,
-          // but we can add the owner just in case.
+          createdById: ownerUser.id,
           memberships: {
-            create: [
-              { userId: leaderUser.id, role: "owner" }
-            ]
-          }
-        }
+            create: [{ userId: ownerUser.id, role: "owner" }],
+          },
+        },
       });
     }
+
+    await seedInitialNews(eventId, ownerUser.id);
   }
 }
 

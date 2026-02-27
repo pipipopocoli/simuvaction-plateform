@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save, CheckCircle, PenTool, RefreshCw } from "lucide-react";
+import { CheckCircle, PenTool, RefreshCw } from "lucide-react";
 import { Panel } from "@/components/ui/commons";
 
 export function TeamDraftEditor() {
@@ -59,7 +59,7 @@ export function TeamDraftEditor() {
                         <PenTool className="h-5 w-5 text-ink-blue" />
                         Final Declaration Draft
                     </h3>
-                    <p className="text-sm text-ink/70">Collaborative notepad for your delegation's official stance.</p>
+                    <p className="text-sm text-ink/70">Collaborative notepad for your delegation&apos;s official stance.</p>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs">

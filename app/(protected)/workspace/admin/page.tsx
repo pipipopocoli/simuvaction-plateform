@@ -23,7 +23,7 @@ export default async function AdminWorkspacePage() {
                 </p>
             </div>
 
-            <AdminWorkspaceClient userId={session.userId} role={session.role} />
+            <AdminWorkspaceClient userId={session.userId} />
         </div>
     );
 }

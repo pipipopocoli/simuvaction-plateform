@@ -7,7 +7,7 @@ import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
 import { Panel, StatTile } from "@/components/ui/commons";
 
-export function AdminWorkspaceClient({ userId, role }: { userId: string; role: string }) {
+export function AdminWorkspaceClient({ userId }: { userId: string }) {
     const [activeTab, setActiveTab] = useState("overview");
 
     const tabs = [

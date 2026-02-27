@@ -29,8 +29,8 @@ export function AdminDeadlinesPanel() {
                 const data = await res.json();
                 setDeadlines(data);
             }
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error(error);
         }
     }
 
@@ -55,7 +55,7 @@ export function AdminDeadlinesPanel() {
                 setDate("");
                 fetchDeadlines();
             }
-        } catch (err) {
+        } catch {
             setError("A network error occurred.");
         } finally {
             setIsPending(false);
@@ -67,8 +67,8 @@ export function AdminDeadlinesPanel() {
         try {
             const res = await fetch(`/api/admin/deadlines?id=${id}`, { method: "DELETE" });
             if (res.ok) fetchDeadlines();
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error(error);
         }
     }
 

@@ -1,164 +1,213 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Info, Loader2 } from "lucide-react";
+import { Info, Loader2, MessageSquare, Users } from "lucide-react";
+import type { AtlasDelegation } from "@/lib/atlas";
 
-type MapNode = {
-    id: string;
-    countryCode: string;
-    countryName: string;
-    stanceShort: string | null;
-    stanceLong: string | null;
-    priorities: string[];
-    x: number;
-    y: number;
+type ChatContact = {
+  id: string;
+  name: string;
+  role: string;
+  teamId: string | null;
 };
 
-// Extremely rough plotting heuristics for SimuVaction's world map box.
-// Realistically, x/y coords would be fetched from the DB or a static JSON,
-// but we will hardcode a few estimations for demonstration based on a 100x100 grid.
-const getPlotCoords = (code: string) => {
-    const coords: Record<string, { x: number; y: number }> = {
-        'US': { x: 22, y: 35 },
-        'CA': { x: 20, y: 25 },
-        'GB': { x: 47, y: 28 },
-        'FR': { x: 48, y: 33 },
-        'DE': { x: 50, y: 31 },
-        'IT': { x: 51, y: 37 },
-        'RU': { x: 70, y: 25 },
-        'CN': { x: 78, y: 40 },
-        'JP': { x: 88, y: 38 },
-        'IN': { x: 70, y: 48 },
-        'BR': { x: 33, y: 65 },
-        'ZA': { x: 53, y: 75 },
-        'NG': { x: 48, y: 55 },
-        'SA': { x: 60, y: 45 },
-        'AU': { x: 85, y: 78 }
-    };
-    return coords[code] || { x: 50, y: 50 }; // Default to center if unknown
-};
+export function InteractiveGlobalMap({ delegations }: { delegations: AtlasDelegation[] }) {
+  const router = useRouter();
+  const [selectedId, setSelectedId] = useState(delegations[0]?.id ?? "");
+  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
+  const [isOpeningThread, setIsOpeningThread] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-export function InteractiveGlobalMap({ teams }: { teams: any[] }) {
-    const router = useRouter();
-    const [selectedTeam, setSelectedTeam] = useState<MapNode | null>(null);
-    const [mapNodes, setMapNodes] = useState<MapNode[]>([]);
-    const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const selectedDelegation = useMemo(
+    () => delegations.find((delegation) => delegation.id === selectedId) ?? delegations[0] ?? null,
+    [delegations, selectedId],
+  );
 
-    const requestBilateral = async () => {
-        if (!selectedTeam) return;
-        setIsCreatingChat(true);
-        try {
-            const res = await fetch("/api/chat/rooms", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: `Bilateral: ${selectedTeam.countryName}`,
-                    roomType: "private",
-                    targetTeamId: selectedTeam.id
-                })
-            });
-            if (res.ok) {
-                const room = await res.json();
-                router.push(`/chat/${room.id}`);
-            }
-        } catch (error) {
-            console.error(error);
-            setIsCreatingChat(false);
-        }
-    };
+  const countryPins = useMemo(
+    () => delegations.filter((delegation) => delegation.kind === "country" && delegation.mapPoint),
+    [delegations],
+  );
 
-    useEffect(() => {
-        const nodes = teams.map(t => ({
-            ...t,
-            ...getPlotCoords(t.countryCode)
-        }));
-        setMapNodes(nodes);
-    }, [teams]);
+  async function findTeamContact(teamId: string) {
+    const response = await fetch("/api/chat/contacts", { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
 
-    return (
-        <div className="relative w-full h-[400px] bg-slate-100 rounded-2xl overflow-hidden border border-ink-border">
-            {/* Base SVG Map Layer */}
-            <div
-                className="absolute inset-0 bg-cover bg-center opacity-75 pointer-events-none"
-                style={{
-                    backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
-                }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/35 to-[#f8f3ec]/65 pointer-events-none" />
+    const contacts = (await response.json()) as ChatContact[];
+    return contacts.find((contact) => contact.teamId === teamId) ?? null;
+  }
 
-            {/* Plot Points Layer */}
-            {mapNodes.map((node) => (
-                <button
-                    key={node.id}
-                    onClick={() => setSelectedTeam(node)}
-                    className="absolute group transform -translate-x-1/2 -translate-y-1/2"
-                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                >
-                    <div className={`relative flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 shadow-sm
-                        ${selectedTeam?.id === node.id
-                            ? 'bg-alert-red scale-125 z-20 shadow-alert-red/40 string'
-                            : 'bg-ink-blue hover:bg-ink hover:scale-110 z-10'}`}
-                    >
-                        <span className="text-[10px] leading-none" dangerouslySetInnerHTML={{ __html: `&#x1F1${node.countryCode.charCodeAt(0) - 65 + 166};&#x1F1${node.countryCode.charCodeAt(1) - 65 + 166};` }} />
-                    </div>
-                </button>
+  async function openDelegationThread() {
+    if (!selectedDelegation) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsOpeningThread(true);
+
+    try {
+      const contact = await findTeamContact(selectedDelegation.id);
+      if (!contact) {
+        setFeedback("No contact available in this delegation yet.");
+        return;
+      }
+
+      const response = await fetch("/api/chat/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomType: "direct",
+          targetUserId: contact.id,
+        }),
+      });
+
+      if (!response.ok) {
+        setFeedback("Unable to open direct thread.");
+        return;
+      }
+
+      const room = (await response.json()) as { id: string };
+      router.push(`/chat/${room.id}`);
+    } finally {
+      setIsOpeningThread(false);
+    }
+  }
+
+  async function requestMeeting() {
+    if (!selectedDelegation) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsRequestingMeeting(true);
+
+    try {
+      const contact = await findTeamContact(selectedDelegation.id);
+      if (!contact) {
+        setFeedback("No contact available in this delegation yet.");
+        return;
+      }
+
+      const proposedStartAt = new Date(Date.now() + 1000 * 60 * 60).toISOString();
+
+      const response = await fetch("/api/meetings/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: contact.id,
+          targetTeamId: selectedDelegation.id,
+          title: `Bilateral with ${selectedDelegation.name}`,
+          note: "Request created from Global Activity Map.",
+          proposedStartAt,
+          durationMin: 30,
+        }),
+      });
+
+      if (!response.ok) {
+        setFeedback("Unable to send meeting request.");
+        return;
+      }
+
+      setFeedback("Meeting request sent.");
+    } finally {
+      setIsRequestingMeeting(false);
+    }
+  }
+
+  return (
+    <div className="relative h-[430px] w-full overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-80 pointer-events-none"
+        style={{
+          backgroundImage:
+            "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/40 to-[#f8f3ec]/65 pointer-events-none" />
+
+      {countryPins.map((delegation) => {
+        const selected = selectedDelegation?.id === delegation.id;
+        return (
+          <button
+            key={delegation.id}
+            onClick={() => setSelectedId(delegation.id)}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${delegation.mapPoint?.xPct}%`, top: `${delegation.mapPoint?.yPct}%` }}
+            title={delegation.name}
+          >
+            <span className="relative flex h-5 w-5">
+              <span
+                className={`absolute inline-flex h-full w-full rounded-full ${
+                  selected ? "animate-ping bg-ink-blue/75" : "bg-emerald-500/45"
+                }`}
+              />
+              <span
+                className={`relative inline-flex h-5 w-5 rounded-full border-2 border-white ${
+                  selected ? "bg-ink-blue" : "bg-emerald-500"
+                }`}
+              />
+            </span>
+          </button>
+        );
+      })}
+
+      {selectedDelegation ? (
+        <div className="absolute bottom-4 right-4 z-30 w-full max-w-sm rounded-xl border border-ink-border bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Delegation</p>
+          <h3 className="mt-1 font-serif text-2xl font-bold text-ink">{selectedDelegation.name}</h3>
+          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-ink/55">
+            {selectedDelegation.region} • {selectedDelegation.kind}
+          </p>
+
+          <p className="mt-3 text-sm text-ink/80">{selectedDelegation.stance}</p>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {selectedDelegation.priorities.map((priority) => (
+              <span
+                key={priority}
+                className="rounded-md border border-ink-border bg-ivory px-2 py-1 text-[11px] text-ink/75"
+              >
+                {priority}
+              </span>
             ))}
+          </div>
 
-            {/* Country Profile Overlay (Renders when a node is clicked) */}
-            {selectedTeam && (
-                <div className="absolute bottom-4 right-4 max-w-sm bg-white/95 backdrop-blur-sm border border-ink-border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200 z-30">
-                    <div className="bg-ink-blue text-white px-4 py-3 flex items-center justify-between">
-                        <h3 className="font-serif font-bold text-lg flex items-center gap-2">
-                            <span className="text-xl leading-none" dangerouslySetInnerHTML={{ __html: `&#x1F1${selectedTeam.countryCode.charCodeAt(0) - 65 + 166};&#x1F1${selectedTeam.countryCode.charCodeAt(1) - 65 + 166};` }} />
-                            {selectedTeam.countryName}
-                        </h3>
-                        <button onClick={() => setSelectedTeam(null)} className="text-white/70 hover:text-white transition">✖</button>
-                    </div>
+          <div className="mt-4 grid gap-2">
+            <button
+              onClick={requestMeeting}
+              disabled={isRequestingMeeting}
+              className="inline-flex items-center justify-between rounded-lg border border-ink-blue/30 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-blue hover:bg-blue-50 disabled:opacity-60"
+            >
+              Request meeting
+              {isRequestingMeeting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
+            </button>
 
-                    <div className="p-4 space-y-3">
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-ink/50 mb-1">Public Stance</p>
-                            <p className="text-sm text-ink leading-relaxed font-semibold">
-                                {selectedTeam.stanceShort || <span className="italic text-ink/40">No public stance declared yet.</span>}
-                            </p>
-                        </div>
+            <button
+              onClick={openDelegationThread}
+              disabled={isOpeningThread}
+              className="inline-flex items-center justify-between rounded-lg border border-ink-border bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink hover:bg-ivory disabled:opacity-60"
+            >
+              Open delegation thread
+              {isOpeningThread ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
+            </button>
+          </div>
 
-                        {selectedTeam.priorities && selectedTeam.priorities.length > 0 && (
-                            <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-ink/50 mb-1">Stated Priorities</p>
-                                <div className="flex flex-wrap gap-1">
-                                    {selectedTeam.priorities.map((p, i) => (
-                                        <span key={i} className="bg-slate-100 text-ink text-xs px-2 py-1 rounded-md border border-ink-border">
-                                            {p}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            onClick={requestBilateral}
-                            disabled={isCreatingChat}
-                            className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-widest text-ink-blue border border-ink-blue/30 rounded hover:bg-ink-blue/5 transition disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            {isCreatingChat ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                            {isCreatingChat ? "Establishing secure link..." : "Request Bilateral"}
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Helpful legend when nothing is clicked */}
-            {!selectedTeam && (
-                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border border-ink-border rounded-lg p-3 max-w-xs shadow-sm flex items-start gap-3">
-                    <Info className="h-5 w-5 text-ink-blue shrink-0 mt-0.5" />
-                    <div>
-                        <p className="text-xs font-bold text-ink uppercase tracking-wider mb-1">Interactive Operations Map</p>
-                        <p className="text-[11px] text-ink/70 leading-relaxed">Click on any delegation marker on the map to review their public stance, intelligence brief, and request bilateral meetings.</p>
-                    </div>
-                </div>
-            )}
+          {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
         </div>
-    );
+      ) : null}
+
+      {!selectedDelegation ? (
+        <div className="absolute bottom-4 left-4 max-w-xs rounded-lg border border-ink-border bg-white/90 p-3 shadow-sm backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 shrink-0 text-ink-blue" />
+            <p className="text-[11px] leading-relaxed text-ink/70">
+              Click a delegation pin to view stance, priorities, and launch direct diplomatic actions.
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }

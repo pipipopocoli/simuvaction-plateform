@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import { Plus, Edit3, Trash2, Newspaper, Twitter, FileText, Send, Pen } from "lucide-react";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { Panel } from "@/components/ui/commons";
+import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
+import { AgendaPanel } from "@/components/meetings/agenda-panel";
 
 type RolePayload = {
     userId: string;
@@ -25,8 +27,10 @@ type NewsPost = {
     author: { name: string; role: string };
 };
 
+type WorkspaceTab = "compose" | "archive" | "workspace" | "press";
+
 export function JournalistWorkspaceClient({ payload }: { payload: RolePayload }) {
-    const [activeTab, setActiveTab] = useState<"compose" | "archive" | "workspace" | "press">("compose");
+    const [activeTab, setActiveTab] = useState<WorkspaceTab>("compose");
     const [news, setNews] = useState<NewsPost[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -101,7 +105,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         setActiveTab("compose");
     };
 
-    const tabs = [
+    const tabs: { id: WorkspaceTab; label: string; icon: ReactNode }[] = [
         { id: "compose", label: "Compose", icon: <Pen className="h-4 w-4" /> },
         { id: "archive", label: "My Articles", icon: <FileText className="h-4 w-4" /> },
         { id: "press", label: "Press Room", icon: <Newspaper className="h-4 w-4" /> },
@@ -116,7 +120,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition ${activeTab === tab.id ? "bg-ink text-white" : "text-ink/55 hover:text-ink hover:bg-ink-border/30"
                                     }`}
                             >
@@ -245,12 +249,15 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
 
             {/* Sidebar */}
             <div className="xl:col-span-4 space-y-4">
+                <MeetingRequestsPanel />
+
                 <Panel variant="soft">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-ink-blue mb-1">Press Identity</p>
                     <p className="font-serif text-xl font-bold text-ink">{payload.role?.toUpperCase()}</p>
                     <p className="text-xs text-ink/50 mt-1">ID: {payload.userId.slice(0, 8)}…</p>
                 </Panel>
-                <TwitterFeedPanel hashtag="SimuVaction2024" />
+                <TwitterFeedPanel hashtag="SimuVaction2026" />
+                <AgendaPanel />
             </div>
         </div>
     );

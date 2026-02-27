@@ -1,29 +1,20 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
-import {
-  Calendar,
-  ChevronRight,
-  Globe2,
-  Megaphone,
-  Newspaper,
-  Plus,
-  Siren,
-  Vote,
-} from "lucide-react";
+import { Globe2, Newspaper, Siren } from "lucide-react";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
 import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
+import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
+import { LiveWirePanel } from "@/components/dashboard/live-wire-panel";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { toAtlasDelegations } from "@/lib/atlas";
 import {
-  ActionButton,
   ListCard,
-  MapOverlayChip,
   PageShell,
   Panel,
   SectionHeader,
   StatTile,
   StatusBadge,
-  TimelineItem,
 } from "@/components/ui/commons";
 
 function formatClock(date: Date | null) {
@@ -40,7 +31,7 @@ export default async function FrontPage() {
     return null;
   }
 
-  const [recentNews, activeVotes, deadlines, nextMeeting] = await Promise.all([
+  const [recentNews, activeVotes, deadlines, teams, leadershipProfiles] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
       include: { author: { select: { name: true } } },
@@ -57,21 +48,33 @@ export default async function FrontPage() {
       orderBy: { orderIndex: "asc" },
       take: 4,
     }),
-    prisma.meeting.findFirst({
-      where: { datetimeCet: { gte: new Date() } },
-      orderBy: { datetimeCet: "asc" },
-    }),
     prisma.team.findMany({
-      where: { eventId: session.eventId }
-    })
+      where: { eventId: session.eventId },
+      include: { _count: { select: { users: true } } },
+      orderBy: { countryName: "asc" },
+    }),
+    prisma.user.findMany({
+      where: {
+        eventId: session.eventId,
+        role: { in: ["leader", "admin"] },
+      },
+      include: {
+        team: { select: { countryName: true } },
+      },
+      orderBy: [{ role: "asc" }, { name: "asc" }],
+      take: 8,
+    }),
   ]);
+
+  const delegations = toAtlasDelegations(teams);
+  const globalActors = delegations.filter((delegation) => delegation.kind === "actor");
 
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow="SimuVaction 2024: AI & Education"
+        eyebrow="SimuVaction 2026: AI & Education"
         title="Live Briefing"
-        subtitle="Global posture, active votes, and newsroom signals in one command view."
+        subtitle="Global posture, active votes, meetings, and newsroom signals in one command view."
         actions={
           <StatusBadge tone="live" className="gap-2">
             LIVE
@@ -80,7 +83,9 @@ export default async function FrontPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-12">
-        <PageShell className="xl:col-span-9">
+        <PageShell className="space-y-4 xl:col-span-9">
+          <LiveWirePanel />
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold uppercase tracking-[0.12em] text-ink/60">Global Activity Map</p>
@@ -89,7 +94,7 @@ export default async function FrontPage() {
               </StatusBadge>
             </div>
 
-            <InteractiveGlobalMap teams={allTeams} />
+            <InteractiveGlobalMap delegations={delegations} />
           </div>
         </PageShell>
 
@@ -98,7 +103,10 @@ export default async function FrontPage() {
             <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
               <Siren className="h-6 w-6 text-alert-red" /> Breaking
             </h2>
-            <Link href="/newsroom" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-blue hover:underline">
+            <Link
+              href="/newsroom"
+              className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-blue hover:underline"
+            >
               See all
             </Link>
           </div>
@@ -112,7 +120,13 @@ export default async function FrontPage() {
                   title={post.title}
                   description={post.body.slice(0, 130)}
                   meta={`${formatClock(date)} • ${post.author.name}`}
-                  aside={index === 0 ? <StatusBadge tone="alert">Breaking</StatusBadge> : <StatusBadge tone="neutral">News</StatusBadge>}
+                  aside={
+                    index === 0 ? (
+                      <StatusBadge tone="alert">Breaking</StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral">News</StatusBadge>
+                    )
+                  }
                   className="p-3"
                 />
               );
@@ -128,61 +142,66 @@ export default async function FrontPage() {
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {deadlines.map((deadline, index) => (
               <Panel key={deadline.id} className="p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">Checkpoint {index + 1}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">
+                  Checkpoint {index + 1}
+                </p>
                 <p className="mt-1 font-serif text-xl font-bold text-ink">{deadline.title}</p>
-                <p className="mt-2 text-xs text-ink/65">{DateTime.fromJSDate(deadline.datetimeCet).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")}</p>
+                <p className="mt-2 text-xs text-ink/65">
+                  {DateTime.fromJSDate(deadline.datetimeCet).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")}
+                </p>
               </Panel>
             ))}
           </div>
         </PageShell>
 
-        <Panel className="xl:col-span-3">
-          <h2 className="font-serif text-3xl font-bold text-ink">Quick Actions</h2>
-          <div className="mt-4 space-y-3">
-            {session.role === "admin" && (
-              <Link href="/workspace/admin" className="block">
-                <ActionButton className="w-full justify-between bg-red-700 text-white hover:bg-red-800">
-                  Professor Admin Portal
-                  <ChevronRight className="h-4 w-4" />
-                </ActionButton>
-              </Link>
-            )}
-            {(session.role === "leader" || session.role === "admin") && (
-              <Link href="/votes" className="block">
-                <ActionButton className="w-full justify-between">
-                  Create Vote
-                  <ChevronRight className="h-4 w-4" />
-                </ActionButton>
-              </Link>
-            )}
-            {(session.role === "journalist" || session.role === "admin") && (
-              <Link href="/newsroom" className="block">
-                <ActionButton variant="secondary" className="w-full justify-between">
-                  Submit Article
-                  <ChevronRight className="h-4 w-4" />
-                </ActionButton>
-              </Link>
-            )}
-            <Link href="/chat" className="block">
-              <ActionButton variant="secondary" className="w-full justify-between">
-                Open Messages
-                <ChevronRight className="h-4 w-4" />
-              </ActionButton>
-            </Link>
-            <ActionButton variant="ghost" className="w-full justify-between">
-              Request Meeting
-              <Plus className="h-4 w-4" />
-            </ActionButton>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink/55">My Agenda</h3>
-            <TimelineItem time="Today" title="Security Council Vote" details="Assembly chamber" tone="alert" />
-            <TimelineItem time="Today" title="Bilateral Negotiation" details="Private room" tone="accent" />
-            <TimelineItem time="Tomorrow" title="Press briefing cycle" details="Newsroom desk" />
-          </div>
-        </Panel>
+        <QuickActionsPanel role={session.role} />
       </div>
+
+      <PageShell>
+        <SectionHeader
+          title="Leadership & Global Actors"
+          subtitle="Delegation leadership profiles followed by non-state actors in the current event roster."
+        />
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Panel>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Leadership</p>
+            <div className="mt-3 grid gap-3">
+              {leadershipProfiles.length === 0 ? (
+                <p className="text-sm text-ink/65">No leadership profile available.</p>
+              ) : (
+                leadershipProfiles.map((profile) => (
+                  <div key={profile.id} className="rounded-lg border border-ink-border bg-white p-3">
+                    <p className="font-semibold text-ink">{profile.name}</p>
+                    <p className="text-xs uppercase tracking-[0.08em] text-ink/55">
+                      {profile.role} {profile.team?.countryName ? `• ${profile.team.countryName}` : ""}
+                    </p>
+                    {profile.positionPaperSummary ? (
+                      <p className="mt-2 text-sm text-ink/75">{profile.positionPaperSummary}</p>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Global actors</p>
+            <div className="mt-3 grid gap-3">
+              {globalActors.length === 0 ? (
+                <p className="text-sm text-ink/65">No global actor delegation found in this event.</p>
+              ) : (
+                globalActors.map((actor) => (
+                  <div key={actor.id} className="rounded-lg border border-ink-border bg-ivory p-3">
+                    <p className="font-semibold text-ink">{actor.name}</p>
+                    <p className="mt-1 text-sm text-ink/75">{actor.stance}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+        </div>
+      </PageShell>
 
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-9">
@@ -195,12 +214,16 @@ export default async function FrontPage() {
           </h2>
           <div className="mt-4 grid gap-3">
             <StatTile label="Published News" value={recentNews.length} hint="Latest validated dispatches" />
-            <StatTile label="Active Votes" value={activeVotes.length} tone={activeVotes.length > 0 ? "alert" : "default"} hint="Live parliamentary decisions" />
+            <StatTile
+              label="Active Votes"
+              value={activeVotes.length}
+              tone={activeVotes.length > 0 ? "alert" : "default"}
+              hint="Live parliamentary decisions"
+            />
             <StatTile label="Role" value={session.role.toUpperCase()} tone="accent" hint="Current access profile" />
           </div>
-          <Link href="/atlas" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink-blue hover:underline">
-            Open full atlas view
-            <ChevronRight className="h-4 w-4" />
+          <Link href="/?focus=map" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink-blue hover:underline">
+            Focus map view
           </Link>
         </Panel>
       </div>
@@ -208,9 +231,12 @@ export default async function FrontPage() {
       <Panel className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink/55">Operational footer</p>
-          <p className="mt-1 text-sm text-ink/70">SimuVaction 2024: The Impact of Artificial Intelligence in Education.</p>
+          <p className="mt-1 text-sm text-ink/70">SimuVaction 2026: The Impact of Artificial Intelligence in Education.</p>
         </div>
-        <Link href="/archive" className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue hover:text-ink-blue">
+        <Link
+          href="/archive"
+          className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue hover:text-ink-blue"
+        >
           <Newspaper className="h-4 w-4" />
           Open Archive
         </Link>

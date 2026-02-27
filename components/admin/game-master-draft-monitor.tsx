@@ -3,8 +3,22 @@
 import { useState, useEffect } from "react";
 import { Search, PenTool } from "lucide-react";
 
+type TeamDraft = {
+    id: string;
+    countryCode: string;
+    countryName: string;
+    declarationDraft: string | null;
+};
+
+function countryCodeToFlag(code: string) {
+    if (!/^[A-Z]{2}$/.test(code)) {
+        return "🌐";
+    }
+    return String.fromCodePoint(...[...code].map((char) => 127397 + char.charCodeAt(0)));
+}
+
 export function GameMasterDraftMonitor() {
-    const [teams, setTeams] = useState<any[]>([]);
+    const [teams, setTeams] = useState<TeamDraft[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
@@ -29,8 +43,8 @@ export function GameMasterDraftMonitor() {
         return () => clearInterval(interval);
     }, []);
 
-    const filteredTeams = teams.filter(t =>
-        t.countryName.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredTeams = teams.filter((team) =>
+        team.countryName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -50,11 +64,11 @@ export function GameMasterDraftMonitor() {
                 <div className="py-12 text-center text-ink/50 italic text-sm">Loading delegation drafts...</div>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                    {filteredTeams.map(team => (
+                    {filteredTeams.map((team) => (
                         <div key={team.id} className="border border-ink-border rounded bg-white overflow-hidden flex flex-col h-64">
                             <div className="bg-ink-blue/5 border-b border-ink-border px-3 py-2 flex items-center justify-between">
                                 <span className="font-bold text-ink flex items-center gap-2">
-                                    <span className="text-xl leading-none" dangerouslySetInnerHTML={{ __html: `&#x1F1${team.countryCode.charCodeAt(0) - 65 + 166};&#x1F1${team.countryCode.charCodeAt(1) - 65 + 166};` }} />
+                                    <span className="text-xl leading-none">{countryCodeToFlag(team.countryCode)}</span>
                                     {team.countryName}
                                 </span>
                                 <span className="text-[10px] text-ink/50 uppercase tracking-widest font-mono">

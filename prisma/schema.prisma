@@ -182,6 +182,7 @@ model Event {
   voteBallots       VoteBallot[]
   notifications     Notification[]
   auditLogs         AuditLog[]
+  meetingRequests   MeetingRequest[]
   deadlines         EventDeadline[]
   documents         EventDocument[]
   twitterConfigs    TwitterConfig[]
@@ -199,6 +200,11 @@ model User {
   teamId             String?
   eventId            String
   avatarUrl          String?
+  whatsAppNumber     String?
+  xUrl               String?
+  linkedinUrl        String?
+  positionPaperUrl   String?
+  positionPaperSummary String?
   createdAt          DateTime  @default(now())
 
   team        Team?     @relation(fields: [teamId], references: [id])
@@ -219,6 +225,11 @@ model User {
   notifications     Notification[]
   deviceTokens      UserDeviceToken[]
   auditLogs         AuditLog[]
+  meetingRequestsSent     MeetingRequest[] @relation("MeetingRequester")
+  meetingRequestsReceived MeetingRequest[] @relation("MeetingTarget")
+  meetingRequestsResponded MeetingRequest[] @relation("MeetingResponder")
+  deadlinesCreated  EventDeadline[]
+  documentsCreated  EventDocument[]
 
   @@index([eventId])
   @@index([teamId])
@@ -241,6 +252,8 @@ model Team {
   chatRooms   ChatRoom[]
   voteEligibilityTeams VoteEligibilityTeam[]
   voteBallots VoteBallot[]
+  outgoingMeetingRequests MeetingRequest[] @relation("MeetingRequesterTeam")
+  incomingMeetingRequests MeetingRequest[] @relation("MeetingTargetTeam")
 
   @@unique([eventId, countryCode])
 }
@@ -253,7 +266,8 @@ model ChatRoom {
   id          String   @id @default(cuid())
   eventId     String
   name        String
-  roomType    String   // 'global', 'team', 'private'
+  roomType    String   // 'global', 'team', 'private', 'direct'
+  directPairKey String? @unique
   teamId      String?
   createdById String
   createdAt   DateTime @default(now())
@@ -265,6 +279,7 @@ model ChatRoom {
   memberships ChatMembership[]
   messages    ChatMessage[]
   reads       ChatRead[]
+  meetingRequests MeetingRequest[]
 
   @@index([eventId, roomType])
   @@index([eventId, teamId])
@@ -312,6 +327,39 @@ model ChatMessage {
   replies   ChatMessage[] @relation("MessageReplies")
 
   @@index([roomId, createdAt])
+}
+
+model MeetingRequest {
+  id               String   @id @default(cuid())
+  eventId          String
+  requesterId      String
+  targetUserId     String
+  requesterTeamId  String?
+  targetTeamId     String?
+  chatRoomId       String?
+  title            String
+  note             String?
+  proposedStartAt  DateTime
+  durationMin      Int      @default(30)
+  status           String   @default("pending") // pending, accepted, declined, cancelled
+  scheduledStartAt DateTime?
+  responseNote     String?
+  respondedById    String?
+  respondedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  requester        User     @relation("MeetingRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  targetUser       User     @relation("MeetingTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  requesterTeam    Team?    @relation("MeetingRequesterTeam", fields: [requesterTeamId], references: [id], onDelete: SetNull)
+  targetTeam       Team?    @relation("MeetingTargetTeam", fields: [targetTeamId], references: [id], onDelete: SetNull)
+  chatRoom         ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+  respondedBy      User?    @relation("MeetingResponder", fields: [respondedById], references: [id], onDelete: SetNull)
+
+  @@index([eventId, status, proposedStartAt])
+  @@index([targetUserId, status])
+  @@index([requesterId, createdAt(sort: Desc)])
 }
 
 // ----------------------------------------------------------------------------

@@ -23,7 +23,7 @@ export default function SettingsPage() {
       <Panel>
         <h2 className="text-xl font-semibold">WhatsApp Notifications (Coming soon)</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          Placeholders only. Reminder sending is still disabled.
+          Platform-level gateway settings for system broadcasts (independent from your personal profile number).
         </p>
 
         <div className="mt-4">

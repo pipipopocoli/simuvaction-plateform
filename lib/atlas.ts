@@ -30,6 +30,11 @@ const NAME_NORMALIZATION: Record<string, string> = {
   Mexique: "Mexico",
   "Sénégal": "Senegal",
   "Türkiye": "Turkey",
+  "United Kingdom": "UK",
+  Britain: "UK",
+  "United States": "USA",
+  "United States of America": "USA",
+  Brasil: "Brazil",
 };
 
 const COUNTRY_COORDINATES: Record<string, AtlasMapPoint> = {
@@ -62,7 +67,14 @@ const COUNTRY_REGION: Record<string, string> = {
   USA: "Americas",
 };
 
-const NON_STATE_ACTORS = new Set(["Everyone.AI", "ICESCO", "Meta", "Microsoft"]);
+const NON_STATE_ACTORS = new Set([
+  "Everyone.AI",
+  "Everyone AI",
+  "EVERYONE.AI",
+  "ICESCO",
+  "Meta",
+  "Microsoft",
+]);
 
 function normalizeName(name: string): string {
   return NAME_NORMALIZATION[name] ?? name;

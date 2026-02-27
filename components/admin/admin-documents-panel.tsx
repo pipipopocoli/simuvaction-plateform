@@ -32,8 +32,8 @@ export function AdminDocumentsPanel() {
                 const data = await res.json();
                 setDocuments(data);
             }
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error(error);
         }
     }
 
@@ -59,7 +59,7 @@ export function AdminDocumentsPanel() {
                 setDocType("pdf");
                 fetchDocuments();
             }
-        } catch (err) {
+        } catch {
             setError("A network error occurred.");
         } finally {
             setIsPending(false);
@@ -71,8 +71,8 @@ export function AdminDocumentsPanel() {
         try {
             const res = await fetch(`/api/admin/documents?id=${id}`, { method: "DELETE" });
             if (res.ok) fetchDocuments();
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error(error);
         }
     }
 

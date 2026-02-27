@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 // GET /api/profile – get current user's profile
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const session = await getUserSession();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

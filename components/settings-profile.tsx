@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Panel } from "@/components/ui/commons";
 
@@ -10,6 +10,11 @@ type ProfilePayload = {
   avatarUrl: string | null;
   role: string;
   teamName: string | null;
+  whatsAppNumber: string | null;
+  xUrl: string | null;
+  linkedinUrl: string | null;
+  positionPaperUrl: string | null;
+  positionPaperSummary: string | null;
 };
 
 export function SettingsProfile() {
@@ -17,11 +22,18 @@ export function SettingsProfile() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [whatsAppNumber, setWhatsAppNumber] = useState("");
+  const [xUrl, setXUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [positionPaperUrl, setPositionPaperUrl] = useState("");
+  const [positionPaperSummary, setPositionPaperSummary] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -44,6 +56,11 @@ export function SettingsProfile() {
         setProfile(fetchedProfile);
         setName(fetchedProfile.name);
         setAvatarUrl(fetchedProfile.avatarUrl ?? "");
+        setWhatsAppNumber(fetchedProfile.whatsAppNumber ?? "");
+        setXUrl(fetchedProfile.xUrl ?? "");
+        setLinkedinUrl(fetchedProfile.linkedinUrl ?? "");
+        setPositionPaperUrl(fetchedProfile.positionPaperUrl ?? "");
+        setPositionPaperSummary(fetchedProfile.positionPaperSummary ?? "");
       } catch (loadError) {
         if (!active) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load profile.");
@@ -71,6 +88,48 @@ export function SettingsProfile() {
       .join("");
   }, [name, profile?.name]);
 
+  async function uploadAvatar(file: File) {
+    setError(null);
+    setSuccess(null);
+
+    if (!file.type.startsWith("image/")) {
+      setError("Only image files are accepted.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/settings/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(payload.error ?? "Avatar upload failed.");
+        return;
+      }
+
+      setAvatarUrl(payload.avatarUrl ?? "");
+      setSuccess("Avatar uploaded. Save profile to persist.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  }
+
+  function onAvatarDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingAvatar(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      uploadAvatar(file);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) {
@@ -96,11 +155,21 @@ export function SettingsProfile() {
       const body: {
         name: string;
         avatarUrl: string | null;
+        whatsAppNumber: string | null;
+        xUrl: string | null;
+        linkedinUrl: string | null;
+        positionPaperUrl: string | null;
+        positionPaperSummary: string | null;
         currentPassword?: string;
         newPassword?: string;
       } = {
         name: name.trim(),
         avatarUrl: avatarUrl.trim() ? avatarUrl.trim() : null,
+        whatsAppNumber: whatsAppNumber.trim() ? whatsAppNumber.trim() : null,
+        xUrl: xUrl.trim() ? xUrl.trim() : null,
+        linkedinUrl: linkedinUrl.trim() ? linkedinUrl.trim() : null,
+        positionPaperUrl: positionPaperUrl.trim() ? positionPaperUrl.trim() : null,
+        positionPaperSummary: positionPaperSummary.trim() ? positionPaperSummary.trim() : null,
       };
 
       if (newPassword.trim()) {
@@ -124,6 +193,11 @@ export function SettingsProfile() {
       setProfile(updatedProfile);
       setName(updatedProfile.name);
       setAvatarUrl(updatedProfile.avatarUrl ?? "");
+      setWhatsAppNumber(updatedProfile.whatsAppNumber ?? "");
+      setXUrl(updatedProfile.xUrl ?? "");
+      setLinkedinUrl(updatedProfile.linkedinUrl ?? "");
+      setPositionPaperUrl(updatedProfile.positionPaperUrl ?? "");
+      setPositionPaperSummary(updatedProfile.positionPaperSummary ?? "");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -144,7 +218,7 @@ export function SettingsProfile() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           <div>
             <label htmlFor="display-name" className="block text-sm font-medium text-zinc-700">
@@ -159,16 +233,72 @@ export function SettingsProfile() {
             />
           </div>
 
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label htmlFor="x-url" className="block text-sm font-medium text-zinc-700">
+                X profile URL
+              </label>
+              <input
+                id="x-url"
+                value={xUrl}
+                onChange={(event) => setXUrl(event.target.value)}
+                placeholder="https://x.com/your-handle"
+                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="linkedin-url" className="block text-sm font-medium text-zinc-700">
+                LinkedIn URL
+              </label>
+              <input
+                id="linkedin-url"
+                value={linkedinUrl}
+                onChange={(event) => setLinkedinUrl(event.target.value)}
+                placeholder="https://linkedin.com/in/your-handle"
+                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label htmlFor="whatsapp" className="block text-sm font-medium text-zinc-700">
+                WhatsApp number
+              </label>
+              <input
+                id="whatsapp"
+                value={whatsAppNumber}
+                onChange={(event) => setWhatsAppNumber(event.target.value)}
+                placeholder="+14185551234"
+                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="position-paper-url" className="block text-sm font-medium text-zinc-700">
+                Position paper URL
+              </label>
+              <input
+                id="position-paper-url"
+                value={positionPaperUrl}
+                onChange={(event) => setPositionPaperUrl(event.target.value)}
+                placeholder="https://..."
+                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+              />
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="avatar-url" className="block text-sm font-medium text-zinc-700">
-              Avatar URL
+            <label htmlFor="position-paper-summary" className="block text-sm font-medium text-zinc-700">
+              Position paper summary
             </label>
-            <input
-              id="avatar-url"
-              value={avatarUrl}
-              onChange={(event) => setAvatarUrl(event.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+            <textarea
+              id="position-paper-summary"
+              value={positionPaperSummary}
+              onChange={(event) => setPositionPaperSummary(event.target.value)}
+              placeholder="Short summary shown on delegation cards"
+              className="mt-1 min-h-[120px] w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
             />
           </div>
 
@@ -188,16 +318,54 @@ export function SettingsProfile() {
           </div>
         </div>
 
-        <Panel className="flex flex-col items-center justify-center gap-3 p-4">
+        <Panel className="flex flex-col gap-3 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-600">Avatar</p>
           <div
-            className="h-20 w-20 rounded-full border border-zinc-300 bg-zinc-100 bg-cover bg-center text-zinc-700"
-            style={avatarUrl.trim() ? { backgroundImage: `url(${avatarUrl.trim()})` } : undefined}
+            className={`relative flex h-44 items-center justify-center rounded-xl border-2 border-dashed p-3 text-center transition ${
+              isDraggingAvatar ? "border-ink-blue bg-blue-50" : "border-zinc-300 bg-zinc-50"
+            }`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDraggingAvatar(true);
+            }}
+            onDragLeave={() => setIsDraggingAvatar(false)}
+            onDrop={onAvatarDrop}
           >
-            {!avatarUrl.trim() ? (
-              <div className="grid h-full w-full place-items-center text-lg font-semibold">{avatarInitials}</div>
-            ) : null}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profile avatar" className="h-full w-full rounded-lg object-cover" />
+            ) : (
+              <div className="grid h-20 w-20 place-items-center rounded-full border border-zinc-300 bg-white text-xl font-semibold text-zinc-700">
+                {avatarInitials}
+              </div>
+            )}
           </div>
-          <p className="text-xs text-zinc-500">Live preview</p>
+
+          <label className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-center text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+            {isUploadingAvatar ? "Uploading..." : "Drop image above or click to upload"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  uploadAvatar(file);
+                }
+              }}
+            />
+          </label>
+
+          <div>
+            <label htmlFor="avatar-url" className="block text-xs font-medium text-zinc-600">
+              Avatar URL (optional manual override)
+            </label>
+            <input
+              id="avatar-url"
+              value={avatarUrl}
+              onChange={(event) => setAvatarUrl(event.target.value)}
+              className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+            />
+          </div>
         </Panel>
       </div>
 
