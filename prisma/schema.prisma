@@ -219,6 +219,9 @@ model User {
   notifications     Notification[]
   deviceTokens      UserDeviceToken[]
   auditLogs         AuditLog[]
+  
+  deadlinesCreated  EventDeadline[]
+  documentsCreated  EventDocument[]
 
   @@index([eventId])
   @@index([teamId])
