@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
                 countryName: true,
                 countryCode: true,
                 declarationDraft: true,
-                updatedAt: true
+                createdAt: true
             },
             orderBy: { countryName: "asc" }
         });
