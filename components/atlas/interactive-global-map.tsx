@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Info, Loader2, MessageSquare, Users, X } from "lucide-react";
 import type { AtlasDelegation } from "@/lib/atlas";
+import { ClickableWorldMap } from "@/components/atlas/clickable-world-map";
 
 type ChatContact = {
   id: string;
@@ -35,11 +36,6 @@ export function InteractiveGlobalMap({
 
     return delegations.find((delegation) => delegation.id === selectedDelegationId) ?? null;
   }, [delegations, selectedDelegationId]);
-
-  const countryPins = useMemo(
-    () => delegations.filter((delegation) => delegation.kind === "country" && delegation.mapPoint),
-    [delegations],
-  );
 
   const selectedMembers = useMemo(() => {
     const previews = selectedDelegation?.memberPreviews ?? [];
@@ -149,41 +145,12 @@ export function InteractiveGlobalMap({
 
   return (
     <div className="relative h-[360px] w-full overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
-      <div className="absolute inset-0 flex items-center justify-center p-2">
-        <div className="relative aspect-[2754/1398] w-full max-w-[710px]">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg"
-            alt="World map"
-            className="pointer-events-none absolute inset-0 h-full w-full object-fill opacity-80"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/40 to-[#f8f3ec]/65" />
-
-          {countryPins.map((delegation) => {
-            const selected = selectedDelegation?.id === delegation.id;
-            return (
-              <button
-                key={delegation.id}
-                onClick={() => onSelectDelegation(delegation.id)}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${delegation.mapPoint?.xPct}%`, top: `${delegation.mapPoint?.yPct}%` }}
-                title={delegation.name}
-              >
-                <span className="relative flex h-5 w-5">
-                  <span
-                    className={`absolute inline-flex h-full w-full rounded-full ${
-                      selected ? "animate-ping bg-ink-blue/75" : "bg-emerald-500/45"
-                    }`}
-                  />
-                  <span
-                    className={`relative inline-flex h-5 w-5 rounded-full border-2 border-white ${
-                      selected ? "bg-ink-blue" : "bg-emerald-500"
-                    }`}
-                  />
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="absolute inset-0 p-2">
+        <ClickableWorldMap
+          delegations={delegations}
+          selectedDelegationId={selectedDelegationId}
+          onSelectDelegation={onSelectDelegation}
+        />
       </div>
 
       {selectedDelegation ? (
@@ -274,7 +241,7 @@ export function InteractiveGlobalMap({
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 shrink-0 text-ink-blue" />
             <p className="text-[11px] leading-relaxed text-ink/70">
-              Click a country pin to open its delegation card with flag, delegates, stance, and actions.
+              Click a green country to open its delegation card with flag, delegates, stance, and actions.
             </p>
           </div>
         </div>

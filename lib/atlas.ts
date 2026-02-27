@@ -63,6 +63,13 @@ const NAME_NORMALIZATION: Record<string, string> = {
   Brasil: "Brazil",
 };
 
+const SVG_COUNTRY_ALIASES: Record<string, string> = {
+  UK: "GB",
+  GBR: "GB",
+  USA: "US",
+  TURKIYE: "TR",
+};
+
 const COUNTRY_COORDINATES: Record<string, AtlasMapPoint> = {
   Brazil: { xPct: 37.0, yPct: 58.3 },
   Canada: { xPct: 20.6, yPct: 18.9 },
@@ -192,6 +199,11 @@ function normalizeCountryCode(rawCode: string, normalizedName: string, kind: Atl
   }
 
   return upperCode.slice(0, 2) || "UN";
+}
+
+export function toSvgCountryIso2(countryCode: string): string {
+  const upper = countryCode.trim().toUpperCase();
+  return SVG_COUNTRY_ALIASES[upper] ?? upper;
 }
 
 function toFlagEmoji(countryCode: string): string {

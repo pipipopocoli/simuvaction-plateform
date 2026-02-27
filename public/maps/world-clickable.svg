@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+  <g fill="#9ca3af" stroke="#eef2f7" stroke-width="1.2" opacity="0.95">
+    <path d="M118 140 L305 126 L347 156 L337 238 L180 252 L124 208 Z" />
+    <path d="M332 248 L445 260 L438 354 L354 362 L316 318 Z" />
+    <path d="M458 130 L640 116 L718 170 L702 278 L618 338 L524 328 L468 248 L446 170 Z" />
+    <path d="M694 170 L812 170 L856 226 L822 272 L738 276 L704 236 Z" />
+    <path d="M774 300 L902 306 L940 356 L904 404 L816 408 L764 360 Z" />
+    <path d="M486 258 L566 264 L594 336 L536 392 L468 350 L462 292 Z" />
+  </g>
+
+  <path data-iso="US" d="M160 168 L225 165 L260 183 L255 205 L238 220 L200 220 L168 205 Z" />
+  <path data-iso="CA" d="M150 123 L210 108 L278 116 L300 138 L276 162 L210 156 L162 148 Z" />
+  <path data-iso="MX" d="M205 222 L240 224 L252 242 L238 258 L214 252 L201 238 Z" />
+  <path data-iso="BR" d="M356 276 L392 272 L420 296 L410 332 L374 346 L342 324 L344 292 Z" />
+  <path data-iso="GB" d="M468 124 L480 120 L488 129 L482 141 L470 140 Z" />
+  <path data-iso="FR" d="M496 152 L515 148 L525 162 L519 178 L500 180 L492 166 Z" />
+  <path data-iso="DE" d="M520 138 L535 132 L545 147 L538 164 L522 162 L516 148 Z" />
+  <path data-iso="TR" d="M564 160 L604 156 L622 165 L602 178 L566 176 Z" />
+  <path data-iso="SN" d="M456 224 L470 222 L472 234 L458 238 Z" />
+  <path data-iso="IN" d="M650 190 L680 190 L700 220 L680 248 L654 240 L640 214 Z" />
+  <path data-iso="SG" d="M752 258 L758 258 L758 264 L752 264 Z" />
+  <path data-iso="JP" d="M828 170 L838 164 L848 174 L842 188 L830 188 Z" />
+</svg>
