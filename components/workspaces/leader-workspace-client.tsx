@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, FileCheck2, Info, LayoutDashboard, Clock, FileText } from "lucide-react";
+import { CheckCircle2, FileCheck2, Info, LayoutDashboard, Clock, FileText, MessageSquare } from "lucide-react";
+import Link from "next/link";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
