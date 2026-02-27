@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { DateTime } from "luxon";
 import { Plus, Edit3, Trash2, CheckCircle } from "lucide-react";
+import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
 type RolePayload = {
     userId: string;
@@ -194,108 +195,117 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                 </button>
             </div>
 
-            <div className="mb-6 flex overflow-x-auto border-b border-zinc-200">
-                <button
-                    onClick={() => setActiveTab("drafts")}
-                    className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "drafts" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
-                >
-                    My drafts
-                </button>
-                <button
-                    onClick={() => setActiveTab("queue")}
-                    className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "queue" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
-                >
-                    Review queue
-                </button>
-                <button
-                    onClick={() => setActiveTab("published")}
-                    className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "published" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
-                >
-                    Published archive
-                </button>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="lg:col-span-2">
+                    <div className="mb-6 flex overflow-x-auto border-b border-zinc-200">
+                        <button
+                            onClick={() => setActiveTab("drafts")}
+                            className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "drafts" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
+                        >
+                            My drafts
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("queue")}
+                            className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "queue" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
+                        >
+                            Review queue
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("published")}
+                            className={`whitespace-nowrap px-4 py-2.5 text-sm font-semibold uppercase tracking-wider ${activeTab === "published" ? "border-b-2 border-blue-900 text-blue-900" : "text-zinc-500 hover:text-zinc-800"}`}
+                        >
+                            Published archive
+                        </button>
+                    </div>
 
-            {loading ? (
-                <div className="py-12 text-center text-zinc-500">Loading dispatches...</div>
-            ) : news.length === 0 ? (
-                <div className="border-2 border-dashed border-zinc-200 p-12 text-center rounded">
-                    <p className="font-serif text-lg text-zinc-600">No article in this section.</p>
-                </div>
-            ) : (
-                <div className="grid gap-6">
-                    {news.map((item) => (
-                        <div key={item.id} className="rounded border border-zinc-200 bg-white p-5 shadow-sm">
-                            <div className="mb-2 flex items-center justify-between">
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider
-                  ${item.status === 'published' ? 'bg-green-100 text-green-800' :
-                                        item.status === 'submitted' ? 'bg-amber-100 text-amber-800' :
-                                            item.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-zinc-100 text-zinc-800'}`}>
-                                    {item.status}
-                                </span>
-                                <span className="text-xs text-zinc-400 font-mono">
-                                    {formatDate(item.createdAt)}
-                                </span>
-                            </div>
-
-                            <h3 className="mb-1 font-serif text-xl font-bold leading-tight text-zinc-900">{item.title}</h3>
-                            <p className="mb-4 text-sm font-medium text-zinc-500">By {item.author.name}</p>
-
-                            <p className="mb-6 line-clamp-3 text-sm text-zinc-700 font-serif leading-relaxed">
-                                {item.body}
-                            </p>
-
-                            {/* Action Bar */}
-                            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-zinc-100 pt-4">
-
-                                {/* Review Stats */}
-                                <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                                        <span>Journalists: {item.stats.journalistApprovals}/{item.stats.requiredJournalists}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
-                                        <span>Leadership: {item.stats.leaderApprovals}/{item.stats.requiredLeaders}</span>
-                                    </div>
-                                    {item.stats.rejections > 0 && (
-                                        <span className="text-red-600 font-bold">{item.stats.rejections} Rejections</span>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    {/* Draft Actions */}
-                                    {(item.status === "draft" || item.status === "rejected") && item.authorId === payload.userId && (
-                                        <>
-                                            <button onClick={() => handleOpenComposer(item)} className="p-2 text-zinc-400 hover:text-blue-600 transition" title="Edit">
-                                                <Edit3 className="h-5 w-5" />
-                                            </button>
-                                            <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-600 transition" title="Delete">
-                                                <Trash2 className="h-5 w-5" />
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {/* Review Actions (Only for submitted articles from OTHER authors) */}
-                                    {item.status === "submitted" && item.authorId !== payload.userId && !item.hasUserVoted && (
-                                        <>
-                                            <button onClick={() => handleReview(item.id, "reject")} className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition">
-                                                Reject
-                                            </button>
-                                            <button onClick={() => handleReview(item.id, "approve")} className="rounded bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition">
-                                                Approve
-                                            </button>
-                                        </>
-                                    )}
-                                    {item.hasUserVoted && (
-                                        <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2 py-1 rounded">Vote recorded</span>
-                                    )}
-                                </div>
-                            </div>
-
+                    {loading ? (
+                        <div className="py-12 text-center text-zinc-500">Loading dispatches...</div>
+                    ) : news.length === 0 ? (
+                        <div className="border-2 border-dashed border-zinc-200 p-12 text-center rounded">
+                            <p className="font-serif text-lg text-zinc-600">No article in this section.</p>
                         </div>
-                    ))}
+                    ) : (
+                        <div className="grid gap-6">
+                            {/* ... map through items will go here ... */}
+                            {news.map((item) => (
+                                <div key={item.id} className="rounded border border-zinc-200 bg-white p-5 shadow-sm">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider
+                  ${item.status === 'published' ? 'bg-green-100 text-green-800' :
+                                                item.status === 'submitted' ? 'bg-amber-100 text-amber-800' :
+                                                    item.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-zinc-100 text-zinc-800'}`}>
+                                            {item.status}
+                                        </span>
+                                        <span className="text-xs text-zinc-400 font-mono">
+                                            {formatDate(item.createdAt)}
+                                        </span>
+                                    </div>
+
+                                    <h3 className="mb-1 font-serif text-xl font-bold leading-tight text-zinc-900">{item.title}</h3>
+                                    <p className="mb-4 text-sm font-medium text-zinc-500">By {item.author.name}</p>
+
+                                    <p className="mb-6 line-clamp-3 text-sm text-zinc-700 font-serif leading-relaxed">
+                                        {item.body}
+                                    </p>
+
+                                    {/* Action Bar */}
+                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-zinc-100 pt-4">
+
+                                        {/* Review Stats */}
+                                        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
+                                            <div className="flex items-center gap-1">
+                                                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                                <span>Journalists: {item.stats.journalistApprovals}/{item.stats.requiredJournalists}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
+                                                <span>Leadership: {item.stats.leaderApprovals}/{item.stats.requiredLeaders}</span>
+                                            </div>
+                                            {item.stats.rejections > 0 && (
+                                                <span className="text-red-600 font-bold">{item.stats.rejections} Rejections</span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* Draft Actions */}
+                                            {(item.status === "draft" || item.status === "rejected") && item.authorId === payload.userId && (
+                                                <>
+                                                    <button onClick={() => handleOpenComposer(item)} className="p-2 text-zinc-400 hover:text-blue-600 transition" title="Edit">
+                                                        <Edit3 className="h-5 w-5" />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-600 transition" title="Delete">
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {/* Review Actions (Only for submitted articles from OTHER authors) */}
+                                            {item.status === "submitted" && item.authorId !== payload.userId && !item.hasUserVoted && (
+                                                <>
+                                                    <button onClick={() => handleReview(item.id, "reject")} className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition">
+                                                        Reject
+                                                    </button>
+                                                    <button onClick={() => handleReview(item.id, "approve")} className="rounded bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 transition">
+                                                        Approve
+                                                    </button>
+                                                </>
+                                            )}
+                                            {item.hasUserVoted && (
+                                                <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2 py-1 rounded">Vote recorded</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
+
+                <div className="lg:col-span-1">
+                    <TwitterFeedPanel hashtag="SimuVaction2024" />
+                </div>
+            </div>
         </div>
     );
 }

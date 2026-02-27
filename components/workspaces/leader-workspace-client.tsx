@@ -4,6 +4,9 @@ import { useState } from "react";
 import { CheckCircle2, FileCheck2, Info, LayoutDashboard } from "lucide-react";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
+import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
+import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
+import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge } from "@/components/ui/commons";
 
 export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
@@ -13,6 +16,8 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
     { id: "dashboard", label: "Dashboard" },
     { id: "votes", label: "Votes" },
     { id: "approvals", label: "Approvals" },
+    { id: "deadlines", label: "Deadlines" },
+    { id: "documents", label: "Library" },
     { id: "messages", label: "Messages" },
   ];
 
@@ -25,11 +30,10 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-alert-red text-alert-red"
-                    : "text-ink/55 hover:text-ink"
-                }`}
+                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id
+                  ? "border-b-2 border-alert-red text-alert-red"
+                  : "text-ink/55 hover:text-ink"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -71,6 +75,20 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
             </div>
           ) : null}
 
+          {activeTab === "deadlines" ? (
+            <div>
+              <p className="mb-4 text-sm text-ink/70">Manage the official schedule and countdowns for the entire simulation event.</p>
+              <AdminDeadlinesPanel />
+            </div>
+          ) : null}
+
+          {activeTab === "documents" ? (
+            <div>
+              <p className="mb-4 text-sm text-ink/70">Upload or link official resources for all delegations to access in the Library.</p>
+              <AdminDocumentsPanel />
+            </div>
+          ) : null}
+
           {activeTab === "messages" ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center text-ink/55">
               <Info className="h-8 w-8" />
@@ -105,6 +123,8 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
           <p className="mt-2 font-serif text-2xl font-bold text-ink">{role.toUpperCase()}</p>
           <p className="mt-1 text-sm text-ink/65">Identity: {userId.slice(0, 10)}</p>
         </Panel>
+
+        <TwitterFeedPanel hashtag="SimuVaction2024" />
       </div>
     </div>
   );

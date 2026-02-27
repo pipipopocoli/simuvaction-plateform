@@ -182,6 +182,9 @@ model Event {
   voteBallots       VoteBallot[]
   notifications     Notification[]
   auditLogs         AuditLog[]
+  deadlines         EventDeadline[]
+  documents         EventDocument[]
+  twitterConfigs    TwitterConfig[]
 }
 
 model User {
@@ -502,4 +505,51 @@ model AuditLog {
   actor      User?    @relation(fields: [actorId], references: [id])
 
   @@index([eventId, createdAt(sort: Desc)])
+}
+
+// ----------------------------------------------------------------------------
+// ADMIN & SOCIAL v2.2 (Phase 7 Addition)
+// ----------------------------------------------------------------------------
+
+model EventDeadline {
+  id          String   @id @default(cuid())
+  eventId     String
+  title       String
+  description String?
+  date        DateTime
+  isGlobal    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@index([eventId, date])
+}
+
+model EventDocument {
+  id          String   @id @default(cuid())
+  eventId     String
+  title       String
+  description String?
+  url         String   // Link to the PDF, Image, etc.
+  type        String   @default("pdf")
+  createdById String
+  createdAt   DateTime @default(now())
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@index([eventId])
+}
+
+model TwitterConfig {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  handle      String?  // The specific profile handle e.g. "SimuVaction"
+  hashtag     String?  // Alternatively, track a specific hashtag
+  createdAt   DateTime @default(now())
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

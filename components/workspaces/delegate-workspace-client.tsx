@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, FileText, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, FileText, Info, Clock } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { ActionButton, Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
+import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
 export function DelegateWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("briefing");
   const [shortStance, setShortStance] = useState(
-    "Conditional support for the green fund if technology transfer guarantees are included.",
+    "Conditional support for the green fund if technology transfer guarantees are included."
   );
   const [longStance, setLongStance] = useState("");
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/deadlines").then(res => res.json()).then(data => {
+      if (!data.error) setDeadlines(data);
+    });
+    fetch("/api/admin/documents").then(res => res.json()).then(data => {
+      if (!data.error) setDocuments(data);
+    });
+  }, []);
 
   const tabs = [
     { id: "briefing", label: "Briefing" },
@@ -30,11 +42,10 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-ink-blue text-ink-blue"
-                    : "text-ink/55 hover:text-ink"
-                }`}
+                className={`-mb-px px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id
+                  ? "border-b-2 border-ink-blue text-ink-blue"
+                  : "text-ink/55 hover:text-ink"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -125,12 +136,33 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
         </Panel>
 
         <Panel variant="soft">
-          <h3 className="font-serif text-2xl font-bold text-ink">Upcoming Deadlines</h3>
-          <div className="mt-3 space-y-3">
-            <TimelineItem time="Feb 23" title="Vote closes at 14:00" tone="alert" />
-            <TimelineItem time="Feb 24" title="Editorial committee submission" tone="accent" />
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-serif text-2xl font-bold text-ink">Upcoming Deadlines</h3>
+            <Clock className="w-5 h-5 text-alert-red" />
+          </div>
+          <div className="space-y-3">
+            {deadlines.length === 0 ? <p className="text-xs text-ink/55 italic">No incoming deadlines scheduled.</p> : deadlines.map((d: any) => (
+              <TimelineItem key={d.id} time={new Date(d.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} title={d.title} tone="alert" />
+            ))}
           </div>
         </Panel>
+
+        <Panel variant="soft">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-serif text-2xl font-bold text-ink">Global Library</h3>
+            <FileText className="w-5 h-5 text-ink-blue" />
+          </div>
+          <div className="space-y-3">
+            {documents.length === 0 ? <p className="text-xs text-ink/55 italic">No official documents yet.</p> : documents.map((d: any) => (
+              <div key={d.id} className="border-b border-ink-border pb-2 last:border-0">
+                <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink-blue hover:underline block mb-1">{d.title}</a>
+                <span className="inline-block bg-ivory border border-zinc-200 text-zinc-500 rounded px-1 text-[9px] uppercase font-bold tracking-widest">{d.type}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <TwitterFeedPanel hashtag="SimuVaction2024" />
       </div>
     </div>
   );
