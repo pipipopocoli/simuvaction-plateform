@@ -6,6 +6,7 @@ Ce dossier centralise les documents non-code conservés dans le dépôt.
 
 - `technical/`: documents de cadrage, framework, templates, guides et specs.
 - `legal/`: documents légaux et consentements.
+- `technical/domain-migration-simuvaction-wix-to-vercel.md`: runbook opérationnel pour la migration DNS/registrar.
 
 ## Règles de tri
 

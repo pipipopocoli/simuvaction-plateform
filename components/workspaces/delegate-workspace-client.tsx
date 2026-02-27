@@ -9,10 +9,10 @@ import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
 export function DelegateWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("briefing");
-  const [shortStance, setShortStance] = useState(
-    "Conditional support for the green fund if technology transfer guarantees are included."
-  );
+  const [shortStance, setShortStance] = useState("");
   const [longStance, setLongStance] = useState("");
+  const [isSavingStance, setIsSavingStance] = useState(false);
+  const [stanceSaved, setStanceSaved] = useState(false);
   const [deadlines, setDeadlines] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
 
@@ -23,7 +23,33 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
     fetch("/api/admin/documents").then(res => res.json()).then(data => {
       if (!data.error) setDocuments(data);
     });
+    fetch("/api/teams/profile").then(res => res.json()).then(data => {
+      if (!data.error) {
+        if (data.stanceShort) setShortStance(data.stanceShort);
+        if (data.stanceLong) setLongStance(data.stanceLong);
+      }
+    });
   }, []);
+
+  const saveStance = async () => {
+    setIsSavingStance(true);
+    setStanceSaved(false);
+    try {
+      const res = await fetch("/api/teams/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stanceShort: shortStance, stanceLong: longStance })
+      });
+      if (res.ok) {
+        setStanceSaved(true);
+        setTimeout(() => setStanceSaved(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingStance(false);
+    }
+  };
 
   const tabs = [
     { id: "briefing", label: "Briefing" },
@@ -90,8 +116,11 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
                 />
               </div>
 
-              <div className="flex justify-end">
-                <ActionButton>Submit to leaders</ActionButton>
+              <div className="flex justify-end gap-3 items-center">
+                {stanceSaved && <span className="text-xs text-emerald-600 font-bold">Safely stored!</span>}
+                <ActionButton onClick={saveStance} disabled={isSavingStance}>
+                  {isSavingStance ? "Saving..." : "Save Public Stance"}
+                </ActionButton>
               </div>
             </div>
           ) : null}

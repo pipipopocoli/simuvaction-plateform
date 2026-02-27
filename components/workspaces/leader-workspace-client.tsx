@@ -6,10 +6,14 @@ import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
-import { Panel, StatTile, StatusBadge } from "@/components/ui/commons";
+import { Panel, StatTile, StatusBadge, ActionButton } from "@/components/ui/commons";
 
 export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [shortStance, setShortStance] = useState("");
+  const [longStance, setLongStance] = useState("");
+  const [isSavingStance, setIsSavingStance] = useState(false);
+  const [stanceSaved, setStanceSaved] = useState(false);
   const [deadlines, setDeadlines] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
 
@@ -20,10 +24,37 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
     fetch("/api/admin/documents").then(res => res.json()).then(data => {
       if (!data.error) setDocuments(data);
     });
+    fetch("/api/teams/profile").then(res => res.json()).then(data => {
+      if (!data.error) {
+        if (data.stanceShort) setShortStance(data.stanceShort);
+        if (data.stanceLong) setLongStance(data.stanceLong);
+      }
+    });
   }, []);
+
+  const saveStance = async () => {
+    setIsSavingStance(true);
+    setStanceSaved(false);
+    try {
+      const res = await fetch("/api/teams/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stanceShort: shortStance, stanceLong: longStance })
+      });
+      if (res.ok) {
+        setStanceSaved(true);
+        setTimeout(() => setStanceSaved(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingStance(false);
+    }
+  };
 
   const tabs = [
     { id: "dashboard", label: "Dashboard" },
+    { id: "briefing", label: "Briefing" },
     { id: "drafts", label: "Drafts" },
     { id: "votes", label: "Votes" },
     { id: "approvals", label: "Approvals" },
@@ -68,6 +99,52 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
 
           {activeTab === "drafts" ? (
             <TeamDraftEditor />
+          ) : null}
+
+          {activeTab === "briefing" ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                  <FileText className="h-6 w-6 text-ink-blue" /> Position Paper
+                </h2>
+                <p className="mt-2 text-sm text-ink/70">
+                  Edit the official delegation stance. This updates your public profile on the global map.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="short-stance" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+                  Short stance (max 140)
+                </label>
+                <textarea
+                  id="short-stance"
+                  rows={2}
+                  value={shortStance}
+                  onChange={(event) => setShortStance(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-ink-border bg-ivory px-3 py-2 text-sm outline-none focus:border-ink-blue"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="long-stance" className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
+                  Internal notes
+                </label>
+                <textarea
+                  id="long-stance"
+                  value={longStance}
+                  onChange={(event) => setLongStance(event.target.value)}
+                  placeholder="Negotiation boundaries, red lines, and bilateral strategy."
+                  className="mt-1 min-h-[170px] w-full rounded-lg border border-ink-border bg-ivory px-3 py-2 text-sm outline-none focus:border-ink-blue"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 items-center">
+                {stanceSaved && <span className="text-xs text-emerald-600 font-bold">Safely stored!</span>}
+                <ActionButton onClick={saveStance} disabled={isSavingStance}>
+                  {isSavingStance ? "Saving..." : "Save Public Stance"}
+                </ActionButton>
+              </div>
+            </div>
           ) : null}
 
           {activeTab === "votes" ? (
