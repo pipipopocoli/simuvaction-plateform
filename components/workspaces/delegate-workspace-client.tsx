@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, FileText, Info, Clock } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
+import { NotionWorkspace } from "@/components/workspace/notion-workspace";
+import { ProfileEditor } from "@/components/profile/profile-editor";
 import { ActionButton, Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
@@ -53,9 +55,8 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
 
   const tabs = [
     { id: "briefing", label: "Briefing" },
-    { id: "tasks", label: "Tasks" },
+    { id: "workspace", label: "Workspace" },
     { id: "drafts", label: "Drafts" },
-    { id: "meetings", label: "Meetings" },
     { id: "votes", label: "Votes" },
     { id: "messages", label: "Messages" },
   ];
@@ -139,7 +140,11 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
             <TeamDraftEditor />
           ) : null}
 
-          {activeTab !== "briefing" && activeTab !== "votes" && activeTab !== "drafts" ? (
+          {activeTab === "workspace" ? (
+            <NotionWorkspace />
+          ) : null}
+
+          {activeTab !== "briefing" && activeTab !== "votes" && activeTab !== "drafts" && activeTab !== "workspace" ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center text-ink/55">
               <Info className="h-8 w-8" />
               <p className="text-sm">This workspace module is active in progressive rollout for delegates.</p>

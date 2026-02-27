@@ -7,6 +7,8 @@ import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-appro
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge, ActionButton } from "@/components/ui/commons";
+import { NotionWorkspace } from "@/components/workspace/notion-workspace";
+import { ProfileEditor } from "@/components/profile/profile-editor";
 
 export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -56,6 +58,7 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
     { id: "dashboard", label: "Dashboard" },
     { id: "briefing", label: "Briefing" },
     { id: "drafts", label: "Drafts" },
+    { id: "workspace", label: "Workspace" },
     { id: "votes", label: "Votes" },
     { id: "approvals", label: "Approvals" },
     { id: "deadlines", label: "Deadlines" },
@@ -99,6 +102,10 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
 
           {activeTab === "drafts" ? (
             <TeamDraftEditor />
+          ) : null}
+
+          {activeTab === "workspace" ? (
+            <NotionWorkspace />
           ) : null}
 
           {activeTab === "briefing" ? (

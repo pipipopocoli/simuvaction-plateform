@@ -16,6 +16,7 @@ export interface SessionPayload {
   role: string;
   teamId: string | null;
   eventId: string;
+  avatarUrl?: string | null;
   mustChangePassword?: boolean;
 }
 
@@ -67,6 +68,7 @@ export async function loginUser(email: string, pass: string) {
     role: user.role,
     teamId: user.teamId,
     eventId: user.eventId,
+    avatarUrl: user.avatarUrl,
     mustChangePassword: user.mustChangePassword,
   };
 

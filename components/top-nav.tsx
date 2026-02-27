@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Globe2, Search } from "lucide-react";
+import { Bell, ChevronDown, Globe2, Search, Settings } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { SessionPayload } from "@/lib/auth";
 
 const navItems = [
@@ -41,9 +42,8 @@ export function TopNav({ session }: { session?: SessionPayload }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                  active ? "text-ink-blue" : "text-ink/70 hover:text-ink"
-                }`}
+                className={`relative rounded-md px-3 py-2 text-sm font-semibold transition-colors ${active ? "text-ink-blue" : "text-ink/70 hover:text-ink"
+                  }`}
               >
                 {item.label}
                 {active ? <span className="absolute inset-x-2 -bottom-[13px] h-[3px] rounded-full bg-ink-blue" /> : null}
@@ -68,18 +68,25 @@ export function TopNav({ session }: { session?: SessionPayload }) {
           </button>
 
           {session ? (
-            <div className="hidden items-center gap-3 rounded-xl border border-ink-border bg-white px-3 py-2 shadow-sm sm:flex">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-                {session.name.slice(0, 2).toUpperCase()}
-              </span>
-              <div className="leading-tight">
-                <p className="text-xs font-semibold text-ink">{session.name}</p>
-                <p className="text-[11px] uppercase tracking-[0.08em] text-ink/55">{session.role}</p>
+            <Link href={`/workspace/${session.role}`}>
+              <div className="hidden items-center gap-3 rounded-xl border border-ink-border bg-white px-3 py-2 shadow-sm hover:border-ink-blue/40 transition cursor-pointer sm:flex">
+                {session.avatarUrl ? (
+                  <img src={session.avatarUrl} alt="avatar" className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                    {session.name.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <div className="leading-tight">
+                  <p className="text-xs font-semibold text-ink">{session.name}</p>
+                  <p className="text-[11px] uppercase tracking-[0.08em] text-ink/55">{session.role}</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-ink/45" />
               </div>
-              <ChevronDown className="h-4 w-4 text-ink/45" />
-            </div>
+            </Link>
           ) : null}
 
+          <ThemeToggle />
           <LogoutButton />
         </div>
       </div>
@@ -91,9 +98,8 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold ${
-                active ? "bg-ink-blue text-white" : "bg-white text-ink/70"
-              }`}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold ${active ? "bg-ink-blue text-white" : "bg-white text-ink/70"
+                }`}
             >
               {item.label}
             </Link>
