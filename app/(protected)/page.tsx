@@ -11,6 +11,7 @@ import {
   Vote,
 } from "lucide-react";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
+import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -60,6 +61,9 @@ export default async function FrontPage() {
       where: { datetimeCet: { gte: new Date() } },
       orderBy: { datetimeCet: "asc" },
     }),
+    prisma.team.findMany({
+      where: { eventId: session.eventId }
+    })
   ]);
 
   return (
@@ -85,37 +89,7 @@ export default async function FrontPage() {
               </StatusBadge>
             </div>
 
-            <div className="relative min-h-[360px] overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
-              <div
-                className="absolute inset-0 bg-cover bg-center opacity-75"
-                style={{
-                  backgroundImage:
-                    "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/35 to-[#f8f3ec]/65" />
-
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                <MapOverlayChip tone="alert" icon={<Vote className="h-3.5 w-3.5" />} label={activeVotes[0]?.title ?? "Security Council vote"} />
-                <MapOverlayChip tone="accent" icon={<Calendar className="h-3.5 w-3.5" />} label={nextMeeting ? `Next briefing ${formatClock(nextMeeting.datetimeCet)}` : "No meeting scheduled"} />
-                <MapOverlayChip icon={<Megaphone className="h-3.5 w-3.5" />} label="Press coordination channel active" />
-              </div>
-
-              <div className="absolute bottom-4 left-4 right-4 grid gap-3 md:grid-cols-3">
-                {activeVotes.slice(0, 3).map((voteItem) => (
-                  <Panel key={voteItem.id} className="bg-white/95 p-3" variant="soft">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink/55">Vote Open</p>
-                    <p className="mt-1 line-clamp-2 font-serif text-lg font-bold text-ink">{voteItem.title}</p>
-                    <p className="mt-2 text-xs text-ink/60">{voteItem._count.ballots} ballots submitted</p>
-                  </Panel>
-                ))}
-                {activeVotes.length === 0 ? (
-                  <Panel className="md:col-span-3" variant="soft">
-                    <p className="text-sm text-ink/70">No active vote right now. The floor is in negotiation mode.</p>
-                  </Panel>
-                ) : null}
-              </div>
-            </div>
+            <InteractiveGlobalMap teams={allTeams} />
           </div>
         </PageShell>
 

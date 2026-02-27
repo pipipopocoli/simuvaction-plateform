@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, FileCheck2, Info, LayoutDashboard, Clock, FileText } from "lucide-react";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
+import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge } from "@/components/ui/commons";
 
@@ -23,6 +24,7 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
 
   const tabs = [
     { id: "dashboard", label: "Dashboard" },
+    { id: "drafts", label: "Drafts" },
     { id: "votes", label: "Votes" },
     { id: "approvals", label: "Approvals" },
     { id: "deadlines", label: "Deadlines" },
@@ -62,6 +64,10 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
                 <StatTile label="Articles pending" value="3" tone="accent" />
               </div>
             </div>
+          ) : null}
+
+          {activeTab === "drafts" ? (
+            <TeamDraftEditor />
           ) : null}
 
           {activeTab === "votes" ? (

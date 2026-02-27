@@ -225,14 +225,15 @@ model User {
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  eventId     String
-  countryCode String
-  countryName String
-  stanceShort String?
-  stanceLong  String?
-  priorities  String[] 
-  createdAt   DateTime @default(now())
+  id               String   @id @default(cuid())
+  eventId          String
+  countryCode      String
+  countryName      String
+  stanceShort      String?
+  stanceLong       String?
+  priorities       String[] 
+  declarationDraft String?  @db.Text
+  createdAt        DateTime @default(now())
 
   event       Event     @relation(fields: [eventId], references: [id])
   users       User[]

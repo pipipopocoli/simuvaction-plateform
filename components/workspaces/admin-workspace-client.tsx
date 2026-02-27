@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, CalendarClock, BookOpen, Activity } from "lucide-react";
+import { ShieldCheck, CalendarClock, BookOpen, Activity, Eye } from "lucide-react";
 import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
 import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
+import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
 import { Panel, StatTile } from "@/components/ui/commons";
 
 export function AdminWorkspaceClient({ userId, role }: { userId: string; role: string }) {
@@ -11,6 +12,7 @@ export function AdminWorkspaceClient({ userId, role }: { userId: string; role: s
 
     const tabs = [
         { id: "overview", label: "Overview" },
+        { id: "monitoring", label: "Draft Monitoring" },
         { id: "deadlines", label: "Schedule & Deadlines" },
         { id: "documents", label: "Course Documents" },
     ];
@@ -25,8 +27,8 @@ export function AdminWorkspaceClient({ userId, role }: { userId: string; role: s
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`-mb-px px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id
-                                        ? "border-b-2 border-ink-blue text-ink-blue"
-                                        : "text-ink/55 hover:text-ink"
+                                    ? "border-b-2 border-ink-blue text-ink-blue"
+                                    : "text-ink/55 hover:text-ink"
                                     }`}
                             >
                                 {tab.label}
@@ -44,9 +46,21 @@ export function AdminWorkspaceClient({ userId, role }: { userId: string; role: s
                             </p>
                             <div className="grid gap-3 md:grid-cols-3">
                                 <StatTile label="Professor Access" value="ACTIVE" tone="accent" />
-                                <StatTile label="Deadlines Set" value="Manage" />
+                                <StatTile label="Draft Monitor" value="Live" tone="alert" />
                                 <StatTile label="Syllabus Docs" value="Manage" />
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === "monitoring" && (
+                        <div>
+                            <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                                <Eye className="h-6 w-6 text-alert-red" /> Draft Surveillance
+                            </h2>
+                            <p className="mb-4 text-sm text-ink/70">
+                                Observe the live writing progress of all delegations to guide your GM interventions.
+                            </p>
+                            <GameMasterDraftMonitor />
                         </div>
                     )}
 

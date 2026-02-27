@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, FileText, Info, Clock } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
+import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { ActionButton, Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
@@ -105,7 +106,11 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
             </div>
           ) : null}
 
-          {activeTab !== "briefing" && activeTab !== "votes" ? (
+          {activeTab === "drafts" ? (
+            <TeamDraftEditor />
+          ) : null}
+
+          {activeTab !== "briefing" && activeTab !== "votes" && activeTab !== "drafts" ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center text-ink/55">
               <Info className="h-8 w-8" />
               <p className="text-sm">This workspace module is active in progressive rollout for delegates.</p>
