@@ -209,9 +209,17 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
           ) : null}
 
           {activeTab === "messages" ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center text-ink/55">
-              <Info className="h-8 w-8" />
-              <p className="text-sm">Global moderation tools for leadership messages are rolling out.</p>
+            <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 text-center">
+              <div className="h-12 w-12 rounded-full bg-ink-blue/10 flex items-center justify-center">
+                <MessageSquare className="h-6 w-6 text-ink-blue" />
+              </div>
+              <div>
+                <h3 className="font-serif text-xl font-bold text-ink mb-1">Secure Communications Center</h3>
+                <p className="text-sm text-ink/60 mb-4 max-w-sm mx-auto">Access the Global Assembly channels and initiate bilateral negotiations with other delegations.</p>
+                <Link href="/chat" className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink-blue px-6 py-2.5 text-sm font-bold text-white hover:bg-ink-blue-hover transition shadow-sm">
+                  Launch Comms Interface
+                </Link>
+              </div>
             </div>
           ) : null}
         </Panel>

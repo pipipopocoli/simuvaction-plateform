@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, Info } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MapPin, Info, Loader2 } from "lucide-react";
 
 type MapNode = {
     id: string;
@@ -39,8 +40,33 @@ const getPlotCoords = (code: string) => {
 };
 
 export function InteractiveGlobalMap({ teams }: { teams: any[] }) {
+    const router = useRouter();
     const [selectedTeam, setSelectedTeam] = useState<MapNode | null>(null);
     const [mapNodes, setMapNodes] = useState<MapNode[]>([]);
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
+
+    const requestBilateral = async () => {
+        if (!selectedTeam) return;
+        setIsCreatingChat(true);
+        try {
+            const res = await fetch("/api/chat/rooms", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: `Bilateral: ${selectedTeam.countryName}`,
+                    roomType: "private",
+                    targetTeamId: selectedTeam.id
+                })
+            });
+            if (res.ok) {
+                const room = await res.json();
+                router.push(`/chat/${room.id}`);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsCreatingChat(false);
+        }
+    };
 
     useEffect(() => {
         const nodes = teams.map(t => ({
@@ -111,8 +137,13 @@ export function InteractiveGlobalMap({ teams }: { teams: any[] }) {
                             </div>
                         )}
 
-                        <button className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-widest text-ink-blue border border-ink-blue/30 rounded hover:bg-ink-blue/5 transition">
-                            Request Bilateral
+                        <button
+                            onClick={requestBilateral}
+                            disabled={isCreatingChat}
+                            className="w-full mt-2 py-2 text-xs font-bold uppercase tracking-widest text-ink-blue border border-ink-blue/30 rounded hover:bg-ink-blue/5 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {isCreatingChat ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                            {isCreatingChat ? "Establishing secure link..." : "Request Bilateral"}
                         </button>
                     </div>
                 </div>

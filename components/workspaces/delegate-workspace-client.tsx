@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, FileText, Info, Clock } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, FileText, Info, Clock, MessageSquare } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
@@ -144,7 +145,20 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
             <NotionWorkspace />
           ) : null}
 
-          {activeTab !== "briefing" && activeTab !== "votes" && activeTab !== "drafts" && activeTab !== "workspace" ? (
+          {activeTab === "messages" ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 text-center">
+              <div className="h-12 w-12 rounded-full bg-ink-blue/10 flex items-center justify-center">
+                <MessageSquare className="h-6 w-6 text-ink-blue" />
+              </div>
+              <div>
+                <h3 className="font-serif text-xl font-bold text-ink mb-1">Secure Communications Center</h3>
+                <p className="text-sm text-ink/60 mb-4 max-w-sm mx-auto">Access the Global Assembly channels and initiate bilateral negotiations with other delegations.</p>
+                <Link href="/chat" className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink-blue px-6 py-2.5 text-sm font-bold text-white hover:bg-ink-blue-hover transition shadow-sm">
+                  Launch Comms Interface
+                </Link>
+              </div>
+            </div>
+          ) : activeTab !== "briefing" && activeTab !== "votes" && activeTab !== "drafts" && activeTab !== "workspace" ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-center text-ink/55">
               <Info className="h-8 w-8" />
               <p className="text-sm">This workspace module is active in progressive rollout for delegates.</p>

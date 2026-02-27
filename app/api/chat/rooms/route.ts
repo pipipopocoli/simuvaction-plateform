@@ -58,11 +58,40 @@ export async function POST(req: NextRequest) {
     const { eventId, userId } = session;
 
     try {
-        const { name, roomType, teamId, participantIds } = await req.json();
+        const { name, roomType, teamId, participantIds = [], targetTeamId } = await req.json();
 
         if (!name || !roomType) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
+
+        // If a targetTeamId is provided (e.g. for Bilateral Meetings)
+        // Auto-enroll everyone from the target team and the creator's own team
+        const membersToAdd: { userId: string, role: string }[] = [];
+        membersToAdd.push({ userId, role: "owner" }); // Creator
+
+        let customEnrollmentUserIds: string[] = [...participantIds];
+
+        if (targetTeamId) {
+            const usersToEnroll = await prisma.user.findMany({
+                where: {
+                    eventId,
+                    OR: [
+                        { teamId: targetTeamId },
+                        { teamId: session.teamId || "" }
+                    ]
+                },
+                select: { id: true }
+            });
+            usersToEnroll.forEach(u => customEnrollmentUserIds.push(u.id));
+        }
+
+        // Deduplicate
+        customEnrollmentUserIds = Array.from(new Set(customEnrollmentUserIds));
+
+        // Build membership array (skipping creator since already added)
+        customEnrollmentUserIds.forEach(id => {
+            if (id !== userId) membersToAdd.push({ userId: id, role: "member" });
+        });
 
         const room = await prisma.chatRoom.create({
             data: {
@@ -72,11 +101,7 @@ export async function POST(req: NextRequest) {
                 teamId: teamId || null,
                 createdById: userId,
                 memberships: {
-                    create: [
-                        { userId, role: "owner" },
-                        // Assuming participantIds is an array of other user UUIDs
-                        ...(participantIds || []).map((id: string) => ({ userId: id, role: "member" }))
-                    ]
+                    create: membersToAdd
                 }
             },
         });
