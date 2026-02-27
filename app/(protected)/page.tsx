@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import {
-  Calendar,
   ChevronRight,
   Globe2,
-  Megaphone,
   Newspaper,
   Plus,
   Siren,
-  Vote,
 } from "lucide-react";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
 import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
@@ -17,7 +14,6 @@ import { prisma } from "@/lib/prisma";
 import {
   ActionButton,
   ListCard,
-  MapOverlayChip,
   PageShell,
   Panel,
   SectionHeader,
@@ -40,7 +36,7 @@ export default async function FrontPage() {
     return null;
   }
 
-  const [recentNews, activeVotes, deadlines, nextMeeting, allTeams] = await Promise.all([
+  const [recentNews, activeVotes, deadlines, allTeams] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
       include: { author: { select: { name: true } } },
@@ -56,10 +52,6 @@ export default async function FrontPage() {
     prisma.officialDeadline.findMany({
       orderBy: { orderIndex: "asc" },
       take: 4,
-    }),
-    prisma.meeting.findFirst({
-      where: { datetimeCet: { gte: new Date() } },
-      orderBy: { datetimeCet: "asc" },
     }),
     prisma.team.findMany({
       where: { eventId: session.eventId }

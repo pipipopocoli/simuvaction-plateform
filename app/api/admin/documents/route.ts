@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 
 // GET /api/admin/documents - Fetch all documents for the event
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const session = await getUserSession();
         if (!session) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { DateTime } from "luxon";
 import { Plus, Edit3, Trash2, Newspaper, Twitter, FileText, Send, Pen } from "lucide-react";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
@@ -27,8 +28,10 @@ type NewsPost = {
     author: { name: string; role: string };
 };
 
+type JournalistTab = "compose" | "archive" | "workspace" | "press";
+
 export function JournalistWorkspaceClient({ payload }: { payload: RolePayload }) {
-    const [activeTab, setActiveTab] = useState<"compose" | "archive" | "workspace" | "press">("compose");
+    const [activeTab, setActiveTab] = useState<JournalistTab>("compose");
     const [news, setNews] = useState<NewsPost[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -109,7 +112,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         setActiveTab("compose");
     };
 
-    const tabs = [
+    const tabs: Array<{ id: JournalistTab; label: string; icon: ReactNode }> = [
         { id: "compose", label: "Compose", icon: <Pen className="h-4 w-4" /> },
         { id: "archive", label: "My Articles", icon: <FileText className="h-4 w-4" /> },
         { id: "press", label: "Press Room", icon: <Newspaper className="h-4 w-4" /> },
@@ -124,7 +127,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition ${activeTab === tab.id ? "bg-ink text-white" : "text-ink/55 hover:text-ink hover:bg-ink-border/30"
                                     }`}
                             >

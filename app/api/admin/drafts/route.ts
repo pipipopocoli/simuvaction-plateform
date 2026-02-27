@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const session = await getUserSession();
         // Only Admin (Game Master) can read all teams' drafts

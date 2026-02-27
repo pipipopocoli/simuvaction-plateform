@@ -59,7 +59,7 @@ export function AdminDocumentsPanel() {
                 setDocType("pdf");
                 fetchDocuments();
             }
-        } catch (err) {
+        } catch {
             setError("A network error occurred.");
         } finally {
             setIsPending(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, FileCheck2, Info, LayoutDashboard, Clock, FileText, MessageSquare } from "lucide-react";
+import { CheckCircle2, FileCheck2, LayoutDashboard, Clock, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
@@ -9,7 +9,19 @@ import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge, ActionButton } from "@/components/ui/commons";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
-import { ProfileEditor } from "@/components/profile/profile-editor";
+
+type DeadlineItem = {
+  id: string;
+  title: string;
+  date: string;
+};
+
+type DocumentItem = {
+  id: string;
+  title: string;
+  type: string;
+  url: string;
+};
 
 export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -17,8 +29,8 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
   const [longStance, setLongStance] = useState("");
   const [isSavingStance, setIsSavingStance] = useState(false);
   const [stanceSaved, setStanceSaved] = useState(false);
-  const [deadlines, setDeadlines] = useState<any[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/deadlines").then(res => res.json()).then(data => {
@@ -182,7 +194,7 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
               </h2>
               <p className="mb-4 text-sm text-ink/70">Review the official schedule and countdowns for the simulation event.</p>
               <div className="space-y-3">
-                {deadlines.length === 0 ? <p className="text-sm text-ink/55 italic">No incoming deadlines scheduled.</p> : deadlines.map((d: any) => (
+                {deadlines.length === 0 ? <p className="text-sm text-ink/55 italic">No incoming deadlines scheduled.</p> : deadlines.map((d) => (
                   <div key={d.id} className="p-3 border border-ink-border rounded bg-white">
                     <p className="text-sm font-semibold text-ink">{d.title}</p>
                     <p className="text-xs text-alert-red font-bold">{new Date(d.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
@@ -199,7 +211,7 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
               </h2>
               <p className="mb-4 text-sm text-ink/70">Consult official resources provided by the administration.</p>
               <div className="space-y-3">
-                {documents.length === 0 ? <p className="text-sm text-ink/55 italic">No shared documents.</p> : documents.map((d: any) => (
+                {documents.length === 0 ? <p className="text-sm text-ink/55 italic">No shared documents.</p> : documents.map((d) => (
                   <div key={d.id} className="p-3 border border-ink-border rounded bg-white flex justify-between items-center">
                     <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink-blue hover:underline">{d.title}</a>
                     <span className="text-[10px] text-zinc-500 uppercase font-mono bg-zinc-100 px-2 py-0.5 rounded">{d.type}</span>

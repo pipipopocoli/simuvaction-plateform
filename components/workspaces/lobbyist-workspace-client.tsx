@@ -1,17 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageCircle, Globe, Megaphone, Users, Twitter, Info, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Globe, Megaphone, Users, Twitter, CheckCircle2 } from "lucide-react";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 
+type DeadlineItem = {
+    id: string;
+    title: string;
+    date: string;
+};
+
+type DocumentItem = {
+    id: string;
+    title: string;
+    url: string;
+};
+
 export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role: string }) {
     const [activeTab, setActiveTab] = useState("hub");
-    const [deadlines, setDeadlines] = useState<any[]>([]);
-    const [documents, setDocuments] = useState<any[]>([]);
+    const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
+    const [documents, setDocuments] = useState<DocumentItem[]>([]);
 
     useEffect(() => {
         fetch("/api/admin/deadlines").then(r => r.json()).then(d => { if (!d.error) setDeadlines(d); });
@@ -51,7 +63,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                                 </h2>
                                 <p className="text-sm text-ink/70 mb-4">
                                     You represent a private corporation. Your goal is to influence delegations to support policies
-                                    favourable to your organization's interests. Use bilateral meetings, informal channels, and
+                                    favourable to your organization&apos;s interests. Use bilateral meetings, informal channels, and
                                     the press to shape the simulation outcome.
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
@@ -91,7 +103,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                             <h2 className="font-serif text-2xl font-bold text-ink flex items-center gap-2">
                                 <Twitter className="h-6 w-6 text-blue-400" /> Social Media Monitoring
                             </h2>
-                            <p className="text-sm text-ink/60">Track the public narrative. Use Twitter to amplify your corporation's positions.</p>
+                            <p className="text-sm text-ink/60">Track the public narrative. Use Twitter to amplify your corporation&apos;s positions.</p>
                             <TwitterFeedPanel hashtag="SimuVaction2024" />
                         </div>
                     )}
@@ -110,7 +122,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                     <h3 className="font-serif text-lg font-bold text-ink mb-3">Official Schedule</h3>
                     {deadlines.length === 0
                         ? <p className="text-xs text-ink/50 italic">No upcoming deadlines.</p>
-                        : deadlines.map(d => (
+                        : deadlines.map((d) => (
                             <TimelineItem key={d.id} time={new Date(d.date).toLocaleString([], { dateStyle: "short", timeStyle: "short" })} title={d.title} tone="alert" />
                         ))
                     }
@@ -119,7 +131,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                 {documents.length > 0 && (
                     <Panel variant="soft">
                         <h3 className="font-serif text-lg font-bold text-ink mb-3">Course Library</h3>
-                        {documents.map(d => (
+                        {documents.map((d) => (
                             <div key={d.id} className="pb-2 mb-2 border-b border-ink-border last:border-0">
                                 <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink-blue hover:underline">{d.title}</a>
                             </div>

@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Twitter } from "lucide-react";
 import { Panel } from "@/components/ui/commons";
 
 export function TwitterFeedPanel({ hashtag = "SimuVaction" }: { hashtag?: string }) {
-    const [isMounted, setIsMounted] = useState(false);
-
     useEffect(() => {
-        setIsMounted(true);
         // Dynamically inject the Twitter Widgets JS to process the timeline embed
         const script = document.createElement("script");
         script.src = "https://platform.twitter.com/widgets.js";
@@ -30,20 +27,14 @@ export function TwitterFeedPanel({ hashtag = "SimuVaction" }: { hashtag?: string
             </div>
 
             <div className="flex-1 overflow-y-auto w-full flex justify-center bg-[#f5f8fa]">
-                {isMounted ? (
-                    <a
-                        className="twitter-timeline"
-                        data-theme="light"
-                        data-chrome="noheader nofooter noborders transparent"
-                        href={`https://twitter.com/search?q=%23${hashtag}`}
-                    >
-                        Loading #{hashtag} Tweets...
-                    </a>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <p className="text-xs text-zinc-400">Loading component...</p>
-                    </div>
-                )}
+                <a
+                    className="twitter-timeline"
+                    data-theme="light"
+                    data-chrome="noheader nofooter noborders transparent"
+                    href={`https://twitter.com/search?q=%23${hashtag}`}
+                >
+                    Loading #{hashtag} Tweets...
+                </a>
             </div>
         </Panel>
     );

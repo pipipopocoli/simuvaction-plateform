@@ -3,8 +3,15 @@
 import { useState, useEffect } from "react";
 import { Search, PenTool } from "lucide-react";
 
+type TeamDraft = {
+    id: string;
+    countryCode: string;
+    countryName: string;
+    declarationDraft: string | null;
+};
+
 export function GameMasterDraftMonitor() {
-    const [teams, setTeams] = useState<any[]>([]);
+    const [teams, setTeams] = useState<TeamDraft[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 

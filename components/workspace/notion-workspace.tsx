@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
     Plus, Trash2, Check, ChevronDown, ChevronRight, GripVertical,
     StickyNote, ListChecks, BookOpen, Link2, PenTool, Save, Clock
@@ -114,7 +114,20 @@ function RefBlock({ block, onChange }: { block: NoteBlock; onChange: (b: NoteBlo
 
 // ─── main export ────────────────────────────────────────────────────
 export function NotionWorkspace({ teamName }: { teamName?: string }) {
-    const [blocks, setBlocks] = useState<NoteBlock[]>(inital);
+    const [blocks, setBlocks] = useState<NoteBlock[]>(() => {
+        if (typeof window === "undefined") {
+            return inital;
+        }
+        const saved = localStorage.getItem("workspace_blocks");
+        if (!saved) {
+            return inital;
+        }
+        try {
+            return JSON.parse(saved) as NoteBlock[];
+        } catch {
+            return inital;
+        }
+    });
     const [saved, setSaved] = useState(false);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({ "1": true, "2": true });
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,11 +140,6 @@ export function NotionWorkspace({ teamName }: { teamName?: string }) {
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
         }, 900);
-    }, []);
-
-    useEffect(() => {
-        const saved = localStorage.getItem("workspace_blocks");
-        if (saved) setBlocks(JSON.parse(saved));
     }, []);
 
     const update = (b: NoteBlock) => {

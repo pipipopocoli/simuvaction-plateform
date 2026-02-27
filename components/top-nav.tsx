@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Globe2, Search, Settings } from "lucide-react";
+import { Bell, ChevronDown, Globe2, Search } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { SessionPayload } from "@/lib/auth";

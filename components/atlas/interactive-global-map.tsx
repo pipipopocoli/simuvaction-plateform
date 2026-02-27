@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Info, Loader2 } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 
 type MapNode = {
     id: string;
@@ -13,6 +13,15 @@ type MapNode = {
     priorities: string[];
     x: number;
     y: number;
+};
+
+type TeamForMap = {
+    id: string;
+    countryCode: string;
+    countryName: string;
+    stanceShort: string | null;
+    stanceLong: string | null;
+    priorities: string[];
 };
 
 // Extremely rough plotting heuristics for SimuVaction's world map box.
@@ -39,11 +48,14 @@ const getPlotCoords = (code: string) => {
     return coords[code] || { x: 50, y: 50 }; // Default to center if unknown
 };
 
-export function InteractiveGlobalMap({ teams }: { teams: any[] }) {
+export function InteractiveGlobalMap({ teams }: { teams: TeamForMap[] }) {
     const router = useRouter();
     const [selectedTeam, setSelectedTeam] = useState<MapNode | null>(null);
-    const [mapNodes, setMapNodes] = useState<MapNode[]>([]);
     const [isCreatingChat, setIsCreatingChat] = useState(false);
+    const mapNodes: MapNode[] = teams.map((team) => ({
+        ...team,
+        ...getPlotCoords(team.countryCode),
+    }));
 
     const requestBilateral = async () => {
         if (!selectedTeam) return;
@@ -67,14 +79,6 @@ export function InteractiveGlobalMap({ teams }: { teams: any[] }) {
             setIsCreatingChat(false);
         }
     };
-
-    useEffect(() => {
-        const nodes = teams.map(t => ({
-            ...t,
-            ...getPlotCoords(t.countryCode)
-        }));
-        setMapNodes(nodes);
-    }, [teams]);
 
     return (
         <div className="relative w-full h-[400px] bg-slate-100 rounded-2xl overflow-hidden border border-ink-border">

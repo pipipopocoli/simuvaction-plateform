@@ -55,7 +55,7 @@ export function AdminDeadlinesPanel() {
                 setDate("");
                 fetchDeadlines();
             }
-        } catch (err) {
+        } catch {
             setError("A network error occurred.");
         } finally {
             setIsPending(false);

@@ -9,6 +9,7 @@ import {
   PARIS_TIMEZONE,
   PILLARS,
 } from "../lib/constants";
+import { seedNews } from "./seed-news";
 
 const prisma = new PrismaClient();
 
@@ -214,4 +215,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-\nimport { seedNews } from './seed-news';
