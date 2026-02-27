@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 
@@ -17,7 +17,6 @@ export async function GET() {
                 countryName: true,
                 countryCode: true,
                 declarationDraft: true,
-                createdAt: true
             },
             orderBy: { countryName: "asc" }
         });

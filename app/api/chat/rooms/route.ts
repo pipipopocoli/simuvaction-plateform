@@ -1,114 +1,189 @@
-import { NextResponse, NextRequest } from "next/server";
-import { getUserSession } from "@/lib/server-auth";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserSession } from "@/lib/server-auth";
 
-export async function GET() {
-    const session = await getUserSession();
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+async function ensureGlobalRoom(eventId: string, userId: string) {
+  const existing = await prisma.chatRoom.findFirst({
+    where: { eventId, roomType: "global" },
+    select: { id: true },
+  });
 
-    const { eventId, userId, role } = session;
+  if (existing) {
+    return existing;
+  }
 
-    try {
-        // A user can read rooms that are:
-        // 1. global room for the event
-        // 2. rooms where they have explicit chat_memberships
-        // 3. ANY room if they are admin
-
-        let rooms;
-
-        if (role === "admin") {
-            rooms = await prisma.chatRoom.findMany({
-                where: { eventId },
-                include: { _count: { select: { messages: true } } },
-                orderBy: { createdAt: "asc" }
-            });
-        } else {
-            rooms = await prisma.chatRoom.findMany({
-                where: {
-                    eventId,
-                    OR: [
-                        { roomType: "global" },
-                        { memberships: { some: { userId } } }
-                    ]
-                },
-                include: { _count: { select: { messages: true } } },
-                orderBy: { createdAt: "asc" }
-            });
-        }
-
-        // Also get unread counts: count messages created after the user's last `ChatRead`.
-        // Complex logic is simplified by returning the rooms and we handle unreads on the client 
-        // or by doing a dedicated unread query, doing it here might be heavy. For now, returning basic rooms.
-
-        return NextResponse.json(rooms);
-    } catch (error) {
-        console.error("GET ChatRooms error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
+  return prisma.chatRoom.create({
+    data: {
+      eventId,
+      name: "Global Assembly",
+      roomType: "global",
+      createdById: userId,
+      memberships: {
+        create: [{ userId, role: "owner" }],
+      },
+    },
+    select: { id: true },
+  });
 }
 
-export async function POST(req: NextRequest) {
-    const session = await getUserSession();
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+function buildDirectPairKey(leftUserId: string, rightUserId: string) {
+  return [leftUserId, rightUserId].sort().join(":");
+}
 
-    const { eventId, userId } = session;
+export async function GET() {
+  const session = await getUserSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    try {
-        const { name, roomType, teamId, participantIds = [], targetTeamId } = await req.json();
+  const { eventId, userId, role } = session;
 
-        if (!name || !roomType) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-        }
+  try {
+    await ensureGlobalRoom(eventId, userId);
 
-        // If a targetTeamId is provided (e.g. for Bilateral Meetings)
-        // Auto-enroll everyone from the target team and the creator's own team
-        const membersToAdd: { userId: string, role: string }[] = [];
-        membersToAdd.push({ userId, role: "owner" }); // Creator
-
-        let customEnrollmentUserIds: string[] = [...participantIds];
-
-        if (targetTeamId) {
-            const usersToEnroll = await prisma.user.findMany({
-                where: {
-                    eventId,
-                    OR: [
-                        { teamId: targetTeamId },
-                        { teamId: session.teamId || "" }
-                    ]
-                },
-                select: { id: true }
-            });
-            usersToEnroll.forEach(u => customEnrollmentUserIds.push(u.id));
-        }
-
-        // Deduplicate
-        customEnrollmentUserIds = Array.from(new Set(customEnrollmentUserIds));
-
-        // Build membership array (skipping creator since already added)
-        customEnrollmentUserIds.forEach(id => {
-            if (id !== userId) membersToAdd.push({ userId: id, role: "member" });
-        });
-
-        const room = await prisma.chatRoom.create({
-            data: {
-                eventId,
-                name,
-                roomType,
-                teamId: teamId || null,
-                createdById: userId,
-                memberships: {
-                    create: membersToAdd
-                }
+    const rooms =
+      role === "admin"
+        ? await prisma.chatRoom.findMany({
+            where: { eventId },
+            include: { _count: { select: { messages: true } } },
+            orderBy: { createdAt: "asc" },
+          })
+        : await prisma.chatRoom.findMany({
+            where: {
+              eventId,
+              OR: [{ roomType: "global" }, { memberships: { some: { userId } } }],
             },
-        });
+            include: { _count: { select: { messages: true } } },
+            orderBy: { createdAt: "asc" },
+          });
 
-        return NextResponse.json(room);
-    } catch (error) {
-        console.error("POST ChatRoom error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(rooms);
+  } catch (error) {
+    console.error("GET ChatRooms error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const session = await getUserSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { eventId, userId, teamId: requesterTeamId } = session;
+
+  try {
+    const {
+      name,
+      roomType,
+      teamId,
+      participantIds = [],
+      targetTeamId,
+      targetUserId,
+    } = await request.json();
+
+    if (!roomType) {
+      return NextResponse.json({ error: "Missing required field: roomType." }, { status: 400 });
     }
+
+    if (roomType === "direct") {
+      if (!targetUserId || typeof targetUserId !== "string") {
+        return NextResponse.json({ error: "targetUserId is required for direct rooms." }, { status: 400 });
+      }
+
+      if (targetUserId === userId) {
+        return NextResponse.json({ error: "Cannot create a direct room with yourself." }, { status: 400 });
+      }
+
+      const targetUser = await prisma.user.findFirst({
+        where: { id: targetUserId, eventId },
+        select: { id: true, name: true },
+      });
+
+      if (!targetUser) {
+        return NextResponse.json({ error: "Target user not found in this event." }, { status: 404 });
+      }
+
+      const directPairKey = buildDirectPairKey(userId, targetUserId);
+      const existingDirectRoom = await prisma.chatRoom.findFirst({
+        where: { eventId, roomType: "direct", directPairKey },
+        include: { _count: { select: { messages: true } } },
+      });
+
+      if (existingDirectRoom) {
+        await prisma.chatMembership.createMany({
+          data: [
+            { roomId: existingDirectRoom.id, userId, role: "member" },
+            { roomId: existingDirectRoom.id, userId: targetUserId, role: "member" },
+          ],
+          skipDuplicates: true,
+        });
+        return NextResponse.json(existingDirectRoom);
+      }
+
+      const directRoom = await prisma.chatRoom.create({
+        data: {
+          eventId,
+          name: `Direct: ${targetUser.name}`,
+          roomType: "direct",
+          directPairKey,
+          createdById: userId,
+          memberships: {
+            create: [
+              { userId, role: "owner" },
+              { userId: targetUserId, role: "member" },
+            ],
+          },
+        },
+        include: { _count: { select: { messages: true } } },
+      });
+
+      return NextResponse.json(directRoom);
+    }
+
+    if (!name || typeof name !== "string") {
+      return NextResponse.json({ error: "Missing required field: name." }, { status: 400 });
+    }
+
+    const membersToAdd: { userId: string; role: string }[] = [{ userId, role: "owner" }];
+    let customEnrollmentUserIds: string[] = Array.isArray(participantIds) ? [...participantIds] : [];
+
+    if (targetTeamId && typeof targetTeamId === "string") {
+      const usersToEnroll = await prisma.user.findMany({
+        where: {
+          eventId,
+          OR: [{ teamId: targetTeamId }, { teamId: requesterTeamId ?? undefined }],
+        },
+        select: { id: true },
+      });
+      usersToEnroll.forEach((member) => customEnrollmentUserIds.push(member.id));
+    }
+
+    customEnrollmentUserIds = Array.from(new Set(customEnrollmentUserIds));
+
+    customEnrollmentUserIds.forEach((id) => {
+      if (id !== userId) {
+        membersToAdd.push({ userId: id, role: "member" });
+      }
+    });
+
+    const room = await prisma.chatRoom.create({
+      data: {
+        eventId,
+        name,
+        roomType,
+        teamId: typeof teamId === "string" ? teamId : null,
+        createdById: userId,
+        memberships: {
+          create: membersToAdd,
+        },
+      },
+      include: { _count: { select: { messages: true } } },
+    });
+
+    return NextResponse.json(room);
+  } catch (error) {
+    console.error("POST ChatRoom error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

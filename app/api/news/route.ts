@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { title, content, status, imageUrl, source } = body; // status can be 'draft' or 'submitted'
+        const { title, content, status } = body; // status can be 'draft' or 'submitted'
 
         if (!title || !content) {
             return NextResponse.json({ error: "Title and content are required." }, { status: 400 });
@@ -133,8 +133,6 @@ export async function POST(req: NextRequest) {
                 authorId: userId,
                 title,
                 body: content,
-                imageUrl: imageUrl || null,
-                source: source || null,
                 status: status === "submitted" ? "submitted" : "draft",
             },
             include: {

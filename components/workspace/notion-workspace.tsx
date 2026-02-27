@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type ReactNode } from "react";
 import {
     Plus, Trash2, Check, ChevronDown, ChevronRight, GripVertical,
     StickyNote, ListChecks, BookOpen, Link2, PenTool, Save, Clock
@@ -118,12 +118,10 @@ export function NotionWorkspace({ teamName }: { teamName?: string }) {
         if (typeof window === "undefined") {
             return inital;
         }
-        const saved = localStorage.getItem("workspace_blocks");
-        if (!saved) {
-            return inital;
-        }
+
         try {
-            return JSON.parse(saved) as NoteBlock[];
+            const saved = localStorage.getItem("workspace_blocks");
+            return saved ? (JSON.parse(saved) as NoteBlock[]) : inital;
         } catch {
             return inital;
         }
@@ -167,7 +165,7 @@ export function NotionWorkspace({ teamName }: { teamName?: string }) {
 
     const toggleExpand = (id: string) => setExpanded(e => ({ ...e, [id]: !e[id] }));
 
-    const icons: Record<NoteBlock["type"], React.ReactNode> = {
+    const icons: Record<NoteBlock["type"], ReactNode> = {
         note: <StickyNote className="h-4 w-4 text-amber-500" />,
         checklist: <ListChecks className="h-4 w-4 text-emerald-600" />,
         ref: <BookOpen className="h-4 w-4 text-ink-blue" />,

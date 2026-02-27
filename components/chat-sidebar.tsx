@@ -74,6 +74,7 @@ export function ChatSidebar({ currentRoomId }: { currentRoomId?: string }) {
     () => [
       { key: "global", label: "Global channels", icon: Hash },
       { key: "team", label: "Team channels", icon: Target },
+      { key: "direct", label: "Direct channels", icon: MessageSquare },
       { key: "private", label: "Private channels", icon: Lock },
     ],
     [],

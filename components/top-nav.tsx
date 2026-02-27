@@ -9,7 +9,6 @@ import type { SessionPayload } from "@/lib/auth";
 
 const navItems = [
   { href: "/", label: "Front Page" },
-  { href: "/atlas", label: "Atlas" },
   { href: "/newsroom", label: "Newsroom" },
   { href: "/votes", label: "Votes" },
   { href: "/chat", label: "Messages" },
@@ -31,7 +30,7 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             <Globe2 className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-serif text-[34px] leading-none text-ink">SimuVaction <span className="text-ink-blue">2024</span></p>
+            <p className="font-serif text-[34px] leading-none text-ink">SimuVaction <span className="text-ink-blue">2026</span></p>
           </div>
         </Link>
 
@@ -68,7 +67,7 @@ export function TopNav({ session }: { session?: SessionPayload }) {
           </button>
 
           {session ? (
-            <Link href={`/workspace/${session.role}`}>
+            <Link href="/settings">
               <div className="hidden items-center gap-3 rounded-xl border border-ink-border bg-white px-3 py-2 shadow-sm hover:border-ink-blue/40 transition cursor-pointer sm:flex">
                 {session.avatarUrl ? (
                   <img src={session.avatarUrl} alt="avatar" className="h-8 w-8 rounded-full object-cover" />

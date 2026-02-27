@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       teamId: user.teamId,
       eventId: user.eventId,
+      avatarUrl: user.avatarUrl,
       mustChangePassword: user.mustChangePassword,
     });
 

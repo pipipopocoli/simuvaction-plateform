@@ -6,8 +6,10 @@ import { CheckCircle2, FileText, Info, Clock, MessageSquare } from "lucide-react
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
-import { ActionButton, Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
+import { ActionButton, Panel, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
+import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
+import { AgendaPanel } from "@/components/meetings/agenda-panel";
 
 type DeadlineItem = {
   id: string;
@@ -180,25 +182,7 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
       </div>
 
       <div className="space-y-4 xl:col-span-4">
-        <Panel>
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif text-2xl font-bold text-ink">Inbox</h3>
-            <StatusBadge tone="alert">2</StatusBadge>
-          </div>
-
-          <div className="mt-3 space-y-3">
-            <div className="rounded-lg border border-ink-border bg-ivory p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-blue">Invitation</p>
-              <p className="mt-1 text-sm font-semibold text-ink">Bilateral request received</p>
-              <p className="mt-1 text-xs text-ink/65">European delegation requests a video meeting on Arctic terms.</p>
-            </div>
-            <div className="rounded-lg border border-ink-border bg-white p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">System</p>
-              <p className="mt-1 text-sm font-semibold text-ink">Stance accepted</p>
-              <p className="mt-1 text-xs text-ink/65">Leadership validated your latest delegation draft.</p>
-            </div>
-          </div>
-        </Panel>
+        <MeetingRequestsPanel />
 
         <Panel variant="soft">
           <div className="flex items-center justify-between mb-3">
@@ -227,7 +211,8 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
           </div>
         </Panel>
 
-        <TwitterFeedPanel hashtag="SimuVaction2024" />
+        <TwitterFeedPanel hashtag="SimuVaction2026" />
+        <AgendaPanel />
       </div>
     </div>
   );

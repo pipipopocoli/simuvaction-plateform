@@ -9,6 +9,8 @@ import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge, ActionButton } from "@/components/ui/commons";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
+import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
+import { AgendaPanel } from "@/components/meetings/agenda-panel";
 
 type DeadlineItem = {
   id: string;
@@ -239,6 +241,8 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
       </div>
 
       <div className="space-y-4 xl:col-span-4">
+        <MeetingRequestsPanel />
+
         <Panel variant="soft">
           <div className="flex items-center justify-between">
             <h3 className="font-serif text-2xl font-bold text-ink">Leadership Queue</h3>
@@ -264,7 +268,8 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
           <p className="mt-1 text-sm text-ink/65">Identity: {userId.slice(0, 10)}</p>
         </Panel>
 
-        <TwitterFeedPanel hashtag="SimuVaction2024" />
+        <TwitterFeedPanel hashtag="SimuVaction2026" />
+        <AgendaPanel />
       </div>
     </div>
   );

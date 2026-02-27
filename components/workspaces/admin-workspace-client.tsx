@@ -7,7 +7,7 @@ import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
 import { Panel, StatTile } from "@/components/ui/commons";
 
-export function AdminWorkspaceClient({ userId, role }: { userId: string; role: string }) {
+export function AdminWorkspaceClient({ userId }: { userId: string }) {
     const [activeTab, setActiveTab] = useState("overview");
 
     const tabs = [
@@ -95,7 +95,7 @@ export function AdminWorkspaceClient({ userId, role }: { userId: string; role: s
                     <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-blue">System Authority</p>
                     <p className="mt-2 font-serif text-2xl font-bold text-ink flex items-center gap-2">
                         <ShieldCheck className="h-6 w-6 text-ink-blue" />
-                        {role.toUpperCase()}
+                        ADMINISTRATOR
                     </p>
                     <p className="mt-1 text-sm text-ink/65">User ID: {userId.slice(0, 10)}</p>
                 </Panel>

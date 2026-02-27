@@ -7,6 +7,8 @@ import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { Panel, StatusBadge, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
+import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
+import { AgendaPanel } from "@/components/meetings/agenda-panel";
 
 type DeadlineItem = {
     id: string;
@@ -104,7 +106,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                                 <Twitter className="h-6 w-6 text-blue-400" /> Social Media Monitoring
                             </h2>
                             <p className="text-sm text-ink/60">Track the public narrative. Use Twitter to amplify your corporation&apos;s positions.</p>
-                            <TwitterFeedPanel hashtag="SimuVaction2024" />
+                            <TwitterFeedPanel hashtag="SimuVaction2026" />
                         </div>
                     )}
                 </Panel>
@@ -112,6 +114,8 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
 
             {/* Sidebar */}
             <div className="xl:col-span-4 space-y-4">
+                <MeetingRequestsPanel />
+
                 <Panel variant="soft" className="border-amber-200/50 bg-amber-50/30">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Lobbyist Identity</p>
                     <p className="mt-1 font-serif text-xl font-bold text-ink">{userId.slice(0, 8)}…</p>
@@ -122,7 +126,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                     <h3 className="font-serif text-lg font-bold text-ink mb-3">Official Schedule</h3>
                     {deadlines.length === 0
                         ? <p className="text-xs text-ink/50 italic">No upcoming deadlines.</p>
-                        : deadlines.map((d) => (
+                        : deadlines.map(d => (
                             <TimelineItem key={d.id} time={new Date(d.date).toLocaleString([], { dateStyle: "short", timeStyle: "short" })} title={d.title} tone="alert" />
                         ))
                     }
@@ -138,6 +142,8 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                         ))}
                     </Panel>
                 )}
+
+                <AgendaPanel />
             </div>
         </div>
     );
