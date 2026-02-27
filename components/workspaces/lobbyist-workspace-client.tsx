@@ -89,7 +89,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
                         </div>
                     )}
 
-                    {activeTab === "workspace" && <NotionWorkspace teamName="Lobby" />}
+                    {activeTab === "workspace" && <NotionWorkspace teamName="Lobby" userId={userId} workspaceKey="lobbyist" />}
                     {activeTab === "drafts" && <TeamDraftEditor />}
                     {activeTab === "votes" && (
                         <div>

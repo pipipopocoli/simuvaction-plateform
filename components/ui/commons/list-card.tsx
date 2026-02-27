@@ -11,7 +11,7 @@ type ListCardProps = {
 
 export function ListCard({ title, description, meta, aside, className }: ListCardProps) {
   return (
-    <article className={cn("rounded-xl border border-ink-border bg-white p-4 shadow-sm", className)}>
+    <article className={cn("rounded-xl border border-ink-border bg-[var(--color-surface)] p-4 shadow-sm", className)}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="font-serif text-xl font-bold leading-tight text-ink">{title}</h3>

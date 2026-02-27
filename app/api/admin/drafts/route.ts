@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike } from "@/lib/authz";
 
 export async function GET() {
     try {
         const session = await getUserSession();
         // Only Admin (Game Master) can read all teams' drafts
-        if (!session || session.role !== "admin") {
+        if (!session || !isAdminLike(session.role)) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 

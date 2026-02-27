@@ -13,6 +13,10 @@
     --color-ink-blue-hover: #1e40af;
     --color-alert-red: #dc2626;
     --color-border: #d9dce4;
+    --bg-radial-1: rgba(29, 78, 216, 0.07);
+    --bg-radial-2: rgba(220, 38, 38, 0.04);
+    --bg-grad-start: #f8f5ef;
+    --bg-grad-end: #f3efe7;
 
     --background: var(--color-ivory);
     --foreground: var(--color-ink);
@@ -35,6 +39,10 @@
     --color-ink-blue-hover: #3b82f6;
     --color-alert-red: #f87171;
     --color-border: #334155;
+    --bg-radial-1: rgba(96, 165, 250, 0.11);
+    --bg-radial-2: rgba(248, 113, 113, 0.09);
+    --bg-grad-start: #121a2d;
+    --bg-grad-end: #0d1423;
 
     --background: var(--color-ivory);
     --foreground: var(--color-ink);
@@ -53,9 +61,9 @@
 
   body {
     background:
-      radial-gradient(circle at 12% 12%, rgba(29, 78, 216, 0.07), transparent 26%),
-      radial-gradient(circle at 86% 4%, rgba(220, 38, 38, 0.04), transparent 22%),
-      linear-gradient(180deg, #f8f5ef 0%, #f3efe7 100%);
+      radial-gradient(circle at 12% 12%, var(--bg-radial-1), transparent 26%),
+      radial-gradient(circle at 86% 4%, var(--bg-radial-2), transparent 22%),
+      linear-gradient(180deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
     color: var(--foreground);
   }
 

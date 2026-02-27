@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminLike } from "@/lib/authz";
 
 export async function POST(
     req: NextRequest,
@@ -8,7 +9,7 @@ export async function POST(
 ) {
     const session = await getUserSession();
     // Only Journalists and Leaders/Admins can approve or reject articles
-    if (!session || (session.role !== "journalist" && session.role !== "leader" && session.role !== "admin")) {
+    if (!session || (session.role !== "journalist" && session.role !== "leader" && !isAdminLike(session.role))) {
         return NextResponse.json({ error: "Unauthorized. Only journalists and leadership can review articles." }, { status: 403 });
     }
 
@@ -42,7 +43,7 @@ export async function POST(
         }
 
         // Determine effective role for the approval record
-        const approverRole = role === "admin" ? "leader" : role;
+        const approverRole = isAdminLike(role) ? "leader" : role;
 
         // Upsert the specific user's approval
         await prisma.newsApproval.upsert({

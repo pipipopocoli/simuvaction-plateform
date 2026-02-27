@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { resolveWorkspacePath } from "@/lib/authz";
 
 type CredentialMode = "password" | "passphrase";
 
@@ -52,13 +53,7 @@ export function LoginForm() {
 
       const role = payload.role as string;
       const nextPath = searchParams.get("next");
-
-      let defaultPath = "/";
-      if (role === "delegate") defaultPath = "/workspace/delegate";
-      if (role === "journalist") defaultPath = "/workspace/journalist";
-      if (role === "leader") defaultPath = "/workspace/leader";
-      if (role === "lobbyist") defaultPath = "/workspace/lobbyist";
-      if (role === "admin") defaultPath = "/workspace/leader";
+      const defaultPath = resolveWorkspacePath(role);
 
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : defaultPath);
       router.refresh();

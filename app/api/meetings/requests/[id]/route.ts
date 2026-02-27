@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike, resolveWorkspacePath } from "@/lib/authz";
 
 const decisionSchema = z.object({
   decision: z.enum(["accept", "decline", "cancel"]),
@@ -46,7 +47,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Meeting request not found." }, { status: 404 });
   }
 
-  const isAdmin = session.role === "admin";
+  const isAdmin = isAdminLike(session.role);
   const isRequester = meetingRequest.requesterId === session.userId;
   const isTarget = meetingRequest.targetUserId === session.userId;
 
@@ -78,7 +79,7 @@ export async function PATCH(
         type: "meeting_request_cancelled",
         title: "Meeting request cancelled",
         body: `${meetingRequest.requester.name} cancelled: ${meetingRequest.title}`,
-        deepLink: `/workspace/${meetingRequest.targetUser.role}`,
+        deepLink: resolveWorkspacePath(meetingRequest.targetUser.role),
         priority: "normal",
       },
     });
@@ -112,7 +113,7 @@ export async function PATCH(
         type: "meeting_request_declined",
         title: "Meeting request declined",
         body: `${meetingRequest.targetUser.name} declined: ${meetingRequest.title}`,
-        deepLink: `/workspace/${meetingRequest.requester.role}`,
+        deepLink: resolveWorkspacePath(meetingRequest.requester.role),
         priority: "normal",
       },
     });

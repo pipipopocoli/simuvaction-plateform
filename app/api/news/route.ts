@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminLike } from "@/lib/authz";
 
 // GET /api/news
 // Fetch news articles based on role and status
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
                     ]
                 };
             }
-        } else if (role === "leader" || role === "admin") {
+        } else if (role === "leader" || isAdminLike(role)) {
             if (filter === "review_queue") {
                 // Leaders only review articles that journalists have already approved (or all submitted if we want a flatter hierarchy)
                 // For this V2 implementation: Leaders can see all "submitted" articles to provide the final 3rd vote.
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
 // Create a new draft or directly submit an article
 export async function POST(req: NextRequest) {
     const session = await getUserSession();
-    if (!session || (session.role !== "journalist" && session.role !== "admin")) {
+    if (!session || (session.role !== "journalist" && !isAdminLike(session.role))) {
         return NextResponse.json({ error: "Unauthorized. Only journalists can create articles." }, { status: 403 });
     }
 

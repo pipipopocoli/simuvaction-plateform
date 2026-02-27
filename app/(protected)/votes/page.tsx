@@ -2,6 +2,7 @@ import { ShieldCheck, Vote } from "lucide-react";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { VoteDashboard } from "@/components/voting/vote-dashboard";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike } from "@/lib/authz";
 import { Panel, SectionHeader } from "@/components/ui/commons";
 
 export default async function VotesPage() {
@@ -10,7 +11,7 @@ export default async function VotesPage() {
     return null;
   }
 
-  const canAdminister = session.role === "leader" || session.role === "admin";
+  const canAdminister = session.role === "leader" || isAdminLike(session.role);
 
   return (
     <div className="space-y-6">

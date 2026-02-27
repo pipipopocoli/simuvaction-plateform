@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,14 +10,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ivory: "#f6f2ea",
+        ivory: "var(--color-ivory)",
         ink: {
-          DEFAULT: "#111827",
-          muted: "#475569",
-          blue: "#1d4ed8",
-          border: "#d9dce4",
+          DEFAULT: "var(--color-ink)",
+          muted: "var(--color-ink-muted)",
+          blue: "var(--color-ink-blue)",
+          border: "var(--color-border)",
         },
-        "alert-red": "#dc2626",
+        "alert-red": "var(--color-alert-red)",
       },
       borderRadius: {
         sm: "0.35rem",

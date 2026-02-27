@@ -1,10 +1,11 @@
 import { getUserSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
 import { LeaderWorkspaceClient } from "@/components/workspaces/leader-workspace-client";
+import { isAdminLike } from "@/lib/authz";
 
 export default async function LeaderWorkspace() {
     const session = await getUserSession();
-    if (!session || (session.role !== "leader" && session.role !== "admin")) {
+    if (!session || (session.role !== "leader" && !isAdminLike(session.role))) {
         redirect("/");
     }
 

@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminLike } from "@/lib/authz";
+import { buildFixedWordSummary } from "@/lib/news-summary";
 
 export async function GET(
     _req: NextRequest,
@@ -37,6 +39,8 @@ export async function GET(
 
         return NextResponse.json({
             ...post,
+            summary50: buildFixedWordSummary(post.body, 50),
+            summary100: buildFixedWordSummary(post.body, 100),
             stats: {
                 journalistApprovals,
                 leaderApprovals,
@@ -58,7 +62,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getUserSession();
-    if (!session || (session.role !== "journalist" && session.role !== "admin")) {
+    if (!session || (session.role !== "journalist" && !isAdminLike(session.role))) {
         return NextResponse.json({ error: "Unauthorized. Only the author can edit this draft." }, { status: 403 });
     }
 
@@ -70,7 +74,7 @@ export async function PATCH(
         if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         // Only the original author can edit their draft/rejected piece, Admin is god mode fallback
-        if (post.authorId !== userId && session.role !== "admin") {
+        if (post.authorId !== userId && !isAdminLike(session.role)) {
             return NextResponse.json({ error: "You are not the author of this article." }, { status: 403 });
         }
 
@@ -117,7 +121,7 @@ export async function DELETE(
         const post = await prisma.newsPost.findUnique({ where: { id: postId, eventId } });
         if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-        if (post.authorId !== userId && role !== "admin") {
+        if (post.authorId !== userId && !isAdminLike(role)) {
             return NextResponse.json({ error: "You are not the author of this article." }, { status: 403 });
         }
 

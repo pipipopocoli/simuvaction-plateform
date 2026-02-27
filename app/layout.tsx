@@ -24,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans text-[#111827] antialiased selection:bg-blue-200 selection:text-blue-900">
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${lora.variable}`}>
+      <body className="flex min-h-screen flex-col font-sans text-ink antialiased selection:bg-blue-200 selection:text-blue-900">
         {children}
         <Analytics />
       </body>

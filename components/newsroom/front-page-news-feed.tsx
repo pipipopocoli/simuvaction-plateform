@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DateTime } from "luxon";
 import { Newspaper } from "lucide-react";
 import { ListCard, Panel, StatusBadge } from "@/components/ui/commons";
+import { ArticlePreviewModal } from "@/components/newsroom/article-preview-modal";
 
 type PublicNewsPost = {
   id: string;
@@ -29,6 +30,7 @@ function toClock(isoDate: string | null, fallbackDate: string) {
 export function FrontPageNewsFeed() {
   const [news, setNews] = useState<PublicNewsPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewArticleId, setPreviewArticleId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPublishedNews() {
@@ -71,6 +73,8 @@ export function FrontPageNewsFeed() {
 
   return (
     <div className="space-y-4">
+      <ArticlePreviewModal articleId={previewArticleId} onClose={() => setPreviewArticleId(null)} />
+
       <Panel className="border-t-4 border-t-ink-blue">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
@@ -79,7 +83,7 @@ export function FrontPageNewsFeed() {
           <StatusBadge tone="live">Live updates</StatusBadge>
         </div>
 
-        <article>
+        <button type="button" onClick={() => setPreviewArticleId(leadStory.id)} className="block w-full text-left">
           {leadStory.imageUrl && (
             <div className="mb-4 h-64 w-full overflow-hidden rounded-lg bg-ink-border/30">
               <img src={leadStory.imageUrl} alt={leadStory.title} className="h-full w-full object-cover" />
@@ -96,18 +100,20 @@ export function FrontPageNewsFeed() {
           </div>
 
           <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink/80">{leadStory.body}</p>
-        </article>
+        </button>
       </Panel>
 
       <div className="grid gap-3 md:grid-cols-2">
         {otherStories.map((post) => (
-          <ListCard
-            key={post.id}
-            title={post.title}
-            description={post.body.slice(0, 150) + "..."}
-            meta={`${toClock(post.publishedAt, post.createdAt)} • By ${post.author.name} ${post.source ? `(Source: ${post.source})` : ""}`}
-            aside={<StatusBadge tone="neutral">Dispatch</StatusBadge>}
-          />
+          <button type="button" key={post.id} onClick={() => setPreviewArticleId(post.id)} className="text-left">
+            <ListCard
+              title={post.title}
+              description={post.body.slice(0, 150) + "..."}
+              meta={`${toClock(post.publishedAt, post.createdAt)} • By ${post.author.name} ${post.source ? `(Source: ${post.source})` : ""}`}
+              aside={<StatusBadge tone="neutral">Dispatch</StatusBadge>}
+              className="hover:border-ink-blue/40 transition"
+            />
+          </button>
         ))}
       </div>
     </div>

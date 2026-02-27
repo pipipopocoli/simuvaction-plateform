@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2, Plus } from "lucide-react";
 import { ActionButton, Panel, TimelineItem } from "@/components/ui/commons";
+import { isAdminLike } from "@/lib/authz";
 
 type Contact = {
   id: string;
@@ -138,14 +139,14 @@ export function QuickActionsPanel({ role }: { role: string }) {
       <h2 className="font-serif text-3xl font-bold text-ink">Quick Actions</h2>
 
       <div className="mt-4 space-y-3">
-        {(role === "leader" || role === "admin") && (
+        {(role === "leader" || isAdminLike(role)) && (
           <ActionButton className="w-full justify-between" onClick={() => router.push("/votes")}> 
             Create Vote
             <ChevronRight className="h-4 w-4" />
           </ActionButton>
         )}
 
-        {(role === "journalist" || role === "admin") && (
+        {(role === "journalist" || isAdminLike(role)) && (
           <ActionButton variant="secondary" className="w-full justify-between" onClick={() => router.push("/newsroom")}>
             Submit Article
             <ChevronRight className="h-4 w-4" />

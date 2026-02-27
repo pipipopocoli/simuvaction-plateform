@@ -1,10 +1,11 @@
 import { getUserSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
 import { JournalistWorkspaceClient } from "@/components/workspaces/journalist-workspace-client";
+import { isAdminLike } from "@/lib/authz";
 
 export default async function JournalistWorkspace() {
     const session = await getUserSession();
-    if (!session || (session.role !== "journalist" && session.role !== "admin")) {
+    if (!session || (session.role !== "journalist" && !isAdminLike(session.role))) {
         redirect("/");
     }
 

@@ -6,6 +6,7 @@ import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
 import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
 import { Panel, StatTile } from "@/components/ui/commons";
+import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 
 export function AdminWorkspaceClient({ userId }: { userId: string }) {
     const [activeTab, setActiveTab] = useState("overview");
@@ -15,6 +16,7 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
         { id: "monitoring", label: "Draft Monitoring" },
         { id: "deadlines", label: "Schedule & Deadlines" },
         { id: "documents", label: "Course Documents" },
+        { id: "journal", label: "Journal" },
     ];
 
     return (
@@ -85,6 +87,18 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
                                 Upload syllabus documents, rubrics, and research material for the entire class.
                             </p>
                             <AdminDocumentsPanel />
+                        </div>
+                    )}
+
+                    {activeTab === "journal" && (
+                        <div>
+                            <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                                <BookOpen className="h-6 w-6 text-ink-blue" /> Game Master Journal
+                            </h2>
+                            <p className="mb-4 text-sm text-ink/70">
+                                Daily notes auto-dated for simulation orchestration and instructional follow-up.
+                            </p>
+                            <NotionWorkspace teamName="Game Master" userId={userId} workspaceKey="admin" />
                         </div>
                     )}
                 </Panel>

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminLike } from "@/lib/authz";
 
 export async function GET(
     req: NextRequest,
@@ -38,7 +39,7 @@ export async function GET(
         // or if `showLiveResults` is true. Otherwise we only fetch the definition.
 
         let results = null;
-        if (vote.showLiveResults || session.role === "admin" || session.role === "leader") {
+        if (vote.showLiveResults || isAdminLike(session.role) || session.role === "leader") {
             // Aggregate counts per option
             const optionsWithCounts = await Promise.all(vote.options.map(async (opt: { id: string }) => {
                 const count = await prisma.voteCast.count({

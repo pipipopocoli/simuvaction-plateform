@@ -8,9 +8,9 @@ type PanelProps = {
 };
 
 const variantClasses: Record<NonNullable<PanelProps["variant"]>, string> = {
-  default: "bg-white border border-ink-border shadow-sm",
-  soft: "bg-[#f7f5f1] border border-ink-border/70 shadow-sm",
-  elevated: "bg-white border border-ink-border shadow-[0_16px_35px_rgba(15,23,42,0.08)]",
+  default: "border border-ink-border bg-[var(--color-surface)] shadow-sm",
+  soft: "border border-ink-border/70 bg-[var(--color-surface-2)] shadow-sm",
+  elevated: "border border-ink-border bg-[var(--color-surface)] shadow-[0_16px_35px_rgba(15,23,42,0.08)]",
 };
 
 export function Panel({ children, className, variant = "default" }: PanelProps) {

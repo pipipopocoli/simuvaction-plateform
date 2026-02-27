@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike } from "@/lib/authz";
 
 async function ensureGlobalRoom(eventId: string, userId: string) {
   const existing = await prisma.chatRoom.findFirst({
@@ -42,7 +43,7 @@ export async function GET() {
     await ensureGlobalRoom(eventId, userId);
 
     const rooms =
-      role === "admin"
+      isAdminLike(role)
         ? await prisma.chatRoom.findMany({
             where: { eventId },
             include: { _count: { select: { messages: true } } },

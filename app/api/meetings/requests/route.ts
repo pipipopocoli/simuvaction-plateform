@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
+import { resolveWorkspacePath } from "@/lib/authz";
 
 const createMeetingRequestSchema = z.object({
   targetUserId: z.string().min(1),
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       type: "meeting_request",
       title: "New meeting request",
       body: `${meetingRequest.requester.name} requested: ${meetingRequest.title}`,
-      deepLink: `/workspace/${meetingRequest.targetUser.role}`,
+      deepLink: resolveWorkspacePath(meetingRequest.targetUser.role),
       priority: "high",
     },
   });

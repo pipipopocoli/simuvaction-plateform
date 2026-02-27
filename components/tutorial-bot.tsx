@@ -17,6 +17,7 @@ export function TutorialBot({ role }: { role?: string }) {
             case "leader":
                 return "Welcome, Leader! Your dashboard helps you launch parliamentary votes and approve news items submitted by journalists. You control the flow of the simulation!";
             case "admin":
+            case "game_master":
                 return "Greetings, Professor! You have full God-Mode access. You can manage official deadlines, upload documents, and monitor every team's draft in real-time.";
             default:
                 return "Welcome to SimuVaction: AI in Education! Explore the Atlas to see global stances, check the Newsroom for updates, and track Live Votes.";

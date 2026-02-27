@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike } from "@/lib/authz";
 
 // GET /api/admin/deadlines - Fetch all deadlines for the event
 export async function GET() {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getUserSession();
         // Only allow Admin roles to create events
-        if (!session || session.role !== "admin") {
+        if (!session || !isAdminLike(session.role)) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const session = await getUserSession();
-        if (!session || session.role !== "admin") {
+        if (!session || !isAdminLike(session.role)) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 

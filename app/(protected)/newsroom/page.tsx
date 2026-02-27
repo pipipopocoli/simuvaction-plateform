@@ -3,6 +3,7 @@ import { ArrowRight, FileText, Newspaper } from "lucide-react";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
 import { getUserSession } from "@/lib/server-auth";
+import { isAdminLike } from "@/lib/authz";
 import { ActionButton, Panel, SectionHeader } from "@/components/ui/commons";
 
 export default async function NewsroomPage() {
@@ -11,8 +12,8 @@ export default async function NewsroomPage() {
     return null;
   }
 
-  const canReview = session.role === "leader" || session.role === "admin";
-  const canWrite = session.role === "journalist" || session.role === "admin";
+  const canReview = session.role === "leader" || isAdminLike(session.role);
+  const canWrite = session.role === "journalist" || isAdminLike(session.role);
 
   return (
     <div className="space-y-6">

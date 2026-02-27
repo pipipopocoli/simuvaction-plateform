@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserSession } from "@/lib/server-auth";
 import { AdminWorkspaceClient } from "@/components/workspaces/admin-workspace-client";
+import { isAdminLike } from "@/lib/authz";
 
 export default async function AdminWorkspacePage() {
     const session = await getUserSession();
@@ -10,7 +11,7 @@ export default async function AdminWorkspacePage() {
     }
 
     // Double check authorization: only 'admin' role can enter directly here 
-    if (session.role !== "admin") {
+    if (!isAdminLike(session.role)) {
         redirect("/"); // Or redirect to their specific workspace
     }
 

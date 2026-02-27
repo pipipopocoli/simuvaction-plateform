@@ -243,7 +243,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                     )}
 
                     {/* WORKSPACE TAB */}
-                    {activeTab === "workspace" && <NotionWorkspace teamName="Newsroom" />}
+                    {activeTab === "workspace" && <NotionWorkspace teamName="Newsroom" userId={payload.userId} workspaceKey="journalist" />}
                 </Panel>
             </div>
 

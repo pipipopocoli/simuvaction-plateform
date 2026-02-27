@@ -1,246 +1,223 @@
-import Link from "next/link";
-import { DateTime } from "luxon";
-import { Globe2, Newspaper, Siren } from "lucide-react";
-import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
-import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
-import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
-import { LiveWirePanel } from "@/components/dashboard/live-wire-panel";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { toAtlasDelegations } from "@/lib/atlas";
-import {
-  ListCard,
-  PageShell,
-  Panel,
-  SectionHeader,
-  StatTile,
-  StatusBadge,
-} from "@/components/ui/commons";
+import { DashboardHub } from "@/components/dashboard/dashboard-hub";
+import type { DashboardUpcomingEvent } from "@/components/dashboard/upcoming-events-drawer";
 
-function formatClock(date: Date | null) {
-  if (!date) {
-    return "TBD";
+function appendAction(actionMap: Map<string, string[]>, teamId: string | null | undefined, action: string) {
+  if (!teamId) {
+    return;
   }
 
-  return DateTime.fromJSDate(date).toUTC().toFormat("HH:mm 'UTC'");
+  const current = actionMap.get(teamId) ?? [];
+  if (!current.includes(action)) {
+    current.push(action);
+  }
+  actionMap.set(teamId, current.slice(0, 3));
 }
 
-export default async function FrontPage() {
+function appendUserAction(actionMap: Map<string, string[]>, userId: string | null | undefined, action: string) {
+  if (!userId) {
+    return;
+  }
+
+  const current = actionMap.get(userId) ?? [];
+  if (!current.includes(action)) {
+    current.push(action);
+  }
+  actionMap.set(userId, current.slice(0, 3));
+}
+
+export default async function DashboardPage() {
   const session = await getUserSession();
   if (!session) {
     return null;
   }
 
-  const [recentNews, activeVotes, deadlines, teams, leadershipProfiles] = await Promise.all([
+  const [
+    recentNews,
+    activeVotes,
+    eventDeadlines,
+    officialDeadlines,
+    teams,
+    recentMeetings,
+    recentTeamMessages,
+    leadershipProfiles,
+  ] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
-      include: { author: { select: { name: true } } },
+      include: { author: { select: { id: true, name: true, teamId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: 4,
+      take: 12,
     }),
     prisma.vote.findMany({
       where: { eventId: session.eventId, status: "active" },
       include: { _count: { select: { ballots: true } } },
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 6,
+    }),
+    prisma.eventDeadline.findMany({
+      where: { eventId: session.eventId },
+      orderBy: { date: "asc" },
+      take: 8,
     }),
     prisma.officialDeadline.findMany({
       orderBy: { orderIndex: "asc" },
-      take: 4,
+      take: 8,
     }),
     prisma.team.findMany({
       where: { eventId: session.eventId },
-      include: { _count: { select: { users: true } } },
+      include: {
+        _count: { select: { users: true } },
+        users: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            avatarUrl: true,
+            positionPaperSummary: true,
+          },
+          orderBy: [{ name: "asc" }],
+          take: 2,
+        },
+      },
       orderBy: { countryName: "asc" },
+    }),
+    prisma.meetingRequest.findMany({
+      where: { eventId: session.eventId },
+      select: {
+        title: true,
+        status: true,
+        requesterId: true,
+        targetUserId: true,
+        requesterTeamId: true,
+        targetTeamId: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 80,
+    }),
+    prisma.chatMessage.findMany({
+      where: {
+        eventId: session.eventId,
+        room: { teamId: { not: null } },
+      },
+      select: {
+        createdAt: true,
+        room: { select: { teamId: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 80,
     }),
     prisma.user.findMany({
       where: {
         eventId: session.eventId,
         role: "leader",
       },
-      include: {
-        team: { select: { countryName: true } },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        positionPaperSummary: true,
+        team: { select: { id: true, countryName: true } },
       },
       orderBy: [{ name: "asc" }],
       take: 8,
     }),
   ]);
 
-  const delegations = toAtlasDelegations(teams);
-  const globalActors = delegations.filter((delegation) => delegation.kind === "actor");
+  const leadershipIds = leadershipProfiles.map((profile) => profile.id);
+  const leadershipNews =
+    leadershipIds.length > 0
+      ? await prisma.newsPost.findMany({
+          where: { eventId: session.eventId, authorId: { in: leadershipIds } },
+          select: { authorId: true, title: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        })
+      : [];
+
+  const teamActionMap = new Map<string, string[]>();
+  for (const post of recentNews) {
+    appendAction(teamActionMap, post.author.teamId, `Published: ${post.title}`);
+  }
+
+  for (const meeting of recentMeetings) {
+    appendAction(teamActionMap, meeting.requesterTeamId, `Meeting ${meeting.status}: ${meeting.title}`);
+    appendAction(teamActionMap, meeting.targetTeamId, `Meeting ${meeting.status}: ${meeting.title}`);
+  }
+
+  for (const message of recentTeamMessages) {
+    appendAction(
+      teamActionMap,
+      message.room.teamId,
+      `Message activity in ${message.room.name} (${message.createdAt.toISOString().slice(11, 16)} UTC)`,
+    );
+  }
+
+  const userActionMap = new Map<string, string[]>();
+  for (const meeting of recentMeetings) {
+    appendUserAction(userActionMap, meeting.requesterId, `Sent meeting request: ${meeting.title}`);
+    appendUserAction(userActionMap, meeting.targetUserId, `Received meeting request: ${meeting.title}`);
+  }
+
+  for (const post of leadershipNews) {
+    appendUserAction(userActionMap, post.authorId, `Published article: ${post.title}`);
+  }
+
+  const teamsWithActions = teams.map((team) => ({
+    ...team,
+    latestActions: teamActionMap.get(team.id) ?? ["No recent tracked action."],
+  }));
+
+  const delegations = toAtlasDelegations(teamsWithActions);
+
+  const upcomingEvents: DashboardUpcomingEvent[] =
+    eventDeadlines.length > 0
+      ? eventDeadlines.map((deadline) => ({
+          id: deadline.id,
+          title: deadline.title,
+          startsAtIso: deadline.date.toISOString(),
+          description: deadline.description,
+          source: "event_deadline",
+        }))
+      : officialDeadlines.map((deadline) => ({
+          id: deadline.id,
+          title: deadline.title,
+          startsAtIso: deadline.datetimeCet.toISOString(),
+          description: null,
+          source: "official_deadline",
+        }));
+
+  const leadershipCards = leadershipProfiles.map((profile) => ({
+    id: profile.id,
+    name: profile.name,
+    avatarUrl: profile.avatarUrl,
+    teamName: profile.team?.countryName ?? null,
+    stance:
+      profile.positionPaperSummary?.trim() ||
+      `${profile.name} is coordinating strategic guidance across active delegations.`,
+    latestActions: userActionMap.get(profile.id) ?? ["No recent tracked action."],
+  }));
 
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        eyebrow="SimuVaction 2026: AI & Education"
-        title="Live Briefing"
-        subtitle="Global posture, active votes, meetings, and newsroom signals in one command view."
-        actions={
-          <StatusBadge tone="live" className="gap-2">
-            LIVE
-          </StatusBadge>
-        }
-      />
-
-      <div className="grid gap-6 xl:grid-cols-12">
-        <PageShell className="space-y-4 xl:col-span-9">
-          <LiveWirePanel />
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-ink/60">Global Activity Map</p>
-              <StatusBadge tone={activeVotes.length > 0 ? "alert" : "neutral"}>
-                {activeVotes.length > 0 ? `${activeVotes.length} open vote` : "No open vote"}
-              </StatusBadge>
-            </div>
-
-            <InteractiveGlobalMap delegations={delegations} />
-          </div>
-        </PageShell>
-
-        <Panel className="xl:col-span-3">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
-              <Siren className="h-6 w-6 text-alert-red" /> Breaking
-            </h2>
-            <Link
-              href="/newsroom"
-              className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-blue hover:underline"
-            >
-              See all
-            </Link>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {recentNews.map((post, index) => {
-              const date = post.publishedAt ?? post.createdAt;
-              return (
-                <ListCard
-                  key={post.id}
-                  title={post.title}
-                  description={post.body.slice(0, 130)}
-                  meta={`${formatClock(date)} • ${post.author.name}`}
-                  aside={
-                    index === 0 ? (
-                      <StatusBadge tone="alert">Breaking</StatusBadge>
-                    ) : (
-                      <StatusBadge tone="neutral">News</StatusBadge>
-                    )
-                  }
-                  className="p-3"
-                />
-              );
-            })}
-            {recentNews.length === 0 ? <p className="text-sm text-ink/65">No published article yet.</p> : null}
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-12">
-        <PageShell className="xl:col-span-9">
-          <SectionHeader title="Upcoming Events" subtitle="Deadlines and checkpoints for this simulation cycle." />
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {deadlines.map((deadline, index) => (
-              <Panel key={deadline.id} className="p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">
-                  Checkpoint {index + 1}
-                </p>
-                <p className="mt-1 font-serif text-xl font-bold text-ink">{deadline.title}</p>
-                <p className="mt-2 text-xs text-ink/65">
-                  {DateTime.fromJSDate(deadline.datetimeCet).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")}
-                </p>
-              </Panel>
-            ))}
-          </div>
-        </PageShell>
-
-        <QuickActionsPanel role={session.role} />
-      </div>
-
-      <PageShell>
-        <SectionHeader
-          title="Leadership & Global Actors"
-          subtitle="Delegation leadership profiles followed by non-state actors in the current event roster."
-        />
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <Panel>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Leadership</p>
-            <div className="mt-3 grid gap-3">
-              {leadershipProfiles.length === 0 ? (
-                <p className="text-sm text-ink/65">No leadership profile available.</p>
-              ) : (
-                leadershipProfiles.map((profile) => (
-                  <div key={profile.id} className="rounded-lg border border-ink-border bg-white p-3">
-                    <p className="font-semibold text-ink">{profile.name}</p>
-                    <p className="text-xs uppercase tracking-[0.08em] text-ink/55">
-                      {profile.role} {profile.team?.countryName ? `• ${profile.team.countryName}` : ""}
-                    </p>
-                    {profile.positionPaperSummary ? (
-                      <p className="mt-2 text-sm text-ink/75">{profile.positionPaperSummary}</p>
-                    ) : null}
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
-
-          <Panel>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Global actors</p>
-            <div className="mt-3 grid gap-3">
-              {globalActors.length === 0 ? (
-                <p className="text-sm text-ink/65">No global actor delegation found in this event.</p>
-              ) : (
-                globalActors.map((actor) => (
-                  <div key={actor.id} className="rounded-lg border border-ink-border bg-ivory p-3">
-                    <p className="font-semibold text-ink">{actor.name}</p>
-                    <p className="mt-1 text-sm text-ink/75">{actor.stance}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
-        </div>
-      </PageShell>
-
-      <div className="grid gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-9">
-          <FrontPageNewsFeed />
-        </div>
-
-        <Panel className="xl:col-span-3">
-          <h2 className="flex items-center gap-2 font-serif text-3xl font-bold text-ink">
-            <Globe2 className="h-6 w-6 text-ink-blue" /> Situation Snapshot
-          </h2>
-          <div className="mt-4 grid gap-3">
-            <StatTile label="Published News" value={recentNews.length} hint="Latest validated dispatches" />
-            <StatTile
-              label="Active Votes"
-              value={activeVotes.length}
-              tone={activeVotes.length > 0 ? "alert" : "default"}
-              hint="Live parliamentary decisions"
-            />
-            <StatTile label="Role" value={session.role.toUpperCase()} tone="accent" hint="Current access profile" />
-          </div>
-          <Link href="/?focus=map" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink-blue hover:underline">
-            Focus map view
-          </Link>
-        </Panel>
-      </div>
-
-      <Panel className="flex items-center justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink/55">Operational footer</p>
-          <p className="mt-1 text-sm text-ink/70">SimuVaction 2026: The Impact of Artificial Intelligence in Education.</p>
-        </div>
-        <Link
-          href="/archive"
-          className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue hover:text-ink-blue"
-        >
-          <Newspaper className="h-4 w-4" />
-          Open Archive
-        </Link>
-      </Panel>
-    </div>
+    <DashboardHub
+      sessionRole={session.role}
+      recentNews={recentNews.slice(0, 4).map((post) => ({
+        id: post.id,
+        title: post.title,
+        body: post.body,
+        authorName: post.author.name,
+        publishedAtIso: (post.publishedAt ?? post.createdAt).toISOString(),
+      }))}
+      activeVotes={activeVotes.map((voteItem) => ({
+        id: voteItem.id,
+        title: voteItem.title,
+        ballotCount: voteItem._count.ballots,
+      }))}
+      delegations={delegations}
+      leadershipProfiles={leadershipCards}
+      upcomingEvents={upcomingEvents.slice(0, 6)}
+    />
   );
 }

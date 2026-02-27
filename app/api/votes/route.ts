@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminLike } from "@/lib/authz";
 
 export async function GET() {
     const session = await getUserSession();
@@ -67,7 +68,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     const session = await getUserSession();
-    if (!session || session.role !== "admin" && session.role !== "leader") {
+    if (!session || (!isAdminLike(session.role) && session.role !== "leader")) {
         return NextResponse.json({ error: "Unauthorized. Only Leaders or Admins can create votes." }, { status: 403 });
     }
 

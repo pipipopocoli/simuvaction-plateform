@@ -156,7 +156,7 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
           ) : null}
 
           {activeTab === "workspace" ? (
-            <NotionWorkspace />
+            <NotionWorkspace userId={userId} workspaceKey="delegate" />
           ) : null}
 
           {activeTab === "messages" ? (

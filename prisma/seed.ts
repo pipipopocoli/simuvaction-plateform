@@ -9,6 +9,7 @@ import {
   PARIS_TIMEZONE,
   PILLARS,
 } from "../lib/constants";
+import { normalizeMemberRole } from "../lib/authz";
 
 const prisma = new PrismaClient();
 
@@ -151,21 +152,10 @@ async function main() {
     const firstName = cols[2]?.trim();
     const lastName = cols[1]?.trim();
     const name = `${firstName} ${lastName}`;
-    const roleOrTeam = cols[7]?.trim();
-
-    let dbRole = "delegate";
-    let teamName: string | null = roleOrTeam;
-
-    if (roleOrTeam === "Secretariat / Leadership") {
-      dbRole = "leader";
-      teamName = null;
-    } else if (roleOrTeam === "Journaliste") {
-      dbRole = "journalist";
-      teamName = null;
-    } else if (roleOrTeam === "Admin" || roleOrTeam === "System Admin") {
-      dbRole = "admin";
-      teamName = null;
-    }
+    const roleOrTeam = cols[7]?.trim() ?? "";
+    const normalizedRole = normalizeMemberRole(roleOrTeam);
+    const dbRole = normalizedRole.role;
+    const teamName: string | null = normalizedRole.teamName;
 
     if (teamName) teamsToCreate.add(teamName);
 
@@ -173,7 +163,7 @@ async function main() {
       email,
       name,
       role: dbRole,
-      teamName, // temporary link to fetch DB ID later
+      teamName,
     });
   }
 
@@ -219,7 +209,7 @@ async function main() {
 
   const ownerUser =
     (await prisma.user.findFirst({
-      where: { eventId, role: { in: ["leader", "admin"] } },
+      where: { eventId, role: { in: ["leader", "admin", "game_master"] } },
       orderBy: { createdAt: "asc" },
     })) ??
     (await prisma.user.findFirst({
