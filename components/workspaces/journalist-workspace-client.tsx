@@ -8,6 +8,7 @@ import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { Panel } from "@/components/ui/commons";
 import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
+import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
 
 type RolePayload = {
     userId: string;
@@ -257,7 +258,10 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                     <p className="text-xs text-ink/50 mt-1">ID: {payload.userId.slice(0, 8)}…</p>
                 </Panel>
                 <TwitterFeedPanel hashtag="SimuVaction2026" />
-                <AgendaPanel />
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                    <AgendaPanel />
+                    <WorkspaceCalendar />
+                </div>
             </div>
         </div>
     );

@@ -27,7 +27,10 @@ export async function POST(
         // Fetch the target article
         const post = await prisma.newsPost.findUnique({
             where: { id: postId, eventId },
-            include: { approvals: true }
+            include: {
+                approvals: true,
+                author: { select: { id: true, name: true } },
+            }
         });
 
         if (!post) {
@@ -74,6 +77,18 @@ export async function POST(
                 where: { id: postId },
                 data: { status: "rejected" }
             });
+
+            await prisma.notification.create({
+                data: {
+                    eventId,
+                    userId: post.authorId,
+                    type: "news_rejected",
+                    title: "Article rejected",
+                    body: `Your article "${post.title}" was rejected and returned for revision.`,
+                    deepLink: "/workspace/journalist",
+                    priority: "high",
+                },
+            });
             return NextResponse.json({ message: "Article rejected and returned to the author.", post: rejectedPost });
         }
 
@@ -97,6 +112,26 @@ export async function POST(
                     publishedAt: new Date()
                 }
             });
+
+            const recipients = await prisma.user.findMany({
+                where: { eventId, id: { not: userId } },
+                select: { id: true },
+            });
+
+            if (recipients.length > 0) {
+                await prisma.notification.createMany({
+                    data: recipients.map((recipient) => ({
+                        eventId,
+                        userId: recipient.id,
+                        type: "news_published",
+                        title: "New article published",
+                        body: post.title,
+                        deepLink: `/newsroom/${postId}`,
+                        priority: "normal",
+                    })),
+                });
+            }
+
             return NextResponse.json({ message: "Article officially published.", published: true });
         }
 

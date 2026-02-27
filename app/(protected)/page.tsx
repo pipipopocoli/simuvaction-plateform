@@ -74,6 +74,8 @@ export default async function DashboardPage() {
             id: true,
             name: true,
             role: true,
+            displayRole: true,
+            mediaOutlet: true,
             avatarUrl: true,
             positionPaperSummary: true,
           },
@@ -118,6 +120,8 @@ export default async function DashboardPage() {
         id: true,
         name: true,
         avatarUrl: true,
+        displayRole: true,
+        mediaOutlet: true,
         positionPaperSummary: true,
         team: { select: { id: true, countryName: true } },
       },
@@ -194,6 +198,8 @@ export default async function DashboardPage() {
     name: profile.name,
     avatarUrl: profile.avatarUrl,
     teamName: profile.team?.countryName ?? null,
+    displayRole: profile.displayRole?.trim() || "Head Delegate",
+    mediaOutlet: profile.mediaOutlet?.trim() || "Independent",
     stance:
       profile.positionPaperSummary?.trim() ||
       `${profile.name} is coordinating strategic guidance across active delegations.`,

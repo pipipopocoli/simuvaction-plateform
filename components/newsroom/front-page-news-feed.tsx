@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { Newspaper } from "lucide-react";
 import { ListCard, Panel, StatusBadge } from "@/components/ui/commons";
@@ -14,7 +14,15 @@ type PublicNewsPost = {
   source: string | null;
   publishedAt: string | null;
   createdAt: string;
-  author: { name: string; role: string };
+  author: {
+    id: string;
+    name: string;
+    role: string;
+    avatarUrl: string | null;
+    displayRole: string | null;
+    mediaOutlet: string | null;
+    positionPaperSummary: string | null;
+  };
 };
 
 function toClock(isoDate: string | null, fallbackDate: string) {
@@ -54,6 +62,19 @@ export function FrontPageNewsFeed() {
     return () => clearInterval(interval);
   }, []);
 
+  const journalistDesks = useMemo(() => {
+    const map = new Map<string, PublicNewsPost["author"]>();
+    for (const post of news) {
+      if (post.author.role !== "journalist") {
+        continue;
+      }
+      if (!map.has(post.author.id)) {
+        map.set(post.author.id, post.author);
+      }
+    }
+    return Array.from(map.values()).slice(0, 8);
+  }, [news]);
+
   if (loading) {
     return <p className="rounded-xl border border-ink-border bg-white p-8 text-center text-sm text-ink/55">Loading newsroom feed...</p>;
   }
@@ -83,6 +104,31 @@ export function FrontPageNewsFeed() {
           <StatusBadge tone="live">Live updates</StatusBadge>
         </div>
 
+        {journalistDesks.length > 0 ? (
+          <div className="mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Journalist desks</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {journalistDesks.map((author) => (
+                <div key={author.id} className="flex items-center gap-2 rounded-full border border-ink-border bg-ivory px-2.5 py-1.5">
+                  {author.avatarUrl ? (
+                    <img src={author.avatarUrl} alt={author.name} className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-6 w-6 place-items-center rounded-full border border-ink-border bg-white text-[10px] font-bold text-ink/70">
+                      {author.name.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-ink">{author.name}</p>
+                    <p className="text-[11px] text-ink/60">
+                      {author.displayRole?.trim() || "Journalist"} · {author.mediaOutlet?.trim() || "Independent"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <button type="button" onClick={() => setPreviewArticleId(leadStory.id)} className="block w-full text-left">
           {leadStory.imageUrl && (
             <div className="mb-4 h-64 w-full overflow-hidden rounded-lg bg-ink-border/30">
@@ -95,7 +141,9 @@ export function FrontPageNewsFeed() {
           <h3 className="mt-2 font-serif text-4xl font-bold leading-tight text-ink">{leadStory.title}</h3>
 
           <div className="mt-4 border-l-4 border-ink-border/50 pl-4 py-1 mb-4 bg-ink/5 pr-4 rounded-r-md">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 group-hover:text-ink-blue transition-colors">By {leadStory.author.name} — {leadStory.author.role.toUpperCase()}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 group-hover:text-ink-blue transition-colors">
+              By {leadStory.author.name} — {(leadStory.author.displayRole || leadStory.author.role).toUpperCase()}
+            </p>
             {leadStory.source && <p className="text-[10px] italic text-ink/40 mt-1">Source: {leadStory.source}</p>}
           </div>
 

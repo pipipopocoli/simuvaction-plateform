@@ -10,6 +10,7 @@ import { ActionButton, Panel, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
+import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
 
 type DeadlineItem = {
   id: string;
@@ -212,7 +213,10 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
         </Panel>
 
         <TwitterFeedPanel hashtag="SimuVaction2026" />
-        <AgendaPanel />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <AgendaPanel />
+          <WorkspaceCalendar />
+        </div>
       </div>
     </div>
   );

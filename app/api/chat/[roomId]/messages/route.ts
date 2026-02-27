@@ -3,6 +3,14 @@ import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminLike } from "@/lib/authz";
 
+function truncateBody(value: string, limit = 110) {
+    const text = value.trim();
+    if (text.length <= limit) {
+        return text;
+    }
+    return `${text.slice(0, limit - 1)}…`;
+}
+
 export async function GET(
     _req: NextRequest,
     { params }: { params: Promise<{ roomId: string }> }
@@ -110,6 +118,36 @@ export async function POST(
                 }
             }
         });
+
+        let recipientIds: string[] = [];
+
+        if (room.roomType === "global") {
+            const users = await prisma.user.findMany({
+                where: { eventId, id: { not: userId } },
+                select: { id: true },
+            });
+            recipientIds = users.map((user) => user.id);
+        } else {
+            const members = await prisma.chatMembership.findMany({
+                where: { roomId, userId: { not: userId } },
+                select: { userId: true },
+            });
+            recipientIds = members.map((member) => member.userId);
+        }
+
+        if (recipientIds.length > 0) {
+            await prisma.notification.createMany({
+                data: recipientIds.map((recipientId) => ({
+                    eventId,
+                    userId: recipientId,
+                    type: "chat_message",
+                    title: `New message in ${room.name}`,
+                    body: `${message.sender.name}: ${truncateBody(message.body)}`,
+                    deepLink: `/chat/${roomId}`,
+                    priority: "normal",
+                })),
+            });
+        }
 
         return NextResponse.json(message);
     } catch (error) {

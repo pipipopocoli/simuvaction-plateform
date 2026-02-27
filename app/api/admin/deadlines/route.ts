@@ -59,6 +59,25 @@ export async function POST(req: NextRequest) {
             }
         });
 
+        const recipients = await prisma.user.findMany({
+            where: { eventId: session.eventId, id: { not: session.userId } },
+            select: { id: true },
+        });
+
+        if (recipients.length > 0) {
+            await prisma.notification.createMany({
+                data: recipients.map((recipient) => ({
+                    eventId: session.eventId,
+                    userId: recipient.id,
+                    type: "deadline_created",
+                    title: "New official deadline",
+                    body: `${deadline.title} (${new Date(deadline.date).toLocaleString()})`,
+                    deepLink: "/workspace",
+                    priority: "high",
+                })),
+            });
+        }
+
         return NextResponse.json(deadline, { status: 201 });
     } catch (error) {
         console.error("Create Deadline Error:", error);

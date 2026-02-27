@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminLike } from "@/lib/authz";
@@ -118,6 +119,42 @@ export async function POST(req: NextRequest) {
                 eligibilityTeams: true,
             }
         });
+
+        const eligibleRoleList = Array.isArray(eligibleRoles)
+            ? eligibleRoles.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0)
+            : [];
+        const eligibleTeamList = Array.isArray(eligibleTeams)
+            ? eligibleTeams.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0)
+            : [];
+
+        const userWhere: Prisma.UserWhereInput = {
+            eventId,
+            id: { not: userId },
+            ...(eligibleRoleList.length > 0 ? { role: { in: eligibleRoleList } } : {}),
+            ...(eligibleTeamList.length > 0 ? { teamId: { in: eligibleTeamList } } : {}),
+        };
+
+        const recipients = await prisma.user.findMany({
+            where: userWhere,
+            select: { id: true },
+        });
+
+        if (recipients.length > 0) {
+            const statusValue = (vote.status ?? "").toLowerCase();
+            const isOpened = statusValue === "active" || statusValue === "open";
+
+            await prisma.notification.createMany({
+                data: recipients.map((recipient) => ({
+                    eventId,
+                    userId: recipient.id,
+                    type: isOpened ? "vote_opened" : "vote_created",
+                    title: isOpened ? "A vote is now open" : "A new vote was created",
+                    body: vote.title,
+                    deepLink: "/votes",
+                    priority: isOpened ? "high" : "normal",
+                })),
+            });
+        }
 
         return NextResponse.json(vote);
     } catch (error) {

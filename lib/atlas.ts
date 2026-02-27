@@ -9,6 +9,8 @@ export type AtlasMemberPreview = {
   id: string;
   name: string;
   role: string;
+  displayRole: string;
+  mediaOutlet: string;
   avatarUrl: string | null;
   positionPaperSummary: string | null;
 };
@@ -42,6 +44,8 @@ type TeamWithCount = {
     id: string;
     name: string;
     role: string;
+    displayRole: string | null;
+    mediaOutlet: string | null;
     avatarUrl: string | null;
     positionPaperSummary: string | null;
   }>;
@@ -60,18 +64,18 @@ const NAME_NORMALIZATION: Record<string, string> = {
 };
 
 const COUNTRY_COORDINATES: Record<string, AtlasMapPoint> = {
-  Brazil: { xPct: 30, yPct: 55 },
-  Canada: { xPct: 20, yPct: 27 },
-  France: { xPct: 48, yPct: 34 },
-  Germany: { xPct: 50, yPct: 33 },
-  India: { xPct: 62, yPct: 45 },
-  Japan: { xPct: 77, yPct: 40 },
-  Mexico: { xPct: 17, yPct: 44 },
-  Senegal: { xPct: 43, yPct: 46 },
-  Singapore: { xPct: 68, yPct: 58 },
-  Turkey: { xPct: 56, yPct: 39 },
-  UK: { xPct: 46, yPct: 30 },
-  USA: { xPct: 16, yPct: 36 },
+  Brazil: { xPct: 37.0, yPct: 58.3 },
+  Canada: { xPct: 20.6, yPct: 18.9 },
+  France: { xPct: 50.6, yPct: 24.4 },
+  Germany: { xPct: 52.8, yPct: 21.7 },
+  India: { xPct: 71.7, yPct: 37.8 },
+  Japan: { xPct: 88.3, yPct: 30.0 },
+  Mexico: { xPct: 21.7, yPct: 37.2 },
+  Senegal: { xPct: 46.1, yPct: 42.2 },
+  Singapore: { xPct: 78.9, yPct: 49.4 },
+  Turkey: { xPct: 59.7, yPct: 28.3 },
+  UK: { xPct: 49.4, yPct: 20.0 },
+  USA: { xPct: 22.8, yPct: 28.3 },
 };
 
 const COUNTRY_ALPHA2: Record<string, string> = {
@@ -158,6 +162,19 @@ function defaultPriorities(kind: AtlasDelegationKind): string[] {
   return ["Negotiation strategy", "Resolution drafting", "Bilateral outreach"];
 }
 
+function fallbackDisplayRole(role: string): string {
+  if (role === "leader") return "Head Delegate";
+  if (role === "journalist") return "Journalist";
+  if (role === "admin") return "Administrator";
+  if (role === "game_master") return "Game Master";
+  return "Representative";
+}
+
+function fallbackMediaOutlet(role: string): string {
+  if (role === "journalist") return "SimuVaction Press";
+  return "Independent";
+}
+
 function normalizeCountryCode(rawCode: string, normalizedName: string, kind: AtlasDelegationKind): string {
   if (kind === "actor") {
     return "GLOBAL";
@@ -201,6 +218,8 @@ export function toAtlasDelegations(teams: TeamWithCount[]): AtlasDelegation[] {
         id: user.id,
         name: user.name,
         role: user.role,
+        displayRole: user.displayRole?.trim() || fallbackDisplayRole(user.role),
+        mediaOutlet: user.mediaOutlet?.trim() || fallbackMediaOutlet(user.role),
         avatarUrl: user.avatarUrl,
         positionPaperSummary: user.positionPaperSummary,
       }));

@@ -39,6 +39,8 @@ type DashboardLeadershipProfile = {
   name: string;
   avatarUrl: string | null;
   teamName: string | null;
+  displayRole: string;
+  mediaOutlet: string;
   stance: string;
   latestActions: string[];
 };
@@ -105,7 +107,7 @@ export function DashboardHub({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <ArticlePreviewModal articleId={previewArticleId} onClose={() => setPreviewArticleId(null)} />
       <UpcomingEventsDrawer event={selectedUpcomingEvent} onClose={() => setSelectedEventId(null)} />
 
@@ -120,8 +122,8 @@ export function DashboardHub({
         }
       />
 
-      <div className="grid gap-5 xl:grid-cols-12">
-        <PageShell className="space-y-3 xl:col-span-9">
+      <div className="grid gap-4 xl:grid-cols-12">
+        <PageShell className="space-y-2 xl:col-span-9">
           <LiveWirePanel />
 
           <div className="space-y-2">
@@ -177,16 +179,16 @@ export function DashboardHub({
         </Panel>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid gap-4 xl:grid-cols-12">
         <PageShell className="xl:col-span-9">
           <SectionHeader title="Upcoming Events" subtitle="Deadlines and checkpoints for this simulation cycle." />
-          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-2 grid gap-2 md:grid-cols-2 md:auto-rows-fr xl:grid-cols-4">
             {upcomingEvents.map((event, index) => (
               <button
                 key={event.id}
                 type="button"
                 onClick={() => setSelectedEventId(event.id)}
-                className="rounded-xl border border-ink-border bg-[var(--color-surface)] p-3 text-left shadow-sm transition hover:border-ink-blue/40"
+                className="h-full rounded-xl border border-ink-border bg-[var(--color-surface)] p-3 text-left shadow-sm transition hover:border-ink-blue/40"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">Checkpoint {index + 1}</p>
                 <p className="mt-1 font-serif text-lg font-bold text-ink">{event.title}</p>
@@ -258,6 +260,15 @@ export function DashboardHub({
                   >
                     <p className="font-semibold text-ink">{actor.name}</p>
                     <p className="mt-1 text-sm text-ink/75">{actor.stance}</p>
+                    {actor.memberPreviews.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {actor.memberPreviews.slice(0, 2).map((member) => (
+                          <p key={member.id} className="text-xs text-ink/60">
+                            {member.name} · {member.displayRole} · {member.mediaOutlet}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </button>
                 ))
               )}
@@ -269,6 +280,9 @@ export function DashboardHub({
             {selectedLeadership ? (
               <div className="mt-3 space-y-3">
                 <h3 className="font-serif text-2xl font-bold text-ink">{selectedLeadership.name}</h3>
+                <p className="text-xs uppercase tracking-[0.09em] text-ink/55">
+                  {selectedLeadership.displayRole} · {selectedLeadership.mediaOutlet}
+                </p>
                 <p className="text-sm text-ink/80">{selectedLeadership.stance}</p>
                 <div className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Latest actions</p>
@@ -285,6 +299,18 @@ export function DashboardHub({
                   {selectedDelegation.flagEmoji} {selectedDelegation.name}
                 </h3>
                 <p className="text-sm text-ink/80">{selectedDelegation.stance}</p>
+                {selectedDelegation.memberPreviews.length > 0 ? (
+                  <div className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Profiles</p>
+                    <div className="mt-2 space-y-1.5 text-sm text-ink/80">
+                      {selectedDelegation.memberPreviews.map((member) => (
+                        <p key={member.id}>
+                          {member.name} · {member.displayRole} · {member.mediaOutlet}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Latest actions</p>
                   <ul className="mt-2 space-y-1 text-sm text-ink/80">
@@ -303,7 +329,7 @@ export function DashboardHub({
         </div>
       </PageShell>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid gap-4 xl:grid-cols-12">
         <div className="xl:col-span-9">
           <FrontPageNewsFeed />
         </div>

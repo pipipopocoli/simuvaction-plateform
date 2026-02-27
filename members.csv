@@ -1,44 +1,44 @@
-Sort,Family Name,Preferred Name,Gender,email address,WHATSAPP phone,Timezone,Role
-11,BERNARDS,YVETTE,F,yvettebernards@students.uonbi.ac.ke,+254759653903,+3,Brazil
-29,Cloutier,Olivier,M,olivier.cloutier@uqar.ca,+14187502467,-5,Brazil
-5,Jayakumar,Aparna J,F,aparnaj@karunya.edu.in,+9176398947,+5.5,Canada
-21,Annabi,Antoine,M,antoine.annabi@gmail.com,+33651605362,+1,Canada
-12,Kainga,Violet,F,vmkainga@students.uonbi.ac.ke,+254711721536,+3,France
-14,Adler de la Sota,Daniela,M,daniela.adler@emory.edu,+17874253225,-5,France
-32,Teman,Avery,F,averyteman@ufl.edu,+1917-783-4680,-5,Germany
-40,Clerc,Thomas,M,thomas.clerc.pro@gmail.com,+33643550673,+1,Germany
-25,Moughzi,Intissar,F,intissar.moughzi@eleve.isep.fr,+33750718386,+1,India
-38,Caillard,Edom,M,edom.caillard@hotmail.fr,+33 6 95 31 24 60,+1,India
-3,AL-BADI,Abdul Rahman,M,m2023000358@buc.edu.om,+971562677660,+3,Japan
-19,Naillon,Aurélie,F,aurelie.naillon78@gmail.com,+33695707461,+1,Japan
-9,VELUTHAKKAL,GOWRI,F,gowriveluthakkal@gmail.com,+918289872843,+5.5,Mexique
-30,Caffoni,Sara,F,sara.caffoni@edu.unifi.it,+39 3391368799,+1,Mexique
-8,Singh,Riya,F,itsriyaasingh@gmail.com,+91 8095000613,+5.5,Secretariat / Leadership
-15,Prudencio Rohde,Carlos Rohde,M,carlosrohdedm@gmail.com,+5596981456061,-3,Secretariat / Leadership
-36,Virati,Vira,F,viraxeva97@gmail.com,+31684176806,+1,Secretariat / Leadership
-16,Manata Eloi,Bernardo,M,bernardo.eloi93@gmail.com,+5521999947882,-3,Sénégal
-31,Busolo,Andrea,M,andrea.busolo@edu.unifi.it,+393407640402,+1,Sénégal
-34,Kunzler Maldaner,Matheus,M,mkunzlermaldaner@ufl.edu,+1 7543028192,-5,Singapore
-37,Enet,Audrey,F,audrey.enet@umontreal.ca,+1 514 431 3439,-5,Singapore
-17,Logak,Marcel,M,logakmarcel@gmail.com,+33665073075,+1,Türkiye
-42,Arsa,Arsa,M,iqbalarsa99@gmail.com,+31684077974,+1,Türkiye
-6,sureshraja,vishali sureshraja,F,vishalis25@karunya.edu.in,+91 8667418170,+5.5,UK
-39,Martin,Anaelle,F,anaellemartinsarthe1@gmail.com,+33768462205,+1,UK
-10,VELUTHAKKAL,GOPIKA,F,gopikaveluthakkal@gmail.com,+919562739010,+5.5,USA
-41,Leleu,Aurélien,M,aurelien.leleu78@gmail.com,+33 7 77 26 07 34,+1,USA
-1,ALI SAII,ROUDHA,F,f202200277@buc.edu.om,+968 98806632,+4,Everyone.AI
-26,Makhlas,Karim,M,abdelkarim.makhlas@eleve.isep.fr,+33761817409,+1,Everyone.AI
-18,Paturel,Aymeric,M,aymeric.paturel@outlook.fr,+33643417131,+1,ICESCO
-23,YADAV,Anshuman,M,anshuman-krishna.yadav@eleve.isep.fr,+33 7 43 66 46 45,+1,ICESCO
-4,Carr,Jani,F,janicarr62@gmail.com,+1 (678) 823-0296,-5,Meta
-22,Bou Chaaya,Karl,M,karl.bouchaaya@gmail.com,+33 0689485690,+1,Meta
-33,Shieh,Dylan,M,dylanshieh@icloud.com,+1 (561) 704-3812,-5,Microsoft
-24,KUCINSKI,Anna KUCINSKI,F,anna.kucinski@eleve.isep.fr,+33761482886,+1,Microsoft
-2,Al Sharji,Samiha,F,f2023000233@buc.edu.om,+968 71732311,+4,Journaliste
-13,Quintero,Juan,M,juanmquintero110@gmail.com,+1 4439392577,-5,Journaliste
-20,Berthet,Camille,F,camille.berthet@campusicp.fr,+33 7 68 63 06 87,+1,Journaliste
-27,RANI,MANISHA,M,manisha.rani@eleve.isep.fr,+337669184132,+1,Journaliste
-28,Chafi,Imane,M,imane.chafi@polymtl.ca,+15146271300,-5,Journaliste
-35,Karremans,Eve,F,karremanseefje@outlook.com,+31 0627591801,+1,Journaliste
-99,Admin,System Admin,N/A,admin@simuvaction.com,N/A,0,Admin
-100,Master,Game Master,N/A,gamemaster@simuvaction.com,N/A,0,Game Master
+Sort,Family Name,Preferred Name,Gender,email address,WHATSAPP phone,Timezone,Role,Display Role,Media Outlet
+11,BERNARDS,YVETTE,F,yvettebernards@students.uonbi.ac.ke,+254759653903,+3,Brazil,,
+29,Cloutier,Olivier,M,olivier.cloutier@uqar.ca,+14187502467,-5,Brazil,,
+5,Jayakumar,Aparna J,F,aparnaj@karunya.edu.in,+9176398947,+5.5,Canada,,
+21,Annabi,Antoine,M,antoine.annabi@gmail.com,+33651605362,+1,Canada,,
+12,Kainga,Violet,F,vmkainga@students.uonbi.ac.ke,+254711721536,+3,France,,
+14,Adler de la Sota,Daniela,M,daniela.adler@emory.edu,+17874253225,-5,France,,
+32,Teman,Avery,F,averyteman@ufl.edu,+1917-783-4680,-5,Germany,,
+40,Clerc,Thomas,M,thomas.clerc.pro@gmail.com,+33643550673,+1,Germany,,
+25,Moughzi,Intissar,F,intissar.moughzi@eleve.isep.fr,+33750718386,+1,India,,
+38,Caillard,Edom,M,edom.caillard@hotmail.fr,+33 6 95 31 24 60,+1,India,,
+3,AL-BADI,Abdul Rahman,M,m2023000358@buc.edu.om,+971562677660,+3,Japan,,
+19,Naillon,Aurélie,F,aurelie.naillon78@gmail.com,+33695707461,+1,Japan,,
+9,VELUTHAKKAL,GOWRI,F,gowriveluthakkal@gmail.com,+918289872843,+5.5,Mexique,,
+30,Caffoni,Sara,F,sara.caffoni@edu.unifi.it,+39 3391368799,+1,Mexique,,
+8,Singh,Riya,F,itsriyaasingh@gmail.com,+91 8095000613,+5.5,Secretariat / Leadership,Head Delegate,SimuVaction Secretariat
+15,Prudencio Rohde,Carlos Rohde,M,carlosrohdedm@gmail.com,+5596981456061,-3,Secretariat / Leadership,Head Delegate,SimuVaction Secretariat
+36,Virati,Vira,F,viraxeva97@gmail.com,+31684176806,+1,Secretariat / Leadership,Head Delegate,SimuVaction Secretariat
+16,Manata Eloi,Bernardo,M,bernardo.eloi93@gmail.com,+5521999947882,-3,Sénégal,,
+31,Busolo,Andrea,M,andrea.busolo@edu.unifi.it,+393407640402,+1,Sénégal,,
+34,Kunzler Maldaner,Matheus,M,mkunzlermaldaner@ufl.edu,+1 7543028192,-5,Singapore,,
+37,Enet,Audrey,F,audrey.enet@umontreal.ca,+1 514 431 3439,-5,Singapore,,
+17,Logak,Marcel,M,logakmarcel@gmail.com,+33665073075,+1,Türkiye,,
+42,Arsa,Arsa,M,iqbalarsa99@gmail.com,+31684077974,+1,Türkiye,,
+6,sureshraja,vishali sureshraja,F,vishalis25@karunya.edu.in,+91 8667418170,+5.5,UK,,
+39,Martin,Anaelle,F,anaellemartinsarthe1@gmail.com,+33768462205,+1,UK,,
+10,VELUTHAKKAL,GOPIKA,F,gopikaveluthakkal@gmail.com,+919562739010,+5.5,USA,,
+41,Leleu,Aurélien,M,aurelien.leleu78@gmail.com,+33 7 77 26 07 34,+1,USA,,
+1,ALI SAII,ROUDHA,F,f202200277@buc.edu.om,+968 98806632,+4,Everyone.AI,AI Policy Strategist,Everyone.AI
+26,Makhlas,Karim,M,abdelkarim.makhlas@eleve.isep.fr,+33761817409,+1,Everyone.AI,AI Policy Strategist,Everyone.AI
+18,Paturel,Aymeric,M,aymeric.paturel@outlook.fr,+33643417131,+1,ICESCO,Cultural Policy Advisor,ICESCO
+23,YADAV,Anshuman,M,anshuman-krishna.yadav@eleve.isep.fr,+33 7 43 66 46 45,+1,ICESCO,Cultural Policy Advisor,ICESCO
+4,Carr,Jani,F,janicarr62@gmail.com,+1 (678) 823-0296,-5,Meta,Public Affairs Lead,Meta Policy Desk
+22,Bou Chaaya,Karl,M,karl.bouchaaya@gmail.com,+33 0689485690,+1,Meta,Public Affairs Lead,Meta Policy Desk
+33,Shieh,Dylan,M,dylanshieh@icloud.com,+1 (561) 704-3812,-5,Microsoft,Technology Policy Lead,Microsoft Policy Desk
+24,KUCINSKI,Anna KUCINSKI,F,anna.kucinski@eleve.isep.fr,+33761482886,+1,Microsoft,Technology Policy Lead,Microsoft Policy Desk
+2,Al Sharji,Samiha,F,f2023000233@buc.edu.om,+968 71732311,+4,Journaliste,International Correspondent,SimuVaction Press
+13,Quintero,Juan,M,juanmquintero110@gmail.com,+1 4439392577,-5,Journaliste,International Correspondent,SimuVaction Press
+20,Berthet,Camille,F,camille.berthet@campusicp.fr,+33 7 68 63 06 87,+1,Journaliste,International Correspondent,SimuVaction Press
+27,RANI,MANISHA,M,manisha.rani@eleve.isep.fr,+337669184132,+1,Journaliste,International Correspondent,SimuVaction Press
+28,Chafi,Imane,M,imane.chafi@polymtl.ca,+15146271300,-5,Journaliste,International Correspondent,SimuVaction Press
+35,Karremans,Eve,F,karremanseefje@outlook.com,+31 0627591801,+1,Journaliste,International Correspondent,SimuVaction Press
+99,Admin,System Admin,N/A,admin@simuvaction.com,N/A,0,Admin,System Administrator,SimuVaction Operations
+100,Master,Game Master,N/A,gamemaster@simuvaction.com,N/A,0,Game Master,Game Master,SimuVaction Operations

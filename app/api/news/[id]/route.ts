@@ -18,7 +18,17 @@ export async function GET(
         const post = await prisma.newsPost.findUnique({
             where: { id: postId, eventId },
             include: {
-                author: { select: { name: true, role: true } },
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true,
+                        avatarUrl: true,
+                        displayRole: true,
+                        mediaOutlet: true,
+                        positionPaperSummary: true,
+                    }
+                },
                 approvals: { include: { approver: { select: { name: true, role: true } } } }
             }
         });

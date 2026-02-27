@@ -50,6 +50,8 @@ export function InteractiveGlobalMap({
         id: `placeholder-${filled.length}`,
         name: `Delegate ${filled.length + 1}`,
         role: "delegate",
+        displayRole: "Representative",
+        mediaOutlet: "Independent",
         avatarUrl: null,
         positionPaperSummary: null,
       });
@@ -146,13 +148,11 @@ export function InteractiveGlobalMap({
   }
 
   return (
-    <div className="relative h-[390px] w-full overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
-      <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-80"
-        style={{
-          backgroundImage:
-            "url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')",
-        }}
+    <div className="relative h-[360px] w-full overflow-hidden rounded-2xl border border-ink-border bg-slate-100">
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg"
+        alt="World map"
+        className="pointer-events-none absolute inset-0 h-full w-full object-fill opacity-80"
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#f9fbff]/65 via-white/40 to-[#f8f3ec]/65" />
 

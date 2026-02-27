@@ -29,6 +29,8 @@ export async function GET() {
       id: contact.id,
       name: contact.name,
       role: contact.role,
+      displayRole: contact.displayRole,
+      mediaOutlet: contact.mediaOutlet,
       avatarUrl: contact.avatarUrl,
       teamId: contact.teamId,
       teamName: contact.team?.countryName ?? null,

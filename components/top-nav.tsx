@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Globe2, Search } from "lucide-react";
+import { ChevronDown, Globe2, Search } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
+import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { SessionPayload } from "@/lib/auth";
 
@@ -62,10 +63,7 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             />
           </label>
 
-          <button className="relative rounded-lg border border-ink-border bg-white p-2 text-ink/70 transition hover:text-ink dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white">
-            <Bell className="h-4 w-4" />
-            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-alert-red text-[10px] font-bold text-white">3</span>
-          </button>
+          <NotificationsDropdown />
 
           {session ? (
             <Link href="/settings">

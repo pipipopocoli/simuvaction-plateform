@@ -18,6 +18,9 @@ type UserSeedInput = {
   name: string;
   role: string;
   teamName: string | null;
+  whatsAppNumber: string | null;
+  displayRole: string | null;
+  mediaOutlet: string | null;
 };
 
 async function seedInitialNews(eventId: string, authorId: string) {
@@ -133,26 +136,44 @@ async function main() {
   });
 
   // Dynamic CSV Parsing & Seeding
-  const csvPath = path.join(process.cwd(), 'members.csv');
-  const csvData = fs.readFileSync(csvPath, 'utf8');
-  const rows = csvData.trim().split('\n').slice(1); // Skip header
+  const csvPath = path.join(process.cwd(), "members.csv");
+  const csvData = fs.readFileSync(csvPath, "utf8");
+  const [headerLine, ...rawRows] = csvData.trim().split(/\r?\n/);
+
+  const header = headerLine.split(",").map((column) => column.trim().toLowerCase());
+  const getHeaderIndex = (label: string) => header.indexOf(label.toLowerCase());
+
+  const colIndex = {
+    familyName: getHeaderIndex("Family Name"),
+    preferredName: getHeaderIndex("Preferred Name"),
+    email: getHeaderIndex("email address"),
+    whatsApp: getHeaderIndex("WHATSAPP phone"),
+    role: getHeaderIndex("Role"),
+    displayRole: getHeaderIndex("Display Role"),
+    mediaOutlet: getHeaderIndex("Media Outlet"),
+  } as const;
+
+  const readCol = (columns: string[], index: number) =>
+    index >= 0 ? (columns[index]?.trim() ?? "") : "";
 
   const defaultPassword = "1234";
   const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-  // Parse rows into users data
-  // Cols: Sort, Family Name, Preferred Name, Gender, email address, WHATSAPP phone, Timezone, Role
+  // Parse rows into users data with a header-based mapping.
   const usersToSeed: UserSeedInput[] = [];
   const teamsToCreate = new Set<string>();
 
-  for (const row of rows) {
+  for (const row of rawRows) {
     if (!row.trim()) continue;
-    const cols = row.split(',');
-    const email = cols[4]?.trim().toLowerCase();
-    const firstName = cols[2]?.trim();
-    const lastName = cols[1]?.trim();
+    const cols = row.split(",");
+    const email = readCol(cols, colIndex.email).toLowerCase();
+    const firstName = readCol(cols, colIndex.preferredName);
+    const lastName = readCol(cols, colIndex.familyName);
     const name = `${firstName} ${lastName}`;
-    const roleOrTeam = cols[7]?.trim() ?? "";
+    const roleOrTeam = readCol(cols, colIndex.role);
+    const whatsAppNumber = readCol(cols, colIndex.whatsApp) || null;
+    const displayRole = readCol(cols, colIndex.displayRole) || null;
+    const mediaOutlet = readCol(cols, colIndex.mediaOutlet) || null;
     const normalizedRole = normalizeMemberRole(roleOrTeam);
     const dbRole = normalizedRole.role;
     const teamName: string | null = normalizedRole.teamName;
@@ -164,6 +185,9 @@ async function main() {
       name,
       role: dbRole,
       teamName,
+      whatsAppNumber,
+      displayRole,
+      mediaOutlet,
     });
   }
 
@@ -193,7 +217,10 @@ async function main() {
       update: {
         name: u.name,
         role: u.role,
-        teamId
+        teamId,
+        whatsAppNumber: u.whatsAppNumber,
+        displayRole: u.displayRole,
+        mediaOutlet: u.mediaOutlet,
       },
       create: {
         email: u.email,
@@ -203,6 +230,9 @@ async function main() {
         eventId,
         hashedPassword,
         mustChangePassword: true,
+        whatsAppNumber: u.whatsAppNumber,
+        displayRole: u.displayRole,
+        mediaOutlet: u.mediaOutlet,
       },
     });
   }

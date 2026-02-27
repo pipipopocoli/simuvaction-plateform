@@ -63,7 +63,15 @@ export async function GET(req: NextRequest) {
             where: whereClause,
             include: {
                 author: {
-                    select: { name: true, role: true }
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true,
+                        avatarUrl: true,
+                        displayRole: true,
+                        mediaOutlet: true,
+                        positionPaperSummary: true,
+                    }
                 },
                 approvals: {
                     include: {
@@ -137,7 +145,17 @@ export async function POST(req: NextRequest) {
                 status: status === "submitted" ? "submitted" : "draft",
             },
             include: {
-                author: { select: { name: true } }
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true,
+                        avatarUrl: true,
+                        displayRole: true,
+                        mediaOutlet: true,
+                        positionPaperSummary: true,
+                    }
+                }
             }
         });
 

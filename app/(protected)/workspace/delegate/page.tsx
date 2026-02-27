@@ -1,10 +1,11 @@
 import { getUserSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
 import { DelegateWorkspaceClient } from "@/components/workspaces/delegate-workspace-client";
+import { isAdminLike } from "@/lib/authz";
 
 export default async function DelegateWorkspace() {
     const session = await getUserSession();
-    if (!session || session.role !== "delegate") {
+    if (!session || (session.role !== "delegate" && !isAdminLike(session.role))) {
         redirect("/");
     }
 

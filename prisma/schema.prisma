@@ -200,6 +200,8 @@ model User {
   teamId             String?
   eventId            String
   avatarUrl          String?
+  displayRole        String?
+  mediaOutlet        String?
   whatsAppNumber     String?
   xUrl               String?
   linkedinUrl        String?

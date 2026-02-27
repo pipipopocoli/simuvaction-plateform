@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ShieldCheck, CalendarClock, BookOpen, Activity, Eye } from "lucide-react";
 import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
@@ -7,6 +8,8 @@ import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
 import { Panel, StatTile } from "@/components/ui/commons";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
+import { AgendaPanel } from "@/components/meetings/agenda-panel";
+import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
 
 export function AdminWorkspaceClient({ userId }: { userId: string }) {
     const [activeTab, setActiveTab] = useState("overview");
@@ -120,6 +123,32 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
                         This workspace is isolated from the simulation role-play. It is designed for instructional staff to dictate the pacing and reference materials of the course.
                     </p>
                 </Panel>
+
+                <Panel>
+                    <p className="text-sm font-semibold text-ink mb-2">Workspace Switcher</p>
+                    <div className="grid gap-2">
+                        <Link href="/workspace/delegate" className="rounded-md border border-ink-border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue/50">
+                            Open Delegate Workspace
+                        </Link>
+                        <Link href="/workspace/leader" className="rounded-md border border-ink-border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue/50">
+                            Open Leader Workspace
+                        </Link>
+                        <Link href="/workspace/journalist" className="rounded-md border border-ink-border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue/50">
+                            Open Journalist Workspace
+                        </Link>
+                        <Link href="/workspace/lobbyist" className="rounded-md border border-ink-border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue/50">
+                            Open Lobbyist Workspace
+                        </Link>
+                        <Link href="/workspace/admin" className="rounded-md border border-ink-border bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue/50">
+                            Open Admin Workspace
+                        </Link>
+                    </div>
+                </Panel>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                    <AgendaPanel />
+                    <WorkspaceCalendar />
+                </div>
             </div>
         </div>
     );
