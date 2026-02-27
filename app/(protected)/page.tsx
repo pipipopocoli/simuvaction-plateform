@@ -165,6 +165,14 @@ export default async function FrontPage() {
         <Panel className="xl:col-span-3">
           <h2 className="font-serif text-3xl font-bold text-ink">Quick Actions</h2>
           <div className="mt-4 space-y-3">
+            {session.role === "admin" && (
+              <Link href="/workspace/admin" className="block">
+                <ActionButton className="w-full justify-between bg-red-700 text-white hover:bg-red-800">
+                  Professor Admin Portal
+                  <ChevronRight className="h-4 w-4" />
+                </ActionButton>
+              </Link>
+            )}
             {(session.role === "leader" || session.role === "admin") && (
               <Link href="/votes" className="block">
                 <ActionButton className="w-full justify-between">

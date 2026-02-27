@@ -1,16 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, FileCheck2, Info, LayoutDashboard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, FileCheck2, Info, LayoutDashboard, Clock, FileText } from "lucide-react";
 import { AdminVotePanel } from "@/components/voting/admin-vote-panel";
 import { LeaderNewsApprovalPanel } from "@/components/newsroom/leader-news-approval-panel";
-import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
-import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { Panel, StatTile, StatusBadge } from "@/components/ui/commons";
 
 export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: string }) {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/deadlines").then(res => res.json()).then(data => {
+      if (!data.error) setDeadlines(data);
+    });
+    fetch("/api/admin/documents").then(res => res.json()).then(data => {
+      if (!data.error) setDocuments(data);
+    });
+  }, []);
 
   const tabs = [
     { id: "dashboard", label: "Dashboard" },
@@ -77,15 +86,35 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
 
           {activeTab === "deadlines" ? (
             <div>
-              <p className="mb-4 text-sm text-ink/70">Manage the official schedule and countdowns for the entire simulation event.</p>
-              <AdminDeadlinesPanel />
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <Clock className="h-6 w-6 text-alert-red" /> Official Schedule
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Review the official schedule and countdowns for the simulation event.</p>
+              <div className="space-y-3">
+                {deadlines.length === 0 ? <p className="text-sm text-ink/55 italic">No incoming deadlines scheduled.</p> : deadlines.map((d: any) => (
+                  <div key={d.id} className="p-3 border border-ink-border rounded bg-white">
+                    <p className="text-sm font-semibold text-ink">{d.title}</p>
+                    <p className="text-xs text-alert-red font-bold">{new Date(d.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
           {activeTab === "documents" ? (
             <div>
-              <p className="mb-4 text-sm text-ink/70">Upload or link official resources for all delegations to access in the Library.</p>
-              <AdminDocumentsPanel />
+              <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                <FileText className="h-6 w-6 text-ink-blue" /> Global Library
+              </h2>
+              <p className="mb-4 text-sm text-ink/70">Consult official resources provided by the administration.</p>
+              <div className="space-y-3">
+                {documents.length === 0 ? <p className="text-sm text-ink/55 italic">No shared documents.</p> : documents.map((d: any) => (
+                  <div key={d.id} className="p-3 border border-ink-border rounded bg-white flex justify-between items-center">
+                    <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink-blue hover:underline">{d.title}</a>
+                    <span className="text-[10px] text-zinc-500 uppercase font-mono bg-zinc-100 px-2 py-0.5 rounded">{d.type}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 

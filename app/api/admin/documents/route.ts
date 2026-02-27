@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const session = await getUserSession();
-        // Only allow Admin/Leader roles to attach official documents
-        if (!session || (session.role !== "admin" && session.role !== "leader")) {
+        // Only allow Admin roles to attach official documents
+        if (!session || session.role !== "admin") {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const session = await getUserSession();
-        if (!session || (session.role !== "admin" && session.role !== "leader")) {
+        if (!session || session.role !== "admin") {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 
