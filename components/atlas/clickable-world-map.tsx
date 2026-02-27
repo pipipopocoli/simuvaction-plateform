@@ -1,36 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
+import worldMap from "@svg-maps/world";
 import type { AtlasDelegation } from "@/lib/atlas";
 import { toSvgCountryIso2 } from "@/lib/atlas";
 
-const VIEWPORT = { width: 1000, height: 500 };
 const ZOOM_SCALE = 1.14;
-
-type CountryShape = {
-  iso2: string;
-  d: string;
-  cx: number;
-  cy: number;
-  isSmall?: boolean;
-};
-
-const COUNTRY_SHAPES: CountryShape[] = [
-  { iso2: "US", d: "M160 168 L225 165 L260 183 L255 205 L238 220 L200 220 L168 205 Z", cx: 210, cy: 194 },
-  { iso2: "CA", d: "M150 123 L210 108 L278 116 L300 138 L276 162 L210 156 L162 148 Z", cx: 225, cy: 135 },
-  { iso2: "MX", d: "M205 222 L240 224 L252 242 L238 258 L214 252 L201 238 Z", cx: 226, cy: 239 },
-  { iso2: "BR", d: "M356 276 L392 272 L420 296 L410 332 L374 346 L342 324 L344 292 Z", cx: 381, cy: 309 },
-  { iso2: "GB", d: "M468 124 L480 120 L488 129 L482 141 L470 140 Z", cx: 478, cy: 131, isSmall: true },
-  { iso2: "FR", d: "M496 152 L515 148 L525 162 L519 178 L500 180 L492 166 Z", cx: 508, cy: 165 },
-  { iso2: "DE", d: "M520 138 L535 132 L545 147 L538 164 L522 162 L516 148 Z", cx: 530, cy: 149 },
-  { iso2: "TR", d: "M564 160 L604 156 L622 165 L602 178 L566 176 Z", cx: 593, cy: 167 },
-  { iso2: "SN", d: "M456 224 L470 222 L472 234 L458 238 Z", cx: 464, cy: 230, isSmall: true },
-  { iso2: "IN", d: "M650 190 L680 190 L700 220 L680 248 L654 240 L640 214 Z", cx: 671, cy: 218 },
-  { iso2: "SG", d: "M752 258 L758 258 L758 264 L752 264 Z", cx: 755, cy: 261, isSmall: true },
-  { iso2: "JP", d: "M828 170 L838 164 L848 174 L842 188 L830 188 Z", cx: 838, cy: 177, isSmall: true },
-];
-
-const SHAPE_BY_ISO2 = new Map(COUNTRY_SHAPES.map((shape) => [shape.iso2, shape]));
+const SMALL_COUNTRY_IDS = new Set(["gb", "sg", "sn", "jp"]);
 
 type ClickableWorldMapProps = {
   delegations: AtlasDelegation[];
@@ -38,11 +14,34 @@ type ClickableWorldMapProps = {
   onSelectDelegation: (delegationId: string | null) => void;
 };
 
+type ParsedViewBox = {
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+};
+
+type WorldLocation = {
+  id: string;
+  name: string;
+  path: string;
+};
+
+function parseViewBox(value: string): ParsedViewBox {
+  const [minX = 0, minY = 0, width = 1010, height = 666] = value
+    .split(" ")
+    .map((part) => Number(part));
+  return { minX, minY, width, height };
+}
+
 export function ClickableWorldMap({
   delegations,
   selectedDelegationId,
   onSelectDelegation,
 }: ClickableWorldMapProps) {
+  const locations = worldMap.locations as WorldLocation[];
+  const viewBox = useMemo(() => parseViewBox(worldMap.viewBox), []);
+
   const countryDelegations = useMemo(
     () => delegations.filter((delegation) => delegation.kind === "country"),
     [delegations],
@@ -51,7 +50,7 @@ export function ClickableWorldMap({
   const byIso2 = useMemo(() => {
     const map = new Map<string, AtlasDelegation>();
     for (const delegation of countryDelegations) {
-      const iso2 = toSvgCountryIso2(delegation.countryCode);
+      const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
       if (!map.has(iso2)) {
         map.set(iso2, delegation);
       }
@@ -64,86 +63,86 @@ export function ClickableWorldMap({
     [delegations, selectedDelegationId],
   );
 
-  const selectedShape = useMemo(() => {
-    if (!selectedDelegation || selectedDelegation.kind !== "country") {
-      return null;
-    }
-    return SHAPE_BY_ISO2.get(toSvgCountryIso2(selectedDelegation.countryCode)) ?? null;
-  }, [selectedDelegation]);
-
   const transform = useMemo(() => {
-    if (!selectedShape) {
+    if (!selectedDelegation || selectedDelegation.kind !== "country" || !selectedDelegation.mapPoint) {
       return "translate(0 0) scale(1)";
     }
-    const tx = VIEWPORT.width / 2 - ZOOM_SCALE * selectedShape.cx;
-    const ty = VIEWPORT.height / 2 - ZOOM_SCALE * selectedShape.cy;
+
+    const focusX = (selectedDelegation.mapPoint.xPct / 100) * viewBox.width;
+    const focusY = (selectedDelegation.mapPoint.yPct / 100) * viewBox.height;
+    const tx = viewBox.width / 2 - ZOOM_SCALE * focusX;
+    const ty = viewBox.height / 2 - ZOOM_SCALE * focusY;
+
     return `translate(${tx} ${ty}) scale(${ZOOM_SCALE})`;
-  }, [selectedShape]);
+  }, [selectedDelegation, viewBox.height, viewBox.width]);
+
+  const tinyCountryMarkers = useMemo(
+    () =>
+      countryDelegations.filter((delegation) => {
+        const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
+        return SMALL_COUNTRY_IDS.has(iso2) && delegation.mapPoint;
+      }),
+    [countryDelegations],
+  );
 
   const fallbackPins = useMemo(
     () =>
       countryDelegations.filter((delegation) => {
-        const iso2 = toSvgCountryIso2(delegation.countryCode);
-        return !SHAPE_BY_ISO2.has(iso2) && delegation.mapPoint;
+        const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
+        return !byIso2.has(iso2) && delegation.mapPoint;
       }),
-    [countryDelegations],
+    [byIso2, countryDelegations],
   );
 
   return (
     <div className="relative h-full w-full">
       <svg
-        viewBox={`0 0 ${VIEWPORT.width} ${VIEWPORT.height}`}
+        viewBox={worldMap.viewBox}
         preserveAspectRatio="xMidYMid meet"
         className="h-full w-full rounded-xl bg-[#e8edf3]"
         aria-label="Global delegation map"
       >
         <g transform={transform} style={{ transition: "transform 220ms ease" }}>
-          <g fill="#9ca3af" stroke="#eef2f7" strokeWidth="1.2" opacity="0.95">
-            <path d="M118 140 L305 126 L347 156 L337 238 L180 252 L124 208 Z" />
-            <path d="M332 248 L445 260 L438 354 L354 362 L316 318 Z" />
-            <path d="M458 130 L640 116 L718 170 L702 278 L618 338 L524 328 L468 248 L446 170 Z" />
-            <path d="M694 170 L812 170 L856 226 L822 272 L738 276 L704 236 Z" />
-            <path d="M774 300 L902 306 L940 356 L904 404 L816 408 L764 360 Z" />
-            <path d="M486 258 L566 264 L594 336 L536 392 L468 350 L462 292 Z" />
-          </g>
-
-          {COUNTRY_SHAPES.map((shape) => {
-            const delegation = byIso2.get(shape.iso2);
+          {locations.map((location) => {
+            const delegation = byIso2.get(location.id);
             const selected = delegation?.id === selectedDelegation?.id;
             const clickable = Boolean(delegation);
-            const fill = clickable ? (selected ? "#10b981" : "#22c55e") : "#9ca3af";
 
             return (
-              <g key={shape.iso2}>
-                <path
-                  data-iso={shape.iso2}
-                  d={shape.d}
-                  fill={fill}
-                  stroke={selected ? "#0f172a" : "#ffffff"}
-                  strokeWidth={selected ? 2.2 : 1.2}
-                  className={clickable ? "cursor-pointer transition-colors duration-150 hover:fill-[#16a34a]" : ""}
-                  role={clickable ? "button" : undefined}
-                  tabIndex={clickable ? 0 : -1}
-                  aria-label={clickable ? `Open ${delegation?.name} delegation` : undefined}
-                  onClick={() => {
-                    if (delegation) {
-                      onSelectDelegation(delegation.id);
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (!delegation) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onSelectDelegation(delegation.id);
-                    }
-                  }}
-                />
-                {clickable && shape.isSmall ? (
-                  <>
-                    <circle cx={shape.cx} cy={shape.cy} r={5} fill="#ffffff" />
-                    <circle cx={shape.cx} cy={shape.cy} r={3} fill={selected ? "#10b981" : "#22c55e"} />
-                  </>
-                ) : null}
+              <path
+                key={location.id}
+                d={location.path}
+                fill={clickable ? (selected ? "#10b981" : "#22c55e") : "#9ca3af"}
+                stroke={selected ? "#0f172a" : "#eef2f7"}
+                strokeWidth={selected ? 1.8 : 0.8}
+                className={clickable ? "cursor-pointer transition-colors duration-150 hover:fill-[#16a34a]" : ""}
+                role={clickable ? "button" : undefined}
+                tabIndex={clickable ? 0 : -1}
+                aria-label={clickable ? `Open ${delegation?.name} delegation` : undefined}
+                onClick={() => {
+                  if (delegation) {
+                    onSelectDelegation(delegation.id);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (!delegation) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectDelegation(delegation.id);
+                  }
+                }}
+              />
+            );
+          })}
+
+          {tinyCountryMarkers.map((delegation) => {
+            const isSelected = delegation.id === selectedDelegation?.id;
+            const cx = (delegation.mapPoint!.xPct / 100) * viewBox.width;
+            const cy = (delegation.mapPoint!.yPct / 100) * viewBox.height;
+            return (
+              <g key={`tiny-${delegation.id}`}>
+                <circle cx={cx} cy={cy} r={4.2} fill="#ffffff" />
+                <circle cx={cx} cy={cy} r={2.7} fill={isSelected ? "#10b981" : "#22c55e"} />
               </g>
             );
           })}
