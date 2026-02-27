@@ -17,6 +17,20 @@
     --bg-radial-2: rgba(220, 38, 38, 0.04);
     --bg-grad-start: #f8f5ef;
     --bg-grad-end: #f3efe7;
+    --map-ocean-start: #d5e0f0;
+    --map-ocean-end: #becde1;
+    --map-ocean-radial: rgba(255, 255, 255, 0.45);
+    --map-vignette: rgba(15, 23, 42, 0.16);
+    --map-country-active: #3f8f74;
+    --map-country-hover: #4ea286;
+    --map-country-selected: #1d4ed8;
+    --map-country-inactive: #96a3b5;
+    --map-country-stroke: #d8e1ec;
+    --map-country-stroke-selected: #0f244f;
+    --map-country-marker-ring: #ffffff;
+    --map-legend-bg: rgba(255, 253, 250, 0.9);
+    --map-tooltip-bg: rgba(15, 23, 42, 0.94);
+    --map-tooltip-text: #f8fafc;
 
     --background: var(--color-ivory);
     --foreground: var(--color-ink);
@@ -43,6 +57,20 @@
     --bg-radial-2: rgba(248, 113, 113, 0.09);
     --bg-grad-start: #121a2d;
     --bg-grad-end: #0d1423;
+    --map-ocean-start: #0f1d33;
+    --map-ocean-end: #14263f;
+    --map-ocean-radial: rgba(96, 165, 250, 0.12);
+    --map-vignette: rgba(2, 6, 23, 0.4);
+    --map-country-active: #4f9f84;
+    --map-country-hover: #62b196;
+    --map-country-selected: #7bb0ff;
+    --map-country-inactive: #5a677c;
+    --map-country-stroke: #3a4960;
+    --map-country-stroke-selected: #b8d3ff;
+    --map-country-marker-ring: #dbe6ff;
+    --map-legend-bg: rgba(22, 33, 62, 0.9);
+    --map-tooltip-bg: rgba(226, 232, 240, 0.96);
+    --map-tooltip-text: #0f172a;
 
     --background: var(--color-ivory);
     --foreground: var(--color-ink);

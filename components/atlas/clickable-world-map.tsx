@@ -7,6 +7,10 @@ import { toSvgCountryIso2 } from "@/lib/atlas";
 
 const ZOOM_SCALE = 1.14;
 const SMALL_COUNTRY_IDS = new Set(["gb", "sg", "sn", "jp"]);
+const TOOLTIP_OFFSET_X = 14;
+const TOOLTIP_OFFSET_Y = 38;
+const TOOLTIP_WIDTH = 170;
+const TOOLTIP_HEIGHT = 58;
 
 type ClickableWorldMapProps = {
   delegations: AtlasDelegation[];
@@ -41,6 +45,13 @@ type ViewportSize = {
   height: number;
 };
 
+type TooltipState = {
+  name: string;
+  statusLabel: "Active" | "Inactive";
+  x: number;
+  y: number;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -50,6 +61,10 @@ function parseViewBox(value: string): ParsedViewBox {
     .split(" ")
     .map((part) => Number(part));
   return { minX, minY, width, height };
+}
+
+function toStatusLabel(status: AtlasDelegation["status"]): "Active" | "Inactive" {
+  return status === "active" ? "Active" : "Inactive";
 }
 
 export function ClickableWorldMap({
@@ -64,6 +79,11 @@ export function ClickableWorldMap({
   const viewBox = useMemo(() => parseViewBox(worldMap.viewBox), []);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const [countryBoundsByIso, setCountryBoundsByIso] = useState<Map<string, CountryBounds>>(new Map());
+  const [hoveredIso2, setHoveredIso2] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [isMapVisible, setIsMapVisible] = useState(false);
+
+  const locationIds = useMemo(() => new Set(locations.map((location) => location.id)), [locations]);
 
   const countryDelegations = useMemo(
     () => delegations.filter((delegation) => delegation.kind === "country"),
@@ -85,6 +105,11 @@ export function ClickableWorldMap({
     () => delegations.find((delegation) => delegation.id === selectedDelegationId) ?? null,
     [delegations, selectedDelegationId],
   );
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setIsMapVisible(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -185,39 +210,101 @@ export function ClickableWorldMap({
     ty = clamp(ty, minTy, maxTy);
 
     return `translate(${tx} ${ty}) scale(${adaptiveZoom})`;
-  }, [adaptiveZoom, countryBoundsByIso, selectedDelegation, viewBox.height, viewBox.minX, viewBox.minY, viewBox.width, worldBounds]);
+  }, [
+    adaptiveZoom,
+    countryBoundsByIso,
+    selectedDelegation,
+    viewBox.height,
+    viewBox.minX,
+    viewBox.minY,
+    viewBox.width,
+    worldBounds,
+  ]);
 
   const tinyCountryMarkers = useMemo(
     () =>
       countryDelegations.filter((delegation) => {
         const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
-        return SMALL_COUNTRY_IDS.has(iso2) && delegation.mapPoint;
+        return SMALL_COUNTRY_IDS.has(iso2) && delegation.mapPoint && locationIds.has(iso2);
       }),
-    [countryDelegations],
+    [countryDelegations, locationIds],
   );
 
   const fallbackPins = useMemo(
     () =>
       countryDelegations.filter((delegation) => {
         const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
-        return !byIso2.has(iso2) && delegation.mapPoint;
+        return !locationIds.has(iso2) && delegation.mapPoint;
       }),
-    [byIso2, countryDelegations],
+    [countryDelegations, locationIds],
   );
+
+  const tooltipMaxX = Math.max(8, viewportSize.width - TOOLTIP_WIDTH - 8);
+  const tooltipMaxY = Math.max(8, viewportSize.height - TOOLTIP_HEIGHT - 8);
+
+  function showTooltip(event: React.PointerEvent<SVGPathElement>, delegation: AtlasDelegation) {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+
+    const x = clamp(event.clientX - rect.left + TOOLTIP_OFFSET_X, 8, tooltipMaxX);
+    const y = clamp(event.clientY - rect.top - TOOLTIP_OFFSET_Y, 8, tooltipMaxY);
+
+    setTooltip({
+      name: delegation.name,
+      statusLabel: toStatusLabel(delegation.status),
+      x,
+      y,
+    });
+  }
 
   return (
     <div ref={containerRef} className="relative h-full w-full">
       <svg
         viewBox={worldMap.viewBox}
         preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full rounded-xl bg-[#e8edf3]"
+        className={`h-full w-full rounded-xl transition-all duration-300 ease-out ${
+          isMapVisible ? "scale-100 opacity-100" : "scale-[0.985] opacity-0"
+        }`}
         aria-label="Global delegation map"
+        onPointerLeave={() => {
+          setHoveredIso2(null);
+          setTooltip(null);
+        }}
       >
+        <defs>
+          <linearGradient id="map-ocean-linear" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="var(--map-ocean-start)" />
+            <stop offset="100%" stopColor="var(--map-ocean-end)" />
+          </linearGradient>
+          <radialGradient id="map-ocean-radial" cx="34%" cy="18%" r="78%">
+            <stop offset="0%" stopColor="var(--map-ocean-radial)" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+          <radialGradient id="map-vignette" cx="50%" cy="50%" r="66%">
+            <stop offset="66%" stopColor="transparent" />
+            <stop offset="100%" stopColor="var(--map-vignette)" />
+          </radialGradient>
+        </defs>
+
+        <rect x={viewBox.minX} y={viewBox.minY} width={viewBox.width} height={viewBox.height} fill="url(#map-ocean-linear)" />
+        <rect x={viewBox.minX} y={viewBox.minY} width={viewBox.width} height={viewBox.height} fill="url(#map-ocean-radial)" />
+
         <g transform={transform} style={{ transition: "transform 220ms ease" }}>
           {locations.map((location) => {
             const delegation = byIso2.get(location.id);
             const selected = delegation?.id === selectedDelegation?.id;
+            const hovered = location.id === hoveredIso2;
             const clickable = Boolean(delegation);
+
+            const fillColor = !clickable
+              ? "var(--map-country-inactive)"
+              : selected
+                ? "var(--map-country-selected)"
+                : hovered
+                  ? "var(--map-country-hover)"
+                  : "var(--map-country-active)";
 
             return (
               <path
@@ -226,13 +313,27 @@ export function ClickableWorldMap({
                   pathRefs.current[location.id] = node;
                 }}
                 d={location.path}
-                fill={clickable ? (selected ? "#10b981" : "#22c55e") : "#9ca3af"}
-                stroke={selected ? "#0f172a" : "#eef2f7"}
-                strokeWidth={selected ? 1.8 : 0.8}
-                className={clickable ? "cursor-pointer transition-colors duration-150 hover:fill-[#16a34a]" : ""}
+                fill={fillColor}
+                stroke={selected ? "var(--map-country-stroke-selected)" : "var(--map-country-stroke)"}
+                strokeWidth={selected ? 1.7 : 1.05}
+                className={clickable ? "cursor-pointer transition-colors duration-150 focus:outline-none" : ""}
                 role={clickable ? "button" : undefined}
                 tabIndex={clickable ? 0 : -1}
                 aria-label={clickable ? `Open ${delegation?.name} delegation` : undefined}
+                onPointerEnter={(event) => {
+                  if (!delegation) return;
+                  setHoveredIso2(location.id);
+                  showTooltip(event, delegation);
+                }}
+                onPointerMove={(event) => {
+                  if (!delegation) return;
+                  showTooltip(event, delegation);
+                }}
+                onPointerLeave={() => {
+                  if (!delegation) return;
+                  setHoveredIso2((current) => (current === location.id ? null : current));
+                  setTooltip(null);
+                }}
                 onClick={() => {
                   if (delegation) {
                     onSelectDelegation(delegation.id);
@@ -255,29 +356,82 @@ export function ClickableWorldMap({
             const cy = (delegation.mapPoint!.yPct / 100) * viewBox.height;
             return (
               <g key={`tiny-${delegation.id}`}>
-                <circle cx={cx} cy={cy} r={4.2} fill="#ffffff" />
-                <circle cx={cx} cy={cy} r={2.7} fill={isSelected ? "#10b981" : "#22c55e"} />
+                <circle cx={cx} cy={cy} r={4.2} fill="var(--map-country-marker-ring)" />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={2.8}
+                  fill={isSelected ? "var(--map-country-selected)" : "var(--map-country-active)"}
+                />
               </g>
             );
           })}
         </g>
+
+        <rect x={viewBox.minX} y={viewBox.minY} width={viewBox.width} height={viewBox.height} fill="url(#map-vignette)" />
       </svg>
 
-      {fallbackPins.map((delegation) => (
-        <button
-          key={delegation.id}
-          onClick={() => onSelectDelegation(delegation.id)}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${delegation.mapPoint?.xPct}%`, top: `${delegation.mapPoint?.yPct}%` }}
-          title={delegation.name}
-          aria-label={`Open ${delegation.name} delegation`}
+      {tooltip ? (
+        <div
+          className="pointer-events-none absolute z-30 w-[170px] rounded-md border border-ink-border/80 px-2 py-1 shadow-lg backdrop-blur-sm"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            backgroundColor: "var(--map-tooltip-bg)",
+            color: "var(--map-tooltip-text)",
+          }}
         >
-          <span className="relative flex h-4 w-4">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500/55" />
-            <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
-          </span>
-        </button>
-      ))}
+          <p className="text-xs font-semibold leading-tight">{tooltip.name}</p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] opacity-90">{tooltip.statusLabel}</p>
+        </div>
+      ) : null}
+
+      <div
+        className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-lg border border-ink-border/70 px-2.5 py-2 text-[10px] text-ink/85 shadow-sm backdrop-blur-sm"
+        style={{ backgroundColor: "var(--map-legend-bg)" }}
+      >
+        <p className="mb-1 font-semibold uppercase tracking-[0.08em]">Legend</p>
+        <div className="grid gap-1">
+          <p className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--map-country-active)" }} />
+            Active
+          </p>
+          <p className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--map-country-inactive)" }} />
+            Inactive
+          </p>
+          <p className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--map-country-selected)" }} />
+            Selected
+          </p>
+        </div>
+      </div>
+
+      {fallbackPins.map((delegation) => {
+        const isSelected = delegation.id === selectedDelegation?.id;
+        const markerColor = isSelected ? "var(--map-country-selected)" : "var(--map-country-active)";
+        return (
+          <button
+            key={delegation.id}
+            onClick={() => onSelectDelegation(delegation.id)}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${delegation.mapPoint?.xPct}%`, top: `${delegation.mapPoint?.yPct}%` }}
+            title={delegation.name}
+            aria-label={`Open ${delegation.name} delegation`}
+          >
+            <span className="relative flex h-4 w-4">
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-45"
+                style={{ backgroundColor: markerColor }}
+              />
+              <span
+                className="relative inline-flex h-4 w-4 rounded-full border-2"
+                style={{ backgroundColor: markerColor, borderColor: "var(--map-country-marker-ring)" }}
+              />
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

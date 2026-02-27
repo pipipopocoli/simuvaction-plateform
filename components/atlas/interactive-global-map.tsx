@@ -172,7 +172,7 @@ export function InteractiveGlobalMap({
 
   return (
     <div className="relative isolate w-full rounded-2xl border border-ink-border bg-slate-100">
-      <div className="relative h-[clamp(320px,42vh,520px)] overflow-hidden rounded-2xl p-2">
+      <div className="relative h-[clamp(520px,68vh,860px)] overflow-hidden rounded-2xl p-1">
         <ClickableWorldMap
           delegations={delegations}
           selectedDelegationId={selectedDelegationId}
