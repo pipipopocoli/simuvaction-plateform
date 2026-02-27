@@ -31,7 +31,7 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             <Globe2 className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-serif text-[34px] leading-none text-ink">SimuVaction <span className="text-ink-blue">Commons</span></p>
+            <p className="font-serif text-[34px] leading-none text-ink">SimuVaction <span className="text-ink-blue">2024</span></p>
           </div>
         </Link>
 

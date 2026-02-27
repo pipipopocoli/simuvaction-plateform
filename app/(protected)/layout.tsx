@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { TopNav } from "@/components/top-nav";
 import { getUserSession } from "@/lib/server-auth";
+import { TutorialBot } from "@/components/tutorial-bot";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,10 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
       <TopNav session={session} />
       <main className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-6 md:py-8">{children}</main>
+      <TutorialBot role={session.role} />
     </div>
   );
 }

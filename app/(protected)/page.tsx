@@ -69,7 +69,7 @@ export default async function FrontPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow="SimuVaction Commons"
+        eyebrow="SimuVaction 2024: AI & Education"
         title="Live Briefing"
         subtitle="Global posture, active votes, and newsroom signals in one command view."
         actions={
@@ -208,7 +208,7 @@ export default async function FrontPage() {
       <Panel className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink/55">Operational footer</p>
-          <p className="mt-1 text-sm text-ink/70">The legacy project is frozen. Commons updates deploy only to simulvaction-plateforme.</p>
+          <p className="mt-1 text-sm text-ink/70">SimuVaction 2024: The Impact of Artificial Intelligence in Education.</p>
         </div>
         <Link href="/archive" className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:border-ink-blue hover:text-ink-blue">
           <Newspaper className="h-4 w-4" />
