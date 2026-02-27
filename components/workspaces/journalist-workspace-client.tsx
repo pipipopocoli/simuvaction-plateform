@@ -22,6 +22,8 @@ type NewsPost = {
     createdAt: string;
     publishedAt: string | null;
     authorId: string;
+    imageUrl?: string | null;
+    source?: string | null;
     author: { name: string; role: string };
 };
 
@@ -33,6 +35,8 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
     // Composer
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+    const [imageUrl, setImageUrl] = useState("");
+    const [source, setSource] = useState("");
     const [currentPostId, setCurrentPostId] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "published">("idle");
@@ -58,6 +62,8 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         setCurrentPostId(null);
         setTitle("");
         setBody("");
+        setImageUrl("");
+        setSource("");
         setSaveStatus("idle");
     };
 
@@ -72,7 +78,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
             const res = await fetch(endpoint, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content: body, status }),
+                body: JSON.stringify({ title, content: body, status, imageUrl, source }),
             });
             if (res.ok) {
                 setSaveStatus(publish ? "published" : "saved");
@@ -97,6 +103,8 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
         setCurrentPostId(post.id);
         setTitle(post.title);
         setBody(post.body);
+        setImageUrl(post.imageUrl || "");
+        setSource(post.source || "");
         setSaveStatus("idle");
         setActiveTab("compose");
     };
@@ -125,51 +133,98 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
                         ))}
                     </div>
 
-                    {/* COMPOSE TAB */}
+                    {/* COMPOSE TAB - RICH CANVAS */}
                     {activeTab === "compose" && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between mb-2">
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
                                 <h2 className="font-serif text-2xl font-bold text-ink flex items-center gap-2">
                                     <Pen className="h-6 w-6 text-ink-blue" />
-                                    {currentPostId ? "Editing Article" : "New Article"}
+                                    {currentPostId ? "Editing Article" : "New Reporting Canvas"}
                                 </h2>
                                 {currentPostId && (
-                                    <button onClick={resetComposer} className="text-xs text-ink/40 hover:text-ink-blue">
-                                        + New article
+                                    <button onClick={resetComposer} className="text-xs text-ink/40 hover:text-ink-blue font-bold">
+                                        + Start blank article
                                     </button>
                                 )}
                             </div>
-                            <input
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                                placeholder="Headline…"
-                                className="w-full rounded-lg border border-ink-border bg-ivory px-4 py-3 font-serif text-xl font-bold text-ink outline-none focus:border-ink-blue"
-                            />
-                            <textarea
-                                value={body}
-                                onChange={e => setBody(e.target.value)}
-                                placeholder="Write your dispatch here. Use this space to report on events, announce positions, or cover press conferences…"
-                                rows={14}
-                                className="w-full rounded-lg border border-ink-border bg-ivory px-4 py-3 font-serif text-base leading-relaxed text-ink outline-none focus:border-ink-blue resize-none"
-                            />
+
+                            <div className="rounded-xl border border-ink-border bg-white p-6 shadow-sm ring-1 ring-ink/5 focus-within:ring-ink-blue/30 transition">
+                                <div className="space-y-5">
+                                    {/* Header & Title */}
+                                    <div className="border-b border-ink-border/50 pb-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-blue mb-2">Headline</p>
+                                        <input
+                                            value={title}
+                                            onChange={e => setTitle(e.target.value)}
+                                            placeholder="Enter compelling headline..."
+                                            className="w-full bg-transparent font-serif text-3xl font-bold text-ink outline-none placeholder:text-ink/20"
+                                        />
+                                    </div>
+
+                                    {/* Image URL Cover */}
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/40 mb-2">Cover Image URL (Optional)</p>
+                                        <input
+                                            value={imageUrl}
+                                            onChange={e => setImageUrl(e.target.value)}
+                                            placeholder="https://example.com/photo.jpg"
+                                            className="w-full rounded-md border border-ink-border/50 bg-ivory/50 px-3 py-2 text-sm text-ink outline-none focus:border-ink-blue/50"
+                                        />
+                                        {imageUrl && (
+                                            <div className="mt-3 h-48 w-full overflow-hidden rounded-lg border border-ink-border">
+                                                <img src={imageUrl} alt="cover preview" className="h-full w-full object-cover" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Body Text */}
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/40 mb-2">Article Body</p>
+                                        <textarea
+                                            value={body}
+                                            onChange={e => setBody(e.target.value)}
+                                            placeholder="Write your dispatch here..."
+                                            rows={12}
+                                            className="w-full rounded-md border border-ink-border/50 bg-ivory/50 px-4 py-3 font-serif text-base leading-relaxed text-ink outline-none focus:border-ink-blue/50 resize-y"
+                                        />
+                                    </div>
+
+                                    {/* Source Footer */}
+                                    <div className="border-t border-ink-border/50 pt-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink/40 mb-2">Sources / Citation (Optional)</p>
+                                        <input
+                                            value={source}
+                                            onChange={e => setSource(e.target.value)}
+                                            placeholder="e.g. Associated Press, Official Delegation Statement..."
+                                            className="w-full bg-transparent text-sm italic text-ink/60 outline-none placeholder:text-ink/20"
+                                        />
+
+                                        <div className="mt-4 flex items-center gap-2 text-xs text-ink/40 font-mono bg-ink/5 p-2 rounded">
+                                            <span>Signature (Auto-applied):</span>
+                                            <span className="font-bold text-ink/70">{payload.role?.toUpperCase()} | SIMUVACTION PRESS OFFICE</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => handleSave(false)}
                                     disabled={isSaving || !title || !body}
-                                    className="rounded-lg border border-ink-border bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-ivory transition disabled:opacity-40"
+                                    className="rounded-lg border border-ink-border bg-white px-5 py-2.5 text-sm font-bold text-ink hover:bg-ivory transition disabled:opacity-40"
                                 >
                                     Save Draft
                                 </button>
                                 <button
                                     onClick={() => handleSave(true)}
                                     disabled={isSaving || !title || !body}
-                                    className="flex items-center gap-2 rounded-lg bg-ink px-5 py-2 text-sm font-bold text-white hover:bg-ink/90 transition disabled:opacity-40"
+                                    className="flex items-center gap-2 rounded-lg bg-ink-blue px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-ink-blue/90 hover:-translate-y-0.5 transition disabled:opacity-40 disabled:hover:translate-y-0"
                                 >
                                     <Send className="h-4 w-4" />
-                                    {currentPostId ? "Submit for Publication" : "Publish Article"}
+                                    {currentPostId ? "Submit changes" : "Submit for Publication"}
                                 </button>
-                                {saveStatus === "saved" && <span className="text-xs text-emerald-600 font-bold">Draft saved</span>}
-                                {saveStatus === "published" && <span className="text-xs text-ink-blue font-bold">Submitted for publication!</span>}
+                                {saveStatus === "saved" && <span className="text-xs text-emerald-600 font-bold ml-2">✓ Draft saved to Workspace</span>}
+                                {saveStatus === "published" && <span className="text-xs text-ink-blue font-bold ml-2">✓ Flashed to Public Feed!</span>}
                             </div>
                         </div>
                     )}

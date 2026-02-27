@@ -80,7 +80,7 @@ export async function PATCH(
         }
 
         const body = await req.json();
-        const { title, content, status } = body;
+        const { title, content, status, imageUrl, source } = body;
 
         // If the author submits the article, we wipe existing approvals/rejections to restart the fresh queue
         if (status === "submitted" && post.status !== "submitted") {
@@ -92,6 +92,8 @@ export async function PATCH(
             data: {
                 title: title ?? post.title,
                 body: content ?? post.body,
+                imageUrl: imageUrl !== undefined ? imageUrl : post.imageUrl,
+                source: source !== undefined ? source : post.source,
                 status: status ?? post.status
             }
         });

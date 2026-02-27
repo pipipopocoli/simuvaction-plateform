@@ -461,6 +461,8 @@ model NewsPost {
   authorId    String
   title       String
   body        String   @db.Text
+  imageUrl    String?
+  source      String?
   status      String   @default("draft") // draft, submitted, published, rejected
   publishedAt DateTime?
   createdAt   DateTime @default(now())

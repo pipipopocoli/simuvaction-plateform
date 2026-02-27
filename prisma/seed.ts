@@ -179,7 +179,9 @@ async function main() {
 
   if (leaderUser) {
     const globalRoomName = "Global Assembly";
-    const existingRoom = await prisma.chatRoom.findFirst({
+    await seedNews(prisma, eventId);
+
+  const existingRoom = await prisma.chatRoom.findFirst({
       where: { eventId, roomType: "global", name: globalRoomName }
     });
 
@@ -212,3 +214,4 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
+\nimport { seedNews } from './seed-news';

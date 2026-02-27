@@ -9,6 +9,8 @@ type PublicNewsPost = {
   id: string;
   title: string;
   body: string;
+  imageUrl: string | null;
+  source: string | null;
   publishedAt: string | null;
   createdAt: string;
   author: { name: string; role: string };
@@ -78,11 +80,22 @@ export function FrontPageNewsFeed() {
         </div>
 
         <article>
+          {leadStory.imageUrl && (
+            <div className="mb-4 h-64 w-full overflow-hidden rounded-lg bg-ink-border/30">
+              <img src={leadStory.imageUrl} alt={leadStory.title} className="h-full w-full object-cover" />
+            </div>
+          )}
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
             {toClock(leadStory.publishedAt, leadStory.createdAt)} • {leadStory.author.name}
           </p>
           <h3 className="mt-2 font-serif text-4xl font-bold leading-tight text-ink">{leadStory.title}</h3>
-          <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink/78">{leadStory.body}</p>
+
+          <div className="mt-4 border-l-4 border-ink-border/50 pl-4 py-1 mb-4 bg-ink/5 pr-4 rounded-r-md">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 group-hover:text-ink-blue transition-colors">By {leadStory.author.name} — {leadStory.author.role.toUpperCase()}</p>
+            {leadStory.source && <p className="text-[10px] italic text-ink/40 mt-1">Source: {leadStory.source}</p>}
+          </div>
+
+          <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink/80">{leadStory.body}</p>
         </article>
       </Panel>
 
@@ -91,8 +104,8 @@ export function FrontPageNewsFeed() {
           <ListCard
             key={post.id}
             title={post.title}
-            description={post.body.slice(0, 180)}
-            meta={`${toClock(post.publishedAt, post.createdAt)} • ${post.author.name}`}
+            description={post.body.slice(0, 150) + "..."}
+            meta={`${toClock(post.publishedAt, post.createdAt)} • By ${post.author.name} ${post.source ? `(Source: ${post.source})` : ""}`}
             aside={<StatusBadge tone="neutral">Dispatch</StatusBadge>}
           />
         ))}
