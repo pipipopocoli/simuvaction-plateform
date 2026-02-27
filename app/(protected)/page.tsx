@@ -40,7 +40,7 @@ export default async function FrontPage() {
     return null;
   }
 
-  const [recentNews, activeVotes, deadlines, nextMeeting] = await Promise.all([
+  const [recentNews, activeVotes, deadlines, nextMeeting, allTeams] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
       include: { author: { select: { name: true } } },
