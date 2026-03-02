@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getUserSession } from "@/lib/server-auth";
 import { z } from "zod";
 
 const postSchema = z.object({
@@ -9,7 +9,7 @@ const postSchema = z.object({
 
 export async function GET(request: Request) {
     try {
-        const session = await getSession();
+        const session = await getUserSession();
         if (!session?.eventId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const session = await getSession();
+        const session = await getUserSession();
         if (!session?.eventId || !session?.userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         const result = postSchema.safeParse(json);
 
         if (!result.success) {
-            return NextResponse.json({ error: "Invalid payload", details: result.error.errors }, { status: 400 });
+            return NextResponse.json({ error: "Invalid payload", details: result.error.issues }, { status: 400 });
         }
 
         // Must fetch author team
