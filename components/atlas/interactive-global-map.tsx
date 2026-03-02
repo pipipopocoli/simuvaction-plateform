@@ -653,9 +653,9 @@ export function InteractiveGlobalMap({
 
   return (
     <div className="w-full space-y-2">
-      <div className="relative isolate w-full overflow-hidden rounded-2xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
+      <div className="relative isolate w-full overflow-hidden rounded-3xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)] pb-32 md:pb-24">
         <div ref={stageRef} className="relative w-full overflow-hidden">
-          <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff]">
+          <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff] pb-10">
             <ClickableWorldMap
               delegations={delegations}
               selectedDelegationId={selectedDelegationId}
@@ -680,8 +680,8 @@ export function InteractiveGlobalMap({
                   data-map-country-tag="true"
                   onClick={() => handleCountrySelect(tag.delegation.id)}
                   className={`absolute z-40 flex items-center justify-between gap-2 rounded-md border px-2.5 text-left text-[11px] font-semibold shadow-lg transition focus:outline-none focus:ring-2 focus:ring-ink-blue/45 ${isSelected
-                      ? "border-blue-300 bg-[#1a3f88] text-white"
-                      : "border-slate-600/40 bg-[#243a63]/92 text-slate-100 hover:bg-[#2b4777]"
+                    ? "border-blue-300 bg-[#1a3f88] text-white"
+                    : "border-slate-600/40 bg-[#243a63]/92 text-slate-100 hover:bg-[#2b4777]"
                     }`}
                   style={{ left: tag.left, top: tag.top, width: TAG_WIDTH, height: TAG_HEIGHT }}
                   aria-label={`Open ${tag.delegation.name} delegation`}
@@ -793,7 +793,7 @@ export function InteractiveGlobalMap({
               </div>
             ) : null}
             {/* Floating Glass Cards inside the map */}
-            <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-40 grid gap-3 md:grid-cols-3">
+            <div className="pointer-events-none absolute -bottom-6 left-4 right-4 z-40 grid gap-3 md:grid-cols-3">
               <button
                 type="button"
                 data-map-bottom-card="true"
