@@ -653,9 +653,9 @@ export function InteractiveGlobalMap({
 
   return (
     <div className="w-full space-y-2">
-      <div className="relative isolate w-full overflow-hidden rounded-3xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)] pb-32 md:pb-24">
+      <div className="relative isolate w-full overflow-hidden rounded-3xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
         <div ref={stageRef} className="relative w-full overflow-hidden">
-          <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff] pb-10">
+          <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff]">
             <ClickableWorldMap
               delegations={delegations}
               selectedDelegationId={selectedDelegationId}
@@ -792,71 +792,69 @@ export function InteractiveGlobalMap({
                 {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
               </div>
             ) : null}
-            {/* Floating Glass Cards inside the map */}
-            <div className="pointer-events-none absolute -bottom-6 left-4 right-4 z-40 grid gap-3 md:grid-cols-3">
-              <button
-                type="button"
-                data-map-bottom-card="true"
-                onClick={handleVoteCardClick}
-                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-red-300/70 md:flex md:flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="inline-flex items-center gap-1.5 rounded-full bg-red-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-red-700 backdrop-blur-md">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" /> {voteCard.label}
-                  </p>
-                  <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-red-600" />
-                </div>
-                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  {voteCard.title}
-                </p>
-                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  {voteCard.detail}
-                </p>
-              </button>
-
-              <button
-                type="button"
-                data-map-bottom-card="true"
-                onClick={handleDeadlineCardClick}
-                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-300/75 md:flex md:flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700 backdrop-blur-md">
-                    <CalendarClock className="h-3 w-3" /> {deadlineCard.label}
-                  </p>
-                  <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-amber-600" />
-                </div>
-                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  {deadlineCard.title}
-                </p>
-                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  <span className="font-semibold text-amber-700">{deadlineCard.detail}</span>
-                </p>
-              </button>
-
-              <button
-                type="button"
-                data-map-bottom-card="true"
-                onClick={handlePressCardClick}
-                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-300/75 md:flex md:flex-col"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-blue-700 backdrop-blur-md">
-                    <Mic2 className="h-3 w-3" /> {pressCard.label}
-                  </p>
-                  <div className="flex items-center justify-center rounded-md border border-ink-border bg-white px-2 py-0.5 shadow-sm transition group-hover:border-blue-400">
-                    <span className="text-[10px] font-bold text-blue-700">Join</span>
-                  </div>
-                </div>
-                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  {pressCard.title}
-                </p>
-                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
-                  {pressCard.detail}
-                </p>
-              </button>
-            </div>
+            {/* End of mapHostRef overlays */}
           </div>
+        </div>
+        {/* Event Cards as Footer inside the map container */}
+        <div className="grid gap-3 border-t border-ink-border/30 bg-slate-50 p-4 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={handleVoteCardClick}
+            className="group relative overflow-hidden rounded-2xl border border-ink-border/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-red-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-300/70 md:flex md:flex-col"
+          >
+            <div className="flex items-center justify-between">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-red-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-red-700 backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" /> {voteCard.label}
+              </p>
+              <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-red-600" />
+            </div>
+            <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              {voteCard.title}
+            </p>
+            <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              {voteCard.detail}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeadlineCardClick}
+            className="group relative overflow-hidden rounded-2xl border border-ink-border/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-300/75 md:flex md:flex-col"
+          >
+            <div className="flex items-center justify-between">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700 backdrop-blur-md">
+                <CalendarClock className="h-3 w-3" /> {deadlineCard.label}
+              </p>
+              <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-amber-600" />
+            </div>
+            <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              {deadlineCard.title}
+            </p>
+            <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              <span className="font-semibold text-amber-700">{deadlineCard.detail}</span>
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePressCardClick}
+            className="group relative overflow-hidden rounded-2xl border border-ink-border/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300/75 md:flex md:flex-col"
+          >
+            <div className="flex items-center justify-between">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-blue-700 backdrop-blur-md">
+                <Mic2 className="h-3 w-3" /> {pressCard.label}
+              </p>
+              <div className="flex items-center justify-center rounded-md border border-ink-border bg-white px-2 py-0.5 shadow-sm transition group-hover:border-blue-400">
+                <span className="text-[10px] font-bold text-blue-700">Join</span>
+              </div>
+            </div>
+            <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              {pressCard.title}
+            </p>
+            <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+              {pressCard.detail}
+            </p>
+          </button>
         </div>
       </div>
     </div>
