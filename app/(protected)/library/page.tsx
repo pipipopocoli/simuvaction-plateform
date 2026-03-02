@@ -1,43 +1,21 @@
-import { LibraryManager } from "@/components/library-manager";
+import { DocumentLibrary } from "@/components/library/document-library";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function LibraryPage() {
-  const [items, pillars, tasks] = await Promise.all([
-    prisma.libraryItem.findMany({
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.pillar.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.taskCard.findMany({
-      orderBy: { title: "asc" },
-      select: {
-        id: true,
-        title: true,
-        pillar: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    }),
-  ]);
+  const session = await getSession();
 
-  const serializedItems = items.map((item) => ({
-    ...item,
-    createdAt: item.createdAt.toISOString(),
-  }));
+  if (!session?.userId) {
+    redirect("/login");
+  }
 
-  return (
-    <LibraryManager
-      initialItems={serializedItems}
-      pillars={pillars}
-      tasks={tasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        pillarName: task.pillar.name,
-      }))}
-    />
-  );
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true },
+  });
+
+  const isAdmin = user?.role === "admin" || user?.role === "operator";
+
+  return <DocumentLibrary isAdmin={isAdmin} />;
 }

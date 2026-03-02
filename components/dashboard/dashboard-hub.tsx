@@ -10,6 +10,7 @@ import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
 import { LiveWirePanel } from "@/components/dashboard/live-wire-panel";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
 import { ArticlePreviewModal } from "@/components/newsroom/article-preview-modal";
+import { SocialFeed } from "@/components/x/social-feed";
 import { UpcomingEventsDrawer, type DashboardUpcomingEvent } from "@/components/dashboard/upcoming-events-drawer";
 import {
   ListCard,
@@ -126,9 +127,9 @@ export function DashboardHub({
         <PageShell className="space-y-2 xl:col-span-9">
           <LiveWirePanel />
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-ink/60">Global Activity Map</p>
+          <div className="overflow-hidden rounded-2xl border border-ink-border/70 bg-[var(--color-surface)]">
+            <div className="flex items-center justify-between border-b border-ink-border/70 px-3 py-2.5">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink/60">Global Activity Map</p>
               <StatusBadge tone={activeVotes.length > 0 ? "alert" : "neutral"}>
                 {activeVotes.length > 0 ? `${activeVotes.length} open vote` : "No open vote"}
               </StatusBadge>
@@ -137,6 +138,14 @@ export function DashboardHub({
             <InteractiveGlobalMap
               delegations={delegations}
               selectedDelegationId={selectedDelegation?.id ?? null}
+              activeVotes={activeVotes}
+              sessionRole={sessionRole}
+              upcomingEvents={upcomingEvents.map((event) => ({
+                id: event.id,
+                title: event.title,
+                startsAtIso: event.startsAtIso,
+              }))}
+              onOpenUpcomingEvent={(eventId) => setSelectedEventId(eventId)}
               onSelectDelegation={(delegationId) =>
                 setSelection(delegationId ? { type: "delegation", id: delegationId } : null)
               }
@@ -181,6 +190,7 @@ export function DashboardHub({
 
       <div className="grid gap-4 xl:grid-cols-12">
         <PageShell className="xl:col-span-9">
+          <div id="upcoming-events-anchor" className="h-0 scroll-mt-20" aria-hidden="true" />
           <SectionHeader title="Upcoming Events" subtitle="Deadlines and checkpoints for this simulation cycle." />
           <div className="mt-2 grid gap-2 md:grid-cols-2 md:auto-rows-fr xl:grid-cols-4">
             {upcomingEvents.map((event, index) => (
@@ -188,11 +198,13 @@ export function DashboardHub({
                 key={event.id}
                 type="button"
                 onClick={() => setSelectedEventId(event.id)}
-                className="h-full rounded-xl border border-ink-border bg-[var(--color-surface)] p-3 text-left shadow-sm transition hover:border-ink-blue/40"
+                className="h-full rounded-xl border border-ink-border bg-[var(--color-surface)] p-3 text-left shadow-sm transition hover:border-ink-blue/40 md:flex md:min-h-[176px] md:flex-col"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink/55">Checkpoint {index + 1}</p>
-                <p className="mt-1 font-serif text-lg font-bold text-ink">{event.title}</p>
-                <p className="mt-2 text-xs text-ink/65">
+                <p className="mt-1 font-serif text-lg font-bold text-ink md:min-h-[3.15rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {event.title}
+                </p>
+                <p className="mt-2 text-xs text-ink/65 md:mt-auto">
                   {DateTime.fromISO(event.startsAtIso).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")}
                 </p>
               </button>
@@ -330,8 +342,12 @@ export function DashboardHub({
       </PageShell>
 
       <div className="grid gap-4 xl:grid-cols-12">
-        <div className="xl:col-span-9">
+        <div className="xl:col-span-6">
           <FrontPageNewsFeed />
+        </div>
+
+        <div className="xl:col-span-3 h-[600px]">
+          <SocialFeed limit={10} allowPosting={false} />
         </div>
 
         <Panel className="xl:col-span-3">

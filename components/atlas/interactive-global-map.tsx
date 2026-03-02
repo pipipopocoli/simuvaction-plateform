@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Info, Loader2, MessageSquare, Users, X } from "lucide-react";
-import type { AtlasDelegation } from "@/lib/atlas";
+import { DateTime } from "luxon";
+import { Activity, ArrowRight, ArrowUpRight, CalendarClock, Loader2, MessageSquare, Mic2, Users, X } from "lucide-react";
+import type { AtlasDelegation, AtlasMapPoint } from "@/lib/atlas";
+import { toSvgCountryIso2 } from "@/lib/atlas";
+import { isAdminLike } from "@/lib/authz";
 import { ClickableWorldMap } from "@/components/atlas/clickable-world-map";
 
 type ChatContact = {
@@ -13,22 +16,242 @@ type ChatContact = {
   teamId: string | null;
 };
 
+type MapVoteSignal = {
+  id: string;
+  title: string;
+  ballotCount: number;
+};
+
+type MapUpcomingSignal = {
+  id: string;
+  title: string;
+  startsAtIso: string;
+};
+
 type InteractiveGlobalMapProps = {
   delegations: AtlasDelegation[];
   selectedDelegationId: string | null;
   onSelectDelegation: (delegationId: string | null) => void;
+  activeVotes: MapVoteSignal[];
+  upcomingEvents: MapUpcomingSignal[];
+  sessionRole: string;
+  onOpenUpcomingEvent?: (eventId: string) => void;
 };
+
+type MapMetrics = {
+  width: number;
+  height: number;
+  renderedWidth: number;
+  renderedHeight: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+type PositionedTag = {
+  delegation: AtlasDelegation;
+  iso2: string;
+  anchorX: number;
+  anchorY: number;
+  left: number;
+  top: number;
+};
+
+type CountryCentersByIso = Record<string, AtlasMapPoint>;
+
+const WORLD_ASPECT_RATIO = 1010 / 666;
+const TAG_WIDTH = 132;
+const TAG_HEIGHT = 34;
+const TAG_MARGIN = 8;
+
+const TAG_OFFSETS_BY_ISO: Record<string, { dx: number; dy: number }> = {
+  us: { dx: -54, dy: -42 },
+  ca: { dx: -56, dy: -66 },
+  mx: { dx: -44, dy: -18 },
+  br: { dx: -28, dy: 10 },
+  gb: { dx: -14, dy: -58 },
+  fr: { dx: -18, dy: -16 },
+  de: { dx: 8, dy: -34 },
+  tr: { dx: 14, dy: -16 },
+  in: { dx: 14, dy: 8 },
+  jp: { dx: 20, dy: -26 },
+  sn: { dx: -18, dy: 10 },
+  sg: { dx: 18, dy: 12 },
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function intersects(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  other: { left: number; top: number; width: number; height: number },
+) {
+  return (
+    left < other.left + other.width &&
+    left + width > other.left &&
+    top < other.top + other.height &&
+    top + height > other.top
+  );
+}
+
+function toMapMetrics(width: number, height: number): MapMetrics | null {
+  if (width <= 0 || height <= 0) {
+    return null;
+  }
+
+  const ratio = width / height;
+  if (ratio > WORLD_ASPECT_RATIO) {
+    const renderedWidth = height * WORLD_ASPECT_RATIO;
+    return {
+      width,
+      height,
+      renderedWidth,
+      renderedHeight: height,
+      offsetX: (width - renderedWidth) / 2,
+      offsetY: 0,
+    };
+  }
+
+  const renderedHeight = width / WORLD_ASPECT_RATIO;
+  return {
+    width,
+    height,
+    renderedWidth: width,
+    renderedHeight,
+    offsetX: 0,
+    offsetY: (height - renderedHeight) / 2,
+  };
+}
+
+function projectPoint(metrics: MapMetrics, mapPoint: AtlasMapPoint) {
+  return {
+    x: metrics.offsetX + (mapPoint.xPct / 100) * metrics.renderedWidth,
+    y: metrics.offsetY + (mapPoint.yPct / 100) * metrics.renderedHeight,
+  };
+}
+
+function fallbackTagOffset(mapPoint: AtlasMapPoint) {
+  const horizontal = mapPoint.xPct < 50 ? 14 : -TAG_WIDTH - 14;
+  const vertical = mapPoint.yPct < 54 ? -TAG_HEIGHT - 10 : 10;
+  return { dx: horizontal, dy: vertical };
+}
+
+function resolveDelegationAnchorPoint(
+  delegation: AtlasDelegation,
+  centersByIso: CountryCentersByIso,
+): AtlasMapPoint | null {
+  const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
+  return delegation.mapPoint ?? centersByIso[iso2] ?? null;
+}
+
+function computeTagLayouts(
+  delegations: AtlasDelegation[],
+  metrics: MapMetrics | null,
+  centersByIso: CountryCentersByIso,
+): PositionedTag[] {
+  if (!metrics) {
+    return [];
+  }
+
+  const sorted = [...delegations].sort((a, b) => {
+    const anchorA = resolveDelegationAnchorPoint(a, centersByIso);
+    const anchorB = resolveDelegationAnchorPoint(b, centersByIso);
+    if (!anchorA || !anchorB) return 0;
+    if (anchorA.xPct !== anchorB.xPct) return anchorA.xPct - anchorB.xPct;
+    return anchorA.yPct - anchorB.yPct;
+  });
+
+  const placed: Array<{ left: number; top: number; width: number; height: number }> = [];
+  const layouts: PositionedTag[] = [];
+
+  for (let index = 0; index < sorted.length; index += 1) {
+    const delegation = sorted[index];
+    const anchorPoint = resolveDelegationAnchorPoint(delegation, centersByIso);
+    if (!anchorPoint) continue;
+
+    const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
+    const anchor = projectPoint(metrics, anchorPoint);
+    const offset = TAG_OFFSETS_BY_ISO[iso2] ?? fallbackTagOffset(anchorPoint);
+
+    let left = clamp(anchor.x + offset.dx, TAG_MARGIN, metrics.width - TAG_WIDTH - TAG_MARGIN);
+    let top = clamp(anchor.y + offset.dy, TAG_MARGIN, metrics.height - TAG_HEIGHT - TAG_MARGIN);
+
+    for (let pass = 0; pass < 12; pass += 1) {
+      const overlap = placed.some((box) => intersects(left, top, TAG_WIDTH, TAG_HEIGHT, box));
+      if (!overlap) break;
+
+      const stride = 16 * (Math.floor(pass / 2) + 1);
+      const direction = pass % 2 === 0 ? 1 : -1;
+      top = clamp(top + direction * stride, TAG_MARGIN, metrics.height - TAG_HEIGHT - TAG_MARGIN);
+      left = clamp(left + direction * 8, TAG_MARGIN, metrics.width - TAG_WIDTH - TAG_MARGIN);
+    }
+
+    placed.push({ left, top, width: TAG_WIDTH, height: TAG_HEIGHT });
+    layouts.push({
+      delegation,
+      iso2,
+      anchorX: anchor.x,
+      anchorY: anchor.y,
+      left,
+      top,
+    });
+  }
+
+  return layouts;
+}
+
+function formatUtcMoment(isoDate: string) {
+  const parsed = DateTime.fromISO(isoDate).toUTC();
+  if (!parsed.isValid) {
+    return "Schedule pending";
+  }
+
+  if (parsed.hasSame(DateTime.utc(), "day")) {
+    return `Today, ${parsed.toFormat("HH:mm 'UTC'")}`;
+  }
+
+  return parsed.toFormat("dd LLL, HH:mm 'UTC'");
+}
+
+function formatDeadlineHint(isoDate: string) {
+  const parsed = DateTime.fromISO(isoDate).toUTC();
+  if (!parsed.isValid) {
+    return "Timeline sync in progress";
+  }
+
+  const relative = parsed.toRelative({ base: DateTime.utc(), style: "short" });
+  if (!relative) {
+    return formatUtcMoment(isoDate);
+  }
+
+  const compact = relative.replace("in ", "");
+  return `Due in ${compact}`;
+}
 
 export function InteractiveGlobalMap({
   delegations,
   selectedDelegationId,
   onSelectDelegation,
+  activeVotes,
+  upcomingEvents,
+  sessionRole,
+  onOpenUpcomingEvent,
 }: InteractiveGlobalMapProps) {
   const router = useRouter();
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const mapHostRef = useRef<HTMLDivElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
   const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
   const [isOpeningThread, setIsOpeningThread] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [hostSize, setHostSize] = useState({ width: 0, height: 0 });
+  const [popoverSize, setPopoverSize] = useState({ width: 0, height: 0 });
+  const [countryCentersByIso, setCountryCentersByIso] = useState<CountryCentersByIso>({});
 
   const selectedDelegation = useMemo(() => {
     if (!selectedDelegationId) {
@@ -38,8 +261,10 @@ export function InteractiveGlobalMap({
     return delegations.find((delegation) => delegation.id === selectedDelegationId) ?? null;
   }, [delegations, selectedDelegationId]);
 
+  const selectedCountryDelegation = selectedDelegation && selectedDelegation.kind === "country" ? selectedDelegation : null;
+
   const selectedMembers = useMemo(() => {
-    const previews = selectedDelegation?.memberPreviews ?? [];
+    const previews = selectedCountryDelegation?.memberPreviews ?? [];
     const filled = previews.slice(0, 2);
 
     while (filled.length < 2) {
@@ -55,21 +280,193 @@ export function InteractiveGlobalMap({
     }
 
     return filled;
-  }, [selectedDelegation]);
+  }, [selectedCountryDelegation]);
 
-  useEffect(() => {
-    if (!selectedDelegationId) {
-      return;
+  const activeCountryDelegations = useMemo(
+    () =>
+      delegations.filter((delegation) => delegation.kind === "country" && delegation.status === "active"),
+    [delegations],
+  );
+
+  const metrics = useMemo(() => toMapMetrics(hostSize.width, hostSize.height), [hostSize.height, hostSize.width]);
+
+  const countryTags = useMemo(
+    () => computeTagLayouts(activeCountryDelegations, metrics, countryCentersByIso),
+    [activeCountryDelegations, countryCentersByIso, metrics],
+  );
+
+  const selectedAnchor = useMemo(() => {
+    if (!selectedCountryDelegation || !metrics) {
+      return null;
     }
 
+    const anchorPoint = resolveDelegationAnchorPoint(selectedCountryDelegation, countryCentersByIso);
+    if (!anchorPoint) {
+      return null;
+    }
+
+    return projectPoint(metrics, anchorPoint);
+  }, [countryCentersByIso, metrics, selectedCountryDelegation]);
+
+  const popoverPlacement = useMemo(() => {
+    if (!selectedAnchor || !metrics) {
+      return null;
+    }
+
+    const margin = 10;
+    const width = Math.max(260, Math.min(popoverSize.width || 340, metrics.width - margin * 2));
+    const height = popoverSize.height || 340;
+    const gap = 14;
+
+    const candidates = [
+      { left: selectedAnchor.x + gap, top: selectedAnchor.y - height - 10 },
+      { left: selectedAnchor.x - width - gap, top: selectedAnchor.y - height - 10 },
+      { left: selectedAnchor.x + gap, top: selectedAnchor.y + 10 },
+      { left: selectedAnchor.x - width - gap, top: selectedAnchor.y + 10 },
+    ];
+
+    const fits = (candidate: { left: number; top: number }) =>
+      candidate.left >= margin &&
+      candidate.top >= margin &&
+      candidate.left + width <= metrics.width - margin &&
+      candidate.top + height <= metrics.height - margin;
+
+    const picked = candidates.find(fits) ?? candidates[0];
+
+    return {
+      left: clamp(picked.left, margin, metrics.width - width - margin),
+      top: clamp(picked.top, margin, metrics.height - height - margin),
+      width,
+    };
+  }, [metrics, popoverSize.height, popoverSize.width, selectedAnchor]);
+
+  const futureUpcomingEvents = useMemo(() => {
+    return upcomingEvents
+      .map((event) => ({ event, startsAt: DateTime.fromISO(event.startsAtIso).toUTC() }))
+      .filter((entry) => entry.startsAt.isValid)
+      .sort((left, right) => left.startsAt.toMillis() - right.startsAt.toMillis())
+      .filter((entry) => entry.startsAt >= DateTime.utc().minus({ minutes: 30 }));
+  }, [upcomingEvents]);
+
+  const nextDeadlineEvent = useMemo(() => futureUpcomingEvents[0]?.event ?? null, [futureUpcomingEvents]);
+
+  const pressEvent = useMemo(
+    () =>
+      futureUpcomingEvents.find((entry) => /press|conference|summit/i.test(entry.event.title))?.event ??
+      futureUpcomingEvents[1]?.event ??
+      futureUpcomingEvents[0]?.event ??
+      null,
+    [futureUpcomingEvents],
+  );
+
+  const voteCard = useMemo(() => {
+    const vote = activeVotes[0];
+    if (!vote) {
+      return {
+        label: "Parliament",
+        title: "Parliamentary floor on stand by",
+        detail: "No open vote in progress",
+        actionLabel: "Open parliament",
+      };
+    }
+
+    return {
+      label: "Parliament",
+      title: vote.title,
+      detail: `${vote.ballotCount} votes in progress`,
+      actionLabel: "Open live vote",
+    };
+  }, [activeVotes]);
+
+  const deadlineCard = useMemo(() => {
+    const nextDeadline = nextDeadlineEvent;
+    if (!nextDeadline) {
+      return {
+        label: "Stand on Floor",
+        title: "Next deadline to be announced",
+        detail: "Timeline sync in progress",
+        actionLabel: isAdminLike(sessionRole) ? "Manage deadlines" : "View timeline",
+      };
+    }
+
+    return {
+      label: "Stand on Floor",
+      title: nextDeadline.title,
+      detail: formatDeadlineHint(nextDeadline.startsAtIso),
+      actionLabel: "Open checkpoint",
+    };
+  }, [nextDeadlineEvent, sessionRole]);
+
+  const pressCard = useMemo(() => {
+    if (!pressEvent) {
+      return {
+        label: "Unstandby",
+        title: "Press conference pending",
+        detail: "No summit scheduled yet",
+        actionLabel: "Open newsroom",
+      };
+    }
+
+    return {
+      label: "Unstandby",
+      title: pressEvent.title,
+      detail: formatUtcMoment(pressEvent.startsAtIso),
+      actionLabel: "Open briefing",
+    };
+  }, [pressEvent]);
+
+  useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       closeButtonRef.current?.focus();
     });
+
     return () => window.cancelAnimationFrame(frame);
   }, [selectedDelegationId]);
 
   useEffect(() => {
-    if (!selectedDelegation) {
+    setFeedback(null);
+  }, [selectedDelegationId]);
+
+  useEffect(() => {
+    const element = mapHostRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const first = entries[0];
+      if (!first) return;
+      const { width, height } = first.contentRect;
+      setHostSize((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      );
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = popoverRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const first = entries[0];
+      if (!first) return;
+      const { width, height } = first.contentRect;
+      setPopoverSize((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      );
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [selectedCountryDelegation?.id]);
+
+  useEffect(() => {
+    if (!selectedCountryDelegation) {
       return;
     }
 
@@ -81,7 +478,91 @@ export function InteractiveGlobalMap({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onSelectDelegation, selectedDelegation]);
+  }, [onSelectDelegation, selectedCountryDelegation]);
+
+  useEffect(() => {
+    if (!selectedCountryDelegation) {
+      return;
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (popoverRef.current?.contains(target)) {
+        return;
+      }
+
+      if (target.closest("[data-country-shape='true']") || target.closest("[data-map-country-tag='true']")) {
+        return;
+      }
+
+      if (!stageRef.current?.contains(target)) {
+        return;
+      }
+
+      onSelectDelegation(null);
+    }
+
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [onSelectDelegation, selectedCountryDelegation]);
+
+  function handleCountrySelect(nextId: string | null) {
+    if (!nextId) {
+      onSelectDelegation(null);
+      return;
+    }
+
+    if (nextId === selectedDelegationId) {
+      onSelectDelegation(null);
+      return;
+    }
+
+    onSelectDelegation(nextId);
+  }
+
+  function scrollToUpcomingEvents() {
+    const anchor = document.getElementById("upcoming-events-anchor");
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function handleVoteCardClick() {
+    router.push("/votes");
+  }
+
+  function handleDeadlineCardClick() {
+    if (nextDeadlineEvent) {
+      onOpenUpcomingEvent?.(nextDeadlineEvent.id);
+      scrollToUpcomingEvents();
+      return;
+    }
+
+    if (isAdminLike(sessionRole)) {
+      router.push("/workspace/admin");
+      return;
+    }
+
+    scrollToUpcomingEvents();
+  }
+
+  function handlePressCardClick() {
+    if (pressEvent) {
+      onOpenUpcomingEvent?.(pressEvent.id);
+      return;
+    }
+
+    if (isAdminLike(sessionRole)) {
+      router.push("/workspace/admin");
+      return;
+    }
+
+    router.push("/newsroom");
+  }
 
   async function findTeamContact(teamId: string) {
     const response = await fetch("/api/chat/contacts", { cache: "no-store" });
@@ -94,7 +575,7 @@ export function InteractiveGlobalMap({
   }
 
   async function openDelegationThread() {
-    if (!selectedDelegation) {
+    if (!selectedCountryDelegation) {
       return;
     }
 
@@ -102,7 +583,7 @@ export function InteractiveGlobalMap({
     setIsOpeningThread(true);
 
     try {
-      const contact = await findTeamContact(selectedDelegation.id);
+      const contact = await findTeamContact(selectedCountryDelegation.id);
       if (!contact) {
         setFeedback("No contact available in this delegation yet.");
         return;
@@ -130,7 +611,7 @@ export function InteractiveGlobalMap({
   }
 
   async function requestMeeting() {
-    if (!selectedDelegation) {
+    if (!selectedCountryDelegation) {
       return;
     }
 
@@ -138,7 +619,7 @@ export function InteractiveGlobalMap({
     setIsRequestingMeeting(true);
 
     try {
-      const contact = await findTeamContact(selectedDelegation.id);
+      const contact = await findTeamContact(selectedCountryDelegation.id);
       if (!contact) {
         setFeedback("No contact available in this delegation yet.");
         return;
@@ -151,8 +632,8 @@ export function InteractiveGlobalMap({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetUserId: contact.id,
-          targetTeamId: selectedDelegation.id,
-          title: `Bilateral with ${selectedDelegation.name}`,
+          targetTeamId: selectedCountryDelegation.id,
+          title: `Bilateral with ${selectedCountryDelegation.name}`,
           note: "Request created from Global Activity Map.",
           proposedStartAt,
           durationMin: 30,
@@ -171,118 +652,213 @@ export function InteractiveGlobalMap({
   }
 
   return (
-    <div className="relative isolate w-full rounded-2xl border border-ink-border bg-slate-100">
-      <div className="relative h-[clamp(520px,68vh,860px)] overflow-hidden rounded-2xl p-1">
-        <ClickableWorldMap
-          delegations={delegations}
-          selectedDelegationId={selectedDelegationId}
-          onSelectDelegation={onSelectDelegation}
-        />
-      </div>
+    <div className="w-full space-y-2">
+      <div className="relative isolate w-full overflow-hidden rounded-2xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
+        <div ref={stageRef} className="relative w-full overflow-hidden">
+          <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff]">
+            <ClickableWorldMap
+              delegations={delegations}
+              selectedDelegationId={selectedDelegationId}
+              onSelectDelegation={handleCountrySelect}
+              onCountryCentersChange={setCountryCentersByIso}
+            />
 
-      {selectedDelegation ? (
-        <div className="absolute inset-0 z-[80] pointer-events-none">
-          <button
-            type="button"
-            onClick={() => onSelectDelegation(null)}
-            className="absolute inset-0 bg-transparent md:hidden pointer-events-auto"
-            aria-label="Close delegation card"
-          />
-
-          <div className="pointer-events-auto absolute left-1/2 top-1/2 z-[90] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-ink-border bg-white/95 p-4 shadow-2xl backdrop-blur-sm md:left-auto md:right-3 md:top-3 md:w-full md:max-w-sm md:translate-x-0 md:translate-y-0">
-          <button
-            ref={closeButtonRef}
-            onClick={() => onSelectDelegation(null)}
-            className="absolute right-2 top-2 rounded-md p-1 text-ink/50 hover:bg-ink/5 hover:text-ink"
-            aria-label="Close delegation card"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Delegation</p>
-          <h3 className="mt-1 flex items-center gap-2 font-serif text-2xl font-bold text-ink">
-            <span className="text-2xl leading-none">{selectedDelegation.flagEmoji}</span>
-            {selectedDelegation.name}
-          </h3>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-ink/55">
-            {selectedDelegation.region} • {selectedDelegation.kind}
-          </p>
-
-          <div className="mt-3 flex items-center gap-2">
-            {selectedMembers.map((member) => (
-              <div key={member.id} className="relative">
-                {member.avatarUrl ? (
-                  <img
-                    src={member.avatarUrl}
-                    alt={member.name}
-                    className="h-8 w-8 rounded-full border border-ink-border object-cover"
-                  />
-                ) : (
-                  <span className="grid h-8 w-8 place-items-center rounded-full border border-ink-border bg-ivory text-[10px] font-bold text-ink/70">
-                    {member.name.slice(0, 2).toUpperCase()}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-3 text-sm text-ink/80">{selectedDelegation.stance}</p>
-
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {selectedDelegation.priorities.map((priority) => (
-              <span
-                key={priority}
-                className="rounded-md border border-ink-border bg-ivory px-2 py-1 text-[11px] text-ink/75"
-              >
-                {priority}
+            <div className="pointer-events-none absolute left-4 top-4 z-40 inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/70 px-3 py-2 shadow-lg backdrop-blur-md">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
               </span>
-            ))}
-          </div>
+              <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-ink">Live Simulation • 2026</span>
+            </div>
 
-          <div className="mt-3 rounded-lg border border-ink-border bg-ivory/70 p-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink/55">Recent actions</p>
-            <ul className="mt-1 space-y-1 text-xs text-ink/75">
-              {selectedDelegation.latestActions.slice(0, 2).map((action) => (
-                <li key={action}>• {action}</li>
-              ))}
-            </ul>
-          </div>
+            {countryTags.map((tag) => {
+              const isSelected = tag.delegation.id === selectedDelegationId;
+              return (
+                <button
+                  key={`tag-${tag.delegation.id}`}
+                  type="button"
+                  data-map-country-tag="true"
+                  onClick={() => handleCountrySelect(tag.delegation.id)}
+                  className={`absolute z-40 flex items-center justify-between gap-2 rounded-md border px-2.5 text-left text-[11px] font-semibold shadow-lg transition focus:outline-none focus:ring-2 focus:ring-ink-blue/45 ${isSelected
+                      ? "border-blue-300 bg-[#1a3f88] text-white"
+                      : "border-slate-600/40 bg-[#243a63]/92 text-slate-100 hover:bg-[#2b4777]"
+                    }`}
+                  style={{ left: tag.left, top: tag.top, width: TAG_WIDTH, height: TAG_HEIGHT }}
+                  aria-label={`Open ${tag.delegation.name} delegation`}
+                >
+                  <span className="pointer-events-none absolute -bottom-1.5 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-white/75 bg-ink-blue" />
+                  <span className="truncate text-[15px] leading-none">{tag.delegation.flagEmoji}</span>
+                  <span className="min-w-0 flex-1 truncate leading-tight">{tag.delegation.name}</span>
+                </button>
+              );
+            })}
 
-          <div className="mt-3 grid gap-2">
-            <button
-              onClick={requestMeeting}
-              disabled={isRequestingMeeting}
-              className="inline-flex items-center justify-between rounded-lg border border-ink-blue/30 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-blue hover:bg-blue-50 disabled:opacity-60"
-            >
-              Request meeting
-              {isRequestingMeeting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
-            </button>
+            {countryTags.map((tag) => {
+              const isSelected = tag.delegation.id === selectedDelegationId;
+              return (
+                <span
+                  key={`anchor-${tag.delegation.id}`}
+                  className={`pointer-events-none absolute z-30 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 ${isSelected ? "bg-blue-600" : "bg-slate-700"
+                    }`}
+                  style={{ left: tag.anchorX, top: tag.anchorY }}
+                />
+              );
+            })}
 
-            <button
-              onClick={openDelegationThread}
-              disabled={isOpeningThread}
-              className="inline-flex items-center justify-between rounded-lg border border-ink-border bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink hover:bg-ivory disabled:opacity-60"
-            >
-              Open delegation thread
-              {isOpeningThread ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
-            </button>
-          </div>
+            {selectedCountryDelegation && popoverPlacement ? (
+              <div
+                ref={popoverRef}
+                className="absolute z-[90] max-h-[80%] overflow-y-auto rounded-xl border border-slate-200/80 bg-white/97 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.28)] backdrop-blur-md"
+                style={{ left: popoverPlacement.left, top: popoverPlacement.top, width: popoverPlacement.width }}
+              >
+                <button
+                  ref={closeButtonRef}
+                  onClick={() => onSelectDelegation(null)}
+                  className="absolute right-2 top-2 rounded-md p-1 text-ink/50 hover:bg-ink/5 hover:text-ink"
+                  aria-label="Close delegation card"
+                >
+                  <X className="h-4 w-4" />
+                </button>
 
-          {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Delegation</p>
+                <h3 className="mt-1 flex items-center gap-2 font-serif text-2xl font-bold text-ink">
+                  <span className="text-2xl leading-none">{selectedCountryDelegation.flagEmoji}</span>
+                  {selectedCountryDelegation.name}
+                </h3>
+                <p className="mt-1 text-xs uppercase tracking-[0.08em] text-ink/55">
+                  {selectedCountryDelegation.region} • {selectedCountryDelegation.kind}
+                </p>
+
+                <div className="mt-3 flex items-center gap-2">
+                  {selectedMembers.map((member) => (
+                    <div key={member.id} className="relative">
+                      {member.avatarUrl ? (
+                        <img
+                          src={member.avatarUrl}
+                          alt={member.name}
+                          className="h-8 w-8 rounded-full border border-ink-border object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-8 w-8 place-items-center rounded-full border border-ink-border bg-ivory text-[10px] font-bold text-ink/70">
+                          {member.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-3 text-sm text-ink/80">{selectedCountryDelegation.stance}</p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {selectedCountryDelegation.priorities.map((priority) => (
+                    <span
+                      key={priority}
+                      className="rounded-md border border-ink-border bg-ivory px-2 py-1 text-[11px] text-ink/75"
+                    >
+                      {priority}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-3 rounded-lg border border-ink-border bg-ivory/70 p-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink/55">Recent actions</p>
+                  <ul className="mt-1 space-y-1 text-xs text-ink/75">
+                    {selectedCountryDelegation.latestActions.slice(0, 2).map((action) => (
+                      <li key={action}>• {action}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  <button
+                    onClick={requestMeeting}
+                    disabled={isRequestingMeeting}
+                    className="inline-flex items-center justify-between rounded-lg border border-ink-blue/30 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-blue hover:bg-blue-50 disabled:opacity-60"
+                  >
+                    Request meeting
+                    {isRequestingMeeting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
+                  </button>
+
+                  <button
+                    onClick={openDelegationThread}
+                    disabled={isOpeningThread}
+                    className="inline-flex items-center justify-between rounded-lg border border-ink-border bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink hover:bg-ivory disabled:opacity-60"
+                  >
+                    Open delegation thread
+                    {isOpeningThread ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+
+                {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
+              </div>
+            ) : null}
+            {/* Floating Glass Cards inside the map */}
+            <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-40 grid gap-3 md:grid-cols-3">
+              <button
+                type="button"
+                data-map-bottom-card="true"
+                onClick={handleVoteCardClick}
+                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-red-300/70 md:flex md:flex-col"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-red-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-red-700 backdrop-blur-md">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" /> {voteCard.label}
+                  </p>
+                  <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-red-600" />
+                </div>
+                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {voteCard.title}
+                </p>
+                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {voteCard.detail}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                data-map-bottom-card="true"
+                onClick={handleDeadlineCardClick}
+                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-300/75 md:flex md:flex-col"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700 backdrop-blur-md">
+                    <CalendarClock className="h-3 w-3" /> {deadlineCard.label}
+                  </p>
+                  <ArrowRight className="h-4 w-4 text-ink/40 transition group-hover:translate-x-1 group-hover:text-amber-600" />
+                </div>
+                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {deadlineCard.title}
+                </p>
+                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  <span className="font-semibold text-amber-700">{deadlineCard.detail}</span>
+                </p>
+              </button>
+
+              <button
+                type="button"
+                data-map-bottom-card="true"
+                onClick={handlePressCardClick}
+                className="pointer-events-auto group relative overflow-hidden rounded-2xl border border-white/40 bg-white/60 p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-300/75 md:flex md:flex-col"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-blue-700 backdrop-blur-md">
+                    <Mic2 className="h-3 w-3" /> {pressCard.label}
+                  </p>
+                  <div className="flex items-center justify-center rounded-md border border-ink-border bg-white px-2 py-0.5 shadow-sm transition group-hover:border-blue-400">
+                    <span className="text-[10px] font-bold text-blue-700">Join</span>
+                  </div>
+                </div>
+                <p className="mt-3 font-serif text-[17px] font-bold leading-tight text-ink md:min-h-[2.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:2] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {pressCard.title}
+                </p>
+                <p className="mt-2 text-[13px] font-medium text-ink/65 md:min-h-[1.5rem] md:[display:-webkit-box] md:[-webkit-line-clamp:1] md:[-webkit-box-orient:vertical] md:overflow-hidden">
+                  {pressCard.detail}
+                </p>
+              </button>
+            </div>
           </div>
         </div>
-      ) : null}
-
-      {!selectedDelegation ? (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-20 max-w-xs rounded-lg border border-ink-border bg-white/90 p-3 shadow-sm backdrop-blur-sm">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 shrink-0 text-ink-blue" />
-            <p className="text-[11px] leading-relaxed text-ink/70">
-              Click a green country to open its delegation card with flag, delegates, stance, and actions.
-            </p>
-          </div>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }

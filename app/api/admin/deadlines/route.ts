@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, description, date } = body;
+        const { title, description, date, isGlobal } = body;
 
         if (!title || !date) {
             return NextResponse.json({ error: "Title and Date are required." }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
                 title,
                 description,
                 date: new Date(date),
+                isGlobal: typeof isGlobal === "boolean" ? isGlobal : true,
                 createdById: session.userId,
             },
             include: {

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SimuVaction 26</string>
+    <string name="title_activity_main">SimuVaction 26</string>
+    <string name="package_name">com.simuvaction.app</string>
+    <string name="custom_url_scheme">com.simuvaction.app</string>
+</resources>

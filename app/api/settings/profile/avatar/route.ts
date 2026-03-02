@@ -8,15 +8,22 @@ function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 80);
 }
 
+function isBlobConfigured() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 export async function POST(request: Request) {
   const session = await getUserSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobConfigured()) {
     return NextResponse.json(
-      { error: "Avatar upload is not configured on this environment." },
+      {
+        error: "Avatar upload is not configured on this environment.",
+        errorCode: "BLOB_CONFIG_MISSING",
+      },
       { status: 500 },
     );
   }
@@ -38,11 +45,21 @@ export async function POST(request: Request) {
 
   const safeName = sanitizeFileName(file.name || "avatar");
   const path = `avatars/${session.eventId}/${session.userId}/${Date.now()}-${safeName}`;
+  try {
+    const blob = await put(path, file, {
+      access: "public",
+      addRandomSuffix: true,
+    });
 
-  const blob = await put(path, file, {
-    access: "public",
-    addRandomSuffix: true,
-  });
-
-  return NextResponse.json({ ok: true, avatarUrl: blob.url });
+    return NextResponse.json({ ok: true, avatarUrl: blob.url });
+  } catch (error) {
+    console.error("Avatar upload failed", error);
+    return NextResponse.json(
+      {
+        error: "Avatar upload failed. Please retry in a moment.",
+        errorCode: "UPLOAD_FAILED",
+      },
+      { status: 500 },
+    );
+  }
 }

@@ -17,6 +17,11 @@ type ProfilePayload = {
   positionPaperSummary: string | null;
 };
 
+type AvatarStatusPayload = {
+  configured: boolean;
+  maxSizeMb: number;
+};
+
 export function SettingsProfile() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
@@ -34,6 +39,8 @@ export function SettingsProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+  const [avatarUploadConfigured, setAvatarUploadConfigured] = useState<boolean | null>(null);
+  const [avatarMaxSizeMb, setAvatarMaxSizeMb] = useState(5);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -43,13 +50,19 @@ export function SettingsProfile() {
     async function loadProfile() {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/settings/profile", { cache: "no-store" });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
+        const [profileResponse, statusResponse] = await Promise.all([
+          fetch("/api/settings/profile", { cache: "no-store" }),
+          fetch("/api/settings/profile/avatar/status", { cache: "no-store" }),
+        ]);
+
+        const payload = await profileResponse.json().catch(() => ({}));
+        if (!profileResponse.ok) {
           if (!active) return;
           setError(payload.error ?? "Unable to load profile.");
           return;
         }
+
+        const statusPayload = (await statusResponse.json().catch(() => ({}))) as Partial<AvatarStatusPayload>;
 
         if (!active) return;
         const fetchedProfile = payload.profile as ProfilePayload;
@@ -61,6 +74,10 @@ export function SettingsProfile() {
         setLinkedinUrl(fetchedProfile.linkedinUrl ?? "");
         setPositionPaperUrl(fetchedProfile.positionPaperUrl ?? "");
         setPositionPaperSummary(fetchedProfile.positionPaperSummary ?? "");
+        setAvatarUploadConfigured(statusResponse.ok ? Boolean(statusPayload.configured) : false);
+        if (typeof statusPayload.maxSizeMb === "number" && Number.isFinite(statusPayload.maxSizeMb)) {
+          setAvatarMaxSizeMb(statusPayload.maxSizeMb);
+        }
       } catch (loadError) {
         if (!active) return;
         setError(loadError instanceof Error ? loadError.message : "Unable to load profile.");
@@ -92,6 +109,11 @@ export function SettingsProfile() {
     setError(null);
     setSuccess(null);
 
+    if (!avatarUploadConfigured) {
+      setError("Avatar upload is not configured for this environment. Use Avatar URL override below.");
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       setError("Only image files are accepted.");
       return;
@@ -110,6 +132,11 @@ export function SettingsProfile() {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (payload.errorCode === "BLOB_CONFIG_MISSING") {
+          setError("Avatar upload is not configured for this environment. Use Avatar URL override below.");
+          setAvatarUploadConfigured(false);
+          return;
+        }
         setError(payload.error ?? "Avatar upload failed.");
         return;
       }
@@ -123,6 +150,9 @@ export function SettingsProfile() {
 
   function onAvatarDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
+    if (!avatarUploadConfigured) {
+      return;
+    }
     setIsDraggingAvatar(false);
     const file = event.dataTransfer.files?.[0];
     if (file) {
@@ -322,9 +352,14 @@ export function SettingsProfile() {
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-600">Avatar</p>
           <div
             className={`relative flex h-44 items-center justify-center rounded-xl border-2 border-dashed p-3 text-center transition ${
-              isDraggingAvatar ? "border-ink-blue bg-blue-50" : "border-zinc-300 bg-zinc-50"
+              avatarUploadConfigured === false
+                ? "border-zinc-200 bg-zinc-100 opacity-70"
+                : isDraggingAvatar
+                  ? "border-ink-blue bg-blue-50"
+                  : "border-zinc-300 bg-zinc-50"
             }`}
             onDragOver={(event) => {
+              if (!avatarUploadConfigured) return;
               event.preventDefault();
               setIsDraggingAvatar(true);
             }}
@@ -340,12 +375,23 @@ export function SettingsProfile() {
             )}
           </div>
 
-          <label className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-center text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
-            {isUploadingAvatar ? "Uploading..." : "Drop image above or click to upload"}
+          <label
+            className={`rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
+              avatarUploadConfigured === false
+                ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-500"
+                : "cursor-pointer border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            {avatarUploadConfigured === false
+              ? "Upload disabled (configuration missing)"
+              : isUploadingAvatar
+                ? "Uploading..."
+                : `Drop image above or click to upload (max ${avatarMaxSizeMb}MB)`}
             <input
               type="file"
               accept="image/*"
               className="hidden"
+              disabled={avatarUploadConfigured === false || isUploadingAvatar}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) {
@@ -354,6 +400,12 @@ export function SettingsProfile() {
               }}
             />
           </label>
+
+          {avatarUploadConfigured === false ? (
+            <p className="text-xs text-zinc-600">
+              Upload API is available but not configured in this deployment. You can still set an avatar with a direct URL.
+            </p>
+          ) : null}
 
           <div>
             <label htmlFor="avatar-url" className="block text-xs font-medium text-zinc-600">

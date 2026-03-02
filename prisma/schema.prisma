@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum TaskStatus {
@@ -186,6 +187,7 @@ model Event {
   deadlines         EventDeadline[]
   documents         EventDocument[]
   twitterConfigs    TwitterConfig[]
+  socialPosts       SocialPost[]
 }
 
 model User {
@@ -232,6 +234,7 @@ model User {
   meetingRequestsResponded MeetingRequest[] @relation("MeetingResponder")
   deadlinesCreated  EventDeadline[]
   documentsCreated  EventDocument[]
+  socialPosts       SocialPost[]
 
   @@index([eventId])
   @@index([teamId])
@@ -256,6 +259,8 @@ model Team {
   voteBallots VoteBallot[]
   outgoingMeetingRequests MeetingRequest[] @relation("MeetingRequesterTeam")
   incomingMeetingRequests MeetingRequest[] @relation("MeetingTargetTeam")
+  socialPosts             SocialPost[]
+  targetedDocuments       EventDocument[]  @relation("DocumentTargets")
 
   @@unique([eventId, countryCode])
 }
@@ -587,8 +592,10 @@ model EventDocument {
   url         String   // Link to the PDF, Image, etc.
   type        String   @default("pdf")
   createdById String
+  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
+  targetTeams Team[]   @relation("DocumentTargets")
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   createdBy   User     @relation(fields: [createdById], references: [id])
 
@@ -603,4 +610,21 @@ model TwitterConfig {
   createdAt   DateTime @default(now())
 
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  eventId     String
+  authorId    String
+  teamId      String?
+  body        String   @db.Text
+  likesCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([authorId])
 }
