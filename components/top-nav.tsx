@@ -6,6 +6,7 @@ import { ChevronDown, Globe2, Search } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageToggle } from "@/components/settings/language-toggle";
 import type { SessionPayload } from "@/lib/auth";
 
 const navItems = [
@@ -84,6 +85,7 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             </Link>
           ) : null}
 
+          <LanguageToggle />
           <ThemeToggle />
           <LogoutButton />
         </div>
