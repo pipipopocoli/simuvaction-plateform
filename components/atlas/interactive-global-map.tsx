@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
-import { Activity, ArrowRight, ArrowUpRight, CalendarClock, Loader2, MessageSquare, Mic2, Users, X } from "lucide-react";
+import { ArrowRight, CalendarClock, Loader2, MessageSquare, Mic2, Users, X } from "lucide-react";
 import type { AtlasDelegation, AtlasMapPoint } from "@/lib/atlas";
 import { toSvgCountryIso2 } from "@/lib/atlas";
 import { isAdminLike } from "@/lib/authz";
@@ -47,54 +47,12 @@ type MapMetrics = {
   offsetY: number;
 };
 
-type PositionedTag = {
-  delegation: AtlasDelegation;
-  iso2: string;
-  anchorX: number;
-  anchorY: number;
-  left: number;
-  top: number;
-};
-
 type CountryCentersByIso = Record<string, AtlasMapPoint>;
 
 const WORLD_ASPECT_RATIO = 1010 / 666;
-const TAG_WIDTH = 132;
-const TAG_HEIGHT = 34;
-const TAG_MARGIN = 8;
-
-const TAG_OFFSETS_BY_ISO: Record<string, { dx: number; dy: number }> = {
-  us: { dx: -54, dy: -42 },
-  ca: { dx: -56, dy: -66 },
-  mx: { dx: -44, dy: -18 },
-  br: { dx: -28, dy: 10 },
-  gb: { dx: -14, dy: -58 },
-  fr: { dx: -18, dy: -16 },
-  de: { dx: 8, dy: -34 },
-  tr: { dx: 14, dy: -16 },
-  in: { dx: 14, dy: 8 },
-  jp: { dx: 20, dy: -26 },
-  sn: { dx: -18, dy: 10 },
-  sg: { dx: 18, dy: 12 },
-};
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
-}
-
-function intersects(
-  left: number,
-  top: number,
-  width: number,
-  height: number,
-  other: { left: number; top: number; width: number; height: number },
-) {
-  return (
-    left < other.left + other.width &&
-    left + width > other.left &&
-    top < other.top + other.height &&
-    top + height > other.top
-  );
 }
 
 function toMapMetrics(width: number, height: number): MapMetrics | null {
@@ -133,74 +91,12 @@ function projectPoint(metrics: MapMetrics, mapPoint: AtlasMapPoint) {
   };
 }
 
-function fallbackTagOffset(mapPoint: AtlasMapPoint) {
-  const horizontal = mapPoint.xPct < 50 ? 14 : -TAG_WIDTH - 14;
-  const vertical = mapPoint.yPct < 54 ? -TAG_HEIGHT - 10 : 10;
-  return { dx: horizontal, dy: vertical };
-}
-
 function resolveDelegationAnchorPoint(
   delegation: AtlasDelegation,
   centersByIso: CountryCentersByIso,
 ): AtlasMapPoint | null {
   const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
   return delegation.mapPoint ?? centersByIso[iso2] ?? null;
-}
-
-function computeTagLayouts(
-  delegations: AtlasDelegation[],
-  metrics: MapMetrics | null,
-  centersByIso: CountryCentersByIso,
-): PositionedTag[] {
-  if (!metrics) {
-    return [];
-  }
-
-  const sorted = [...delegations].sort((a, b) => {
-    const anchorA = resolveDelegationAnchorPoint(a, centersByIso);
-    const anchorB = resolveDelegationAnchorPoint(b, centersByIso);
-    if (!anchorA || !anchorB) return 0;
-    if (anchorA.xPct !== anchorB.xPct) return anchorA.xPct - anchorB.xPct;
-    return anchorA.yPct - anchorB.yPct;
-  });
-
-  const placed: Array<{ left: number; top: number; width: number; height: number }> = [];
-  const layouts: PositionedTag[] = [];
-
-  for (let index = 0; index < sorted.length; index += 1) {
-    const delegation = sorted[index];
-    const anchorPoint = resolveDelegationAnchorPoint(delegation, centersByIso);
-    if (!anchorPoint) continue;
-
-    const iso2 = toSvgCountryIso2(delegation.countryCode).toLowerCase();
-    const anchor = projectPoint(metrics, anchorPoint);
-    const offset = TAG_OFFSETS_BY_ISO[iso2] ?? fallbackTagOffset(anchorPoint);
-
-    let left = clamp(anchor.x + offset.dx, TAG_MARGIN, metrics.width - TAG_WIDTH - TAG_MARGIN);
-    let top = clamp(anchor.y + offset.dy, TAG_MARGIN, metrics.height - TAG_HEIGHT - TAG_MARGIN);
-
-    for (let pass = 0; pass < 12; pass += 1) {
-      const overlap = placed.some((box) => intersects(left, top, TAG_WIDTH, TAG_HEIGHT, box));
-      if (!overlap) break;
-
-      const stride = 16 * (Math.floor(pass / 2) + 1);
-      const direction = pass % 2 === 0 ? 1 : -1;
-      top = clamp(top + direction * stride, TAG_MARGIN, metrics.height - TAG_HEIGHT - TAG_MARGIN);
-      left = clamp(left + direction * 8, TAG_MARGIN, metrics.width - TAG_WIDTH - TAG_MARGIN);
-    }
-
-    placed.push({ left, top, width: TAG_WIDTH, height: TAG_HEIGHT });
-    layouts.push({
-      delegation,
-      iso2,
-      anchorX: anchor.x,
-      anchorY: anchor.y,
-      left,
-      top,
-    });
-  }
-
-  return layouts;
 }
 
 function formatUtcMoment(isoDate: string) {
@@ -284,16 +180,13 @@ export function InteractiveGlobalMap({
 
   const activeCountryDelegations = useMemo(
     () =>
-      delegations.filter((delegation) => delegation.kind === "country" && delegation.status === "active"),
+      delegations
+        .filter((delegation) => delegation.kind === "country" && delegation.status === "active")
+        .sort((left, right) => left.name.localeCompare(right.name)),
     [delegations],
   );
 
   const metrics = useMemo(() => toMapMetrics(hostSize.width, hostSize.height), [hostSize.height, hostSize.width]);
-
-  const countryTags = useMemo(
-    () => computeTagLayouts(activeCountryDelegations, metrics, countryCentersByIso),
-    [activeCountryDelegations, countryCentersByIso, metrics],
-  );
 
   const selectedAnchor = useMemo(() => {
     if (!selectedCountryDelegation || !metrics) {
@@ -495,7 +388,7 @@ export function InteractiveGlobalMap({
         return;
       }
 
-      if (target.closest("[data-country-shape='true']") || target.closest("[data-map-country-tag='true']")) {
+      if (target.closest("[data-country-shape='true']") || target.closest("[data-map-delegation-list='true']")) {
         return;
       }
 
@@ -651,10 +544,47 @@ export function InteractiveGlobalMap({
     }
   }
 
+  const delegationList = (
+    <div className="space-y-2">
+      {activeCountryDelegations.length === 0 ? (
+        <p className="rounded-lg border border-ink-border bg-white p-2 text-xs text-ink/70">
+          No active country delegation available.
+        </p>
+      ) : (
+        activeCountryDelegations.map((delegation) => {
+          const isSelected = delegation.id === selectedDelegationId;
+          return (
+            <button
+              key={delegation.id}
+              type="button"
+              onClick={() => handleCountrySelect(delegation.id)}
+              aria-pressed={isSelected}
+              className={`w-full rounded-lg border px-3 py-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-ink-blue/45 ${
+                isSelected
+                  ? "border-blue-300 bg-blue-50 text-blue-900"
+                  : "border-ink-border bg-white text-ink hover:border-ink-blue/45"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold">
+                  <span className="mr-2 align-middle text-base">{delegation.flagEmoji}</span>
+                  <span className="align-middle">{delegation.name}</span>
+                </p>
+                <span className="rounded-full bg-ivory px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink/70">
+                  {delegation.status}
+                </span>
+              </div>
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
+
   return (
     <div className="w-full space-y-2">
       <div className="relative isolate w-full overflow-hidden rounded-3xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
-        <div ref={stageRef} className="relative w-full overflow-hidden">
+        <div ref={stageRef} className="grid w-full overflow-hidden lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff]">
             <ClickableWorldMap
               delegations={delegations}
@@ -670,40 +600,6 @@ export function InteractiveGlobalMap({
               </span>
               <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-ink">Live Simulation • 2026</span>
             </div>
-
-            {countryTags.map((tag) => {
-              const isSelected = tag.delegation.id === selectedDelegationId;
-              return (
-                <button
-                  key={`tag-${tag.delegation.id}`}
-                  type="button"
-                  data-map-country-tag="true"
-                  onClick={() => handleCountrySelect(tag.delegation.id)}
-                  className={`absolute z-40 flex items-center justify-between gap-2 rounded-md border px-2.5 text-left text-[11px] font-semibold shadow-lg transition focus:outline-none focus:ring-2 focus:ring-ink-blue/45 ${isSelected
-                    ? "border-blue-300 bg-[#1a3f88] text-white"
-                    : "border-slate-600/40 bg-[#243a63]/92 text-slate-100 hover:bg-[#2b4777]"
-                    }`}
-                  style={{ left: tag.left, top: tag.top, width: TAG_WIDTH, height: TAG_HEIGHT }}
-                  aria-label={`Open ${tag.delegation.name} delegation`}
-                >
-                  <span className="pointer-events-none absolute -bottom-1.5 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-white/75 bg-ink-blue" />
-                  <span className="truncate text-[15px] leading-none">{tag.delegation.flagEmoji}</span>
-                  <span className="min-w-0 flex-1 truncate leading-tight">{tag.delegation.name}</span>
-                </button>
-              );
-            })}
-
-            {countryTags.map((tag) => {
-              const isSelected = tag.delegation.id === selectedDelegationId;
-              return (
-                <span
-                  key={`anchor-${tag.delegation.id}`}
-                  className={`pointer-events-none absolute z-30 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 ${isSelected ? "bg-blue-600" : "bg-slate-700"
-                    }`}
-                  style={{ left: tag.anchorX, top: tag.anchorY }}
-                />
-              );
-            })}
 
             {selectedCountryDelegation && popoverPlacement ? (
               <div
@@ -792,8 +688,27 @@ export function InteractiveGlobalMap({
                 {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
               </div>
             ) : null}
-            {/* End of mapHostRef overlays */}
           </div>
+
+          <aside data-map-delegation-list="true" className="border-t border-ink-border/70 bg-slate-50 lg:border-l lg:border-t-0">
+            <details open className="group lg:hidden">
+              <summary className="cursor-pointer list-none px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-ink/70 [&::-webkit-details-marker]:hidden">
+                <div className="flex items-center justify-between">
+                  <span>Delegations</span>
+                  <span className="text-[10px] text-ink/55 group-open:hidden">Tap to open</span>
+                </div>
+              </summary>
+              <div className="max-h-72 overflow-y-auto border-t border-ink-border/60 px-3 py-3">{delegationList}</div>
+            </details>
+
+            <div className="hidden h-full flex-col lg:flex">
+              <div className="border-b border-ink-border/60 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink/70">Delegations</p>
+                <p className="mt-1 text-[11px] text-ink/60">Select a country to open its profile.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto px-3 py-3">{delegationList}</div>
+            </div>
+          </aside>
         </div>
         {/* Event Cards as Footer inside the map container */}
         <div className="grid gap-3 border-t border-ink-border/30 bg-slate-50 p-4 md:grid-cols-3">
