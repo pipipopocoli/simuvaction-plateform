@@ -47,19 +47,19 @@ const NAV_AND_CHROME_TEXT = new Set([
   "More...",
 ]);
 
-const legacyPatterns = [/this is a paragraph/i, /for the other universities and their own pages/i, /copyright ©/i];
+const LEGACY_PATTERNS = [/this is a paragraph/i, /for the other universities and their own pages/i, /copyright ©/i];
 
-const sections: SectionDefinition[] = [
+const SECTIONS: SectionDefinition[] = [
   {
     id: "general",
     title: "General",
-    subtitle: "Overview and framing",
+    subtitle: "Program overview and positioning",
     matcher: (text) =>
       /simuvaction consists/i.test(text) ||
-      /simulation/i.test(text) ||
-      /symposium/i.test(text) ||
       /interested students/i.test(text) ||
-      /ai and education/i.test(text),
+      /simulation - innovation - action/i.test(text) ||
+      /a simulation/i.test(text) ||
+      /a symposium/i.test(text),
   },
   {
     id: "about",
@@ -70,13 +70,12 @@ const sections: SectionDefinition[] = [
       /^what \?/i.test(text) ||
       /^where \?/i.test(text) ||
       /^why \?/i.test(text) ||
-      /experiential learning program/i.test(text) ||
-      /opportunity for 40 university students/i.test(text),
+      /experiential learning program/i.test(text),
   },
   {
     id: "timeline",
     title: "Timeline",
-    subtitle: "Stages and key dates",
+    subtitle: "Stages, dates, and D-Day sequence",
     matcher: (text) =>
       /kick-off meeting/i.test(text) ||
       /stage \d/i.test(text) ||
@@ -87,29 +86,28 @@ const sections: SectionDefinition[] = [
   {
     id: "objectives",
     title: "Objectives",
-    subtitle: "Learning and ecosystem outcomes",
+    subtitle: "Ecosystem and learning outcomes",
     matcher: (text) =>
       /objectives/i.test(text) ||
       /create an ecosystem/i.test(text) ||
       /active learning/i.test(text) ||
       /a way to /i.test(text) ||
-      /think globally, act locally/i.test(text) ||
-      /engage with communities/i.test(text),
+      /think globally, act locally/i.test(text),
   },
   {
     id: "enrollment",
     title: "Enrollment",
-    subtitle: "Requirements and eligibility",
+    subtitle: "Eligibility and operational requirements",
     matcher: (text) =>
       /registration/i.test(text) ||
       /enrollment/i.test(text) ||
-      /home university/i.test(text) ||
-      /certificate of attendance/i.test(text),
+      /certificate of attendance/i.test(text) ||
+      /home university/i.test(text),
   },
   {
     id: "faqs",
     title: "FAQs",
-    subtitle: "Operational questions",
+    subtitle: "Common questions answered",
     matcher: (text) =>
       /frequently asked questions/i.test(text) ||
       /what are the requirements to obtain the certificate of attendance/i.test(text) ||
@@ -125,31 +123,30 @@ const sections: SectionDefinition[] = [
   {
     id: "media",
     title: "Media",
-    subtitle: "References and publications",
+    subtitle: "Videos, reports, and publications",
     matcher: (text) =>
       /^media$/i.test(text) ||
       /see the video/i.test(text) ||
       /see the slideshow/i.test(text) ||
       /see the clip/i.test(text) ||
-      /see the article/i.test(text) ||
-      /emory report/i.test(text),
+      /see the article/i.test(text),
   },
   {
     id: "contacts",
     title: "Contacts",
-    subtitle: "Follow and communication",
+    subtitle: "Follow and outreach channels",
     matcher: (text) => /^contacts$/i.test(text) || /follow us/i.test(text) || /simuvaction\.bsky\.social/i.test(text),
   },
   {
     id: "sponsors",
     title: "Sponsors",
-    subtitle: "Sponsor cohorts",
+    subtitle: "Sponsor cohorts by cycle",
     matcher: (text) => /sponsors/i.test(text) || /^2023-2024$/i.test(text) || /^2022-2023$/i.test(text),
   },
   {
     id: "partners",
     title: "Partners",
-    subtitle: "Academic and institutional partners",
+    subtitle: "Academic and institutional participants",
     matcher: (text) =>
       /partners and stakeholders/i.test(text) ||
       /our 2023 partners/i.test(text) ||
@@ -166,125 +163,121 @@ function normalizeText(value: string) {
 }
 
 function isDisplayNoise(text: string) {
-  if (!text) {
-    return true;
-  }
-  if (NAV_AND_CHROME_TEXT.has(text)) {
-    return true;
-  }
-  if (/^[\u200b\s·•\-–—]+$/.test(text)) {
-    return true;
-  }
+  if (!text) return true;
+  if (NAV_AND_CHROME_TEXT.has(text)) return true;
+  if (/^[\s\-–—•·]+$/.test(text)) return true;
+  if (text === "​" || text === "​ ​" || text === "​ ​​​") return true;
   return false;
 }
 
 function toBlocks(data: SimuvactionSiteCopy): SourceBlock[] {
-  const blocks: SourceBlock[] = [];
-  for (const page of data.pages) {
-    for (const rawText of page.blocks) {
-      blocks.push({
-        text: normalizeText(rawText),
-        path: page.path,
-      });
-    }
-  }
-  return blocks;
+  return data.pages.flatMap((page) =>
+    page.blocks.map((text) => ({
+      text: normalizeText(text),
+      path: page.path,
+    })),
+  );
 }
 
-function uniqueByTextWithSource(blocks: SourceBlock[]) {
+function dedupeByPathAndText(blocks: SourceBlock[]) {
   const seen = new Set<string>();
-  const out: SourceBlock[] = [];
+  const output: SourceBlock[] = [];
   for (const block of blocks) {
     const key = `${block.path}::${block.text}`;
-    if (seen.has(key)) {
-      continue;
-    }
+    if (seen.has(key)) continue;
     seen.add(key);
-    out.push(block);
+    output.push(block);
   }
-  return out;
+  return output;
 }
 
-function classify(blocks: SourceBlock[]) {
-  const sectionBuckets = new Map<string, SourceBlock[]>();
-  for (const section of sections) {
-    sectionBuckets.set(section.id, []);
-  }
+function classifyBlocks(blocks: SourceBlock[]) {
+  const buckets = new Map<string, SourceBlock[]>();
+  for (const section of SECTIONS) buckets.set(section.id, []);
+
   const legacy: SourceBlock[] = [];
+  const unmatched: SourceBlock[] = [];
 
   for (const block of blocks) {
-    if (!block.text) {
-      continue;
-    }
-    if (legacyPatterns.some((pattern) => pattern.test(block.text))) {
+    if (!block.text) continue;
+    if (LEGACY_PATTERNS.some((pattern) => pattern.test(block.text))) {
       legacy.push(block);
       continue;
     }
     if (isDisplayNoise(block.text)) {
       continue;
     }
-    const section = sections.find((candidate) => candidate.matcher(block.text));
+    const section = SECTIONS.find((candidate) => candidate.matcher(block.text));
     if (section) {
-      sectionBuckets.get(section.id)?.push(block);
-    } else {
-      sectionBuckets.get("general")?.push(block);
+      buckets.get(section.id)?.push(block);
+      continue;
     }
+    unmatched.push(block);
   }
 
-  return { sectionBuckets, legacy };
+  return { buckets, legacy, unmatched };
 }
 
 function formatGeneratedAt(value: string) {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
 }
 
+function sectionAnchor(id: string) {
+  return `section-${id}`;
+}
+
 export function SimuvactionEntryPage() {
-  const allBlocks = uniqueByTextWithSource(toBlocks(siteCopy));
-  const { sectionBuckets, legacy } = classify(allBlocks);
-  const renderedSections = sections
-    .map((section) => ({
-      ...section,
-      blocks: sectionBuckets.get(section.id) ?? [],
-    }))
-    .filter((section) => section.blocks.length > 0);
+  const allBlocks = dedupeByPathAndText(toBlocks(siteCopy));
+  const { buckets, legacy, unmatched } = classifyBlocks(allBlocks);
+  const renderedSections = SECTIONS.map((section) => ({
+    ...section,
+    blocks: buckets.get(section.id) ?? [],
+  })).filter((section) => section.blocks.length > 0);
+  const curatedCount = renderedSections.reduce((acc, section) => acc + section.blocks.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8f7f3] to-[#eef2f7]">
-      <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-        <section className="rounded-2xl border border-[#d9deea] bg-white/95 p-6 shadow-[0_14px_35px_rgba(15,23,42,0.1)] lg:p-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="space-y-5">
+    <div className="min-h-screen bg-[#f4f6fb]">
+      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <section className="overflow-hidden rounded-3xl border border-[#d8deec] bg-white shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_390px]">
+            <div className="space-y-5 p-6 lg:p-8">
               <BrandLogo size="lg" priority />
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-                SimuVaction — Official Public Information
-              </p>
-              <h1 className="font-serif text-4xl font-bold leading-tight text-[#111827] lg:text-5xl">
-                Simulation, innovation, and action in AI governance and education.
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">SimuVaction · Public Entry</p>
+              <h1 className="font-serif text-4xl font-bold leading-tight text-[#0f172a] lg:text-5xl">
+                AI governance simulation with complete public program information.
               </h1>
-              <p className="max-w-3xl text-base leading-relaxed text-zinc-700">
-                This page consolidates the complete SimuVaction public copy in a structured format while preserving full
-                source text access.
+              <p className="max-w-3xl text-base text-zinc-700">
+                Version propre et structurée du contenu public SimuVaction, avec conservation intégrale des textes
+                sources accessibles en bas de page.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-[#e4e7ef] bg-[#f9fbff] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Source pages</p>
+                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Pages sources</p>
                   <p className="mt-1 text-xl font-bold text-zinc-900">{siteCopy.pages.length}</p>
                 </div>
-                <div className="rounded-xl border border-[#e4e7ef] bg-[#f9fbff] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Display blocks</p>
-                  <p className="mt-1 text-xl font-bold text-zinc-900">
-                    {renderedSections.reduce((acc, section) => acc + section.blocks.length, 0)}
-                  </p>
+                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Blocs affichés</p>
+                  <p className="mt-1 text-xl font-bold text-zinc-900">{curatedCount}</p>
                 </div>
-                <div className="rounded-xl border border-[#e4e7ef] bg-[#f9fbff] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Extracted</p>
+                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Extraction</p>
                   <p className="mt-1 text-sm font-semibold text-zinc-900">{formatGeneratedAt(siteCopy.generatedAt)}</p>
                 </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {renderedSections.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${sectionAnchor(section.id)}`}
+                    className="rounded-full border border-[#d7deef] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#1E3A8A]/40"
+                  >
+                    {section.title}
+                  </a>
+                ))}
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -292,27 +285,25 @@ export function SimuvactionEntryPage() {
                   href="#login-anchor"
                   className="rounded-lg bg-[#1E3A8A] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-blue-900"
                 >
-                  Connect to platform
+                  Se connecter
                 </a>
                 <Link
                   href={siteCopy.sourceUrl}
                   className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
                 >
-                  Open source website
+                  Site source
                 </Link>
               </div>
             </div>
 
             <aside
               id="login-anchor"
-              className="rounded-2xl border border-[#dbe1ee] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+              className="border-t border-[#d8deec] bg-gradient-to-b from-[#f9fbff] to-white p-6 lg:border-l lg:border-t-0 lg:p-8"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Connexion</p>
-              <h2 className="mt-2 font-serif text-2xl font-bold text-zinc-900">Secure access</h2>
-              <p className="mt-2 text-sm text-zinc-600">
-                Access student and staff areas using your SimuVaction credentials.
-              </p>
-              <div className="mt-4">
+              <h2 className="mt-2 font-serif text-2xl font-bold text-zinc-900">Accès sécurisé</h2>
+              <p className="mt-2 text-sm text-zinc-600">Utilise tes identifiants SimuVaction pour entrer sur la plateforme.</p>
+              <div className="mt-5">
                 <LoginForm />
               </div>
             </aside>
@@ -320,66 +311,88 @@ export function SimuvactionEntryPage() {
         </section>
 
         <section className="space-y-4">
-          {renderedSections.map((section, index) => (
-            <article key={section.id} className="rounded-2xl border border-[#d9deea] bg-white p-4 shadow-sm lg:p-5">
-              <details open={index < 2}>
-                <summary className="cursor-pointer list-none">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{section.title}</p>
-                      <h3 className="mt-1 font-serif text-2xl font-bold text-zinc-900">{section.subtitle}</h3>
-                    </div>
-                    <span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-xs font-semibold text-[#1E3A8A]">
-                      {section.blocks.length} blocks
-                    </span>
-                  </div>
-                </summary>
-                <ul className="mt-4 space-y-2 text-sm leading-relaxed text-zinc-800">
-                  {section.blocks.map((block, blockIndex) => (
-                    <li key={`${section.id}-${block.path}-${blockIndex}`} className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2">
-                      <p>{block.text}</p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
-                        Source {block.path}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </details>
+          {renderedSections.map((section) => (
+            <article key={section.id} id={sectionAnchor(section.id)} className="rounded-2xl border border-[#d8deec] bg-white p-4 shadow-sm lg:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{section.title}</p>
+                  <h3 className="mt-1 font-serif text-2xl font-bold text-zinc-900">{section.subtitle}</h3>
+                </div>
+                <span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-xs font-semibold text-[#1E3A8A]">
+                  {section.blocks.length} blocs
+                </span>
+              </div>
+
+              <ul className="mt-4 space-y-2">
+                {section.blocks.slice(0, 8).map((block, index) => (
+                  <li key={`${section.id}-preview-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-relaxed text-zinc-800">
+                    {block.text}
+                  </li>
+                ))}
+              </ul>
+
+              {section.blocks.length > 8 ? (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-[#1E3A8A]">
+                    Voir le reste ({section.blocks.length - 8} blocs)
+                  </summary>
+                  <ul className="mt-3 space-y-2">
+                    {section.blocks.slice(8).map((block, index) => (
+                      <li key={`${section.id}-full-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-relaxed text-zinc-800">
+                        {block.text}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
             </article>
           ))}
         </section>
 
-        {legacy.length > 0 ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-            <h2 className="font-serif text-2xl font-bold text-amber-900">Legacy source notes</h2>
-            <p className="mt-2 text-sm text-amber-800">
-              Preserved verbatim from source pages, including placeholder/editorial leftover content.
-            </p>
-            <ul className="mt-4 space-y-2 text-sm text-amber-900">
-              {legacy.map((block, index) => (
-                <li key={`legacy-${block.path}-${index}`} className="rounded-lg border border-amber-200 bg-white/80 px-3 py-2">
-                  <p>{block.text}</p>
-                  <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-amber-700">
-                    Source {block.path}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        <section className="rounded-2xl border border-[#d8deec] bg-white p-4 shadow-sm lg:p-5">
+          <h2 className="font-serif text-2xl font-bold text-zinc-900">Source integrity</h2>
+          <p className="mt-2 text-sm text-zinc-600">
+            Sections techniques pour garantir l’intégralité de l’information source.
+          </p>
 
-        <section className="rounded-2xl border border-[#d9deea] bg-white p-5">
-          <details>
-            <summary className="cursor-pointer list-none text-sm font-semibold uppercase tracking-[0.1em] text-zinc-700">
-              Full verbatim source copy ({allBlocks.length} blocks)
+          {legacy.length > 0 ? (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
+                Legacy source notes ({legacy.length})
+              </summary>
+              <ul className="mt-3 space-y-2">
+                {legacy.map((block, index) => (
+                  <li key={`legacy-${block.path}-${index}`} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {block.text}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {unmatched.length > 0 ? (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
+                Unmatched but preserved blocks ({unmatched.length})
+              </summary>
+              <ul className="mt-3 space-y-2">
+                {unmatched.map((block, index) => (
+                  <li key={`unmatched-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+                    {block.text}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
+              Full verbatim source copy ({allBlocks.length})
             </summary>
-            <p className="mt-3 text-sm text-zinc-600">
-              Complete extracted text from all locked source pages, including navigation/chrome text.
-            </p>
-            <ul className="mt-4 space-y-2 text-sm text-zinc-800">
+            <ul className="mt-3 space-y-2">
               {allBlocks.map((block, index) => (
-                <li key={`verbatim-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2">
-                  <p>{block.text || " "}</p>
+                <li key={`verbatim-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+                  <p>{block.text}</p>
                   <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">Source {block.path}</p>
                 </li>
               ))}
