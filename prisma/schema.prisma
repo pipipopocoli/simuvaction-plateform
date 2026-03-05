@@ -218,6 +218,7 @@ model User {
   positionPaperUrl   String?
   positionPaperSummary String?
   createdAt          DateTime  @default(now())
+  onboardingCompletedAt DateTime?
 
   team        Team?     @relation(fields: [teamId], references: [id])
   event       Event     @relation(fields: [eventId], references: [id])
