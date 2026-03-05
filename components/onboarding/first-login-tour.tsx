@@ -13,10 +13,10 @@ type TourStep = {
 };
 
 function toRoleLabel(role: string | null | undefined): string {
-  if (role === "delegate") return "Délégué";
-  if (role === "journalist") return "Journaliste";
-  if (role === "leader") return "Leadership";
-  if (role === "lobbyist") return "Lobbyiste";
+  if (role === "delegate") return "Delegate";
+  if (role === "journalist") return "Journalist";
+  if (role === "leader") return "Leader";
+  if (role === "lobbyist") return "Lobbyist";
   if (role === "admin") return "Admin";
   if (role === "game_master") return "Game Master";
   return "Participant";
@@ -28,60 +28,60 @@ function getRoleSteps(role: string | null | undefined): TourStep[] {
       return [
         {
           id: "delegate-start",
-          title: "Par où commencer (Délégation)",
+          title: "Where to start (Delegation)",
           description:
-            "Ton espace principal est le Workspace de délégation. C’est là que tu prépares ta stratégie de négociation et que tu coordonnes ton équipe.",
+            "Your main space is the Delegation Workspace. This is where you prepare your negotiation strategy and coordinate your team.",
           bullets: [
-            "Ouvre “Workspace” pour préparer tes positions et ton position paper.",
-            "Sur le Dashboard, clique une délégation pour voir le contexte et les dernières actions.",
-            "Utilise “Votes” pour suivre et voter quand des scrutins sont ouverts.",
+            "Open Workspace to prepare your positions and your position paper.",
+            "From the Dashboard, click a delegation to see context and latest actions.",
+            "Use Votes to monitor and vote when ballots are open.",
           ],
-          cta: { label: "Aller au Workspace", href: "/workspace/delegate" },
+          cta: { label: "Go to Workspace", href: "/workspace/delegate" },
         },
       ];
     case "journalist":
       return [
         {
           id: "journalist-start",
-          title: "Par où commencer (Newsroom)",
+          title: "Where to start (Newsroom)",
           description:
-            "Ton espace principal est la Newsroom. Tu y rédiges des articles, tu suis ce qui se passe et tu publies (selon le workflow de validation).",
+            "Your main space is the Newsroom. You write articles, track events, and publish according to the review workflow.",
           bullets: [
-            "Ouvre “Newsroom” pour écrire et soumettre tes articles.",
-            "Le Dashboard te donne une vue live (carte, votes, breaking news).",
-            "Utilise “Messages” pour coordonner interviews et confirmations.",
+            "Open Newsroom to write and submit your articles.",
+            "The Dashboard gives you a live view (map, votes, breaking news).",
+            "Use Messages to coordinate interviews and confirmations.",
           ],
-          cta: { label: "Aller à la Newsroom", href: "/newsroom" },
+          cta: { label: "Go to Newsroom", href: "/newsroom" },
         },
       ];
     case "lobbyist":
       return [
         {
           id: "lobbyist-start",
-          title: "Par où commencer (Lobby)",
+          title: "Where to start (Lobby)",
           description:
-            "Ton espace principal est le Workspace lobbyiste. Tu y suis les dynamiques en cours et tu coordonnes tes échanges avec les délégations.",
+            "Your main space is the Lobbyist Workspace. You track ongoing dynamics and coordinate exchanges with delegations.",
           bullets: [
-            "Ouvre “Workspace” pour ton hub lobbyiste.",
-            "Utilise “Messages” pour tes communications sécurisées.",
-            "Surveille “Votes” pour agir au bon moment.",
+            "Open Workspace for your lobbyist command hub.",
+            "Use Messages for secure communications.",
+            "Monitor Votes to act at the right moment.",
           ],
-          cta: { label: "Aller au Workspace", href: "/workspace/lobbyist" },
+          cta: { label: "Go to Workspace", href: "/workspace/lobbyist" },
         },
       ];
     case "leader":
       return [
         {
           id: "leader-start",
-          title: "Par où commencer (Leadership)",
+          title: "Where to start (Leadership)",
           description:
-            "Ton espace principal est le Leadership Command. Tu pilotes le déroulement de la simulation et tu arbitres les publications et les votes.",
+            "Your main space is Leadership Command. You steer the simulation flow and arbitrate publications and votes.",
           bullets: [
-            "Ouvre “Workspace” pour accéder au Leadership Command.",
-            "Le Dashboard te donne le cockpit live (carte, votes, newsroom).",
-            "Passe par “Votes” et “Newsroom” pour valider/activer selon le rythme de la simulation.",
+            "Open Workspace to access Leadership Command.",
+            "The Dashboard is your live cockpit (map, votes, newsroom).",
+            "Use Votes and Newsroom to validate and activate decisions as the simulation evolves.",
           ],
-          cta: { label: "Aller au Leadership Command", href: "/workspace/leader" },
+          cta: { label: "Go to Leadership Command", href: "/workspace/leader" },
         },
       ];
     case "admin":
@@ -89,30 +89,30 @@ function getRoleSteps(role: string | null | undefined): TourStep[] {
       return [
         {
           id: "admin-start",
-          title: "Par où commencer (Admin)",
+          title: "Where to start (Admin)",
           description:
-            "Tu as accès au portail Admin/Professeur. C’est le centre de contrôle pour cadrer la simulation, les contenus et le suivi global.",
+            "You have access to the Admin/Professor portal. It is the control center for simulation governance, content, and global monitoring.",
           bullets: [
-            "Ouvre “Workspace” pour le portail Admin.",
-            "Le Dashboard te donne une vue synthèse de l’activité live.",
-            "Tu peux ensuite naviguer vers Newsroom/Votes/Surveys selon les besoins.",
+            "Open Workspace for the Admin portal.",
+            "The Dashboard gives you a consolidated view of live activity.",
+            "Then navigate to Newsroom, Votes, or Surveys as needed.",
           ],
-          cta: { label: "Aller au portail Admin", href: "/workspace/admin" },
+          cta: { label: "Go to Admin Portal", href: "/workspace/admin" },
         },
       ];
     default:
       return [
         {
           id: "generic-start",
-          title: "Par où commencer",
+          title: "Where to start",
           description:
-            "Commence par le Dashboard pour une vue d’ensemble, puis explore les sections selon ta mission.",
+            "Start from the Dashboard for an overview, then explore sections based on your mission.",
           bullets: [
-            "Dashboard = carte + actualité + votes + échéances.",
-            "Workspace = espace de travail selon ton rôle.",
-            "Surveys = questionnaires et feedback.",
+            "Dashboard = map + news + votes + deadlines.",
+            "Workspace = role-based working area.",
+            "Surveys = questionnaires and feedback.",
           ],
-          cta: { label: "Aller au Dashboard", href: "/dashboard" },
+          cta: { label: "Go to Dashboard", href: "/dashboard" },
         },
       ];
   }
@@ -123,52 +123,52 @@ function buildSteps(userName: string, role: string | null | undefined): TourStep
   const steps: TourStep[] = [
     {
       id: "welcome",
-      title: `Bienvenue, ${userName || "participant"} !`,
+      title: `Welcome, ${userName || "participant"}!`,
       description:
-        "Voici un tour guidé rapide (2 minutes) pour te repérer dans SimuVaction. Tu peux le passer à tout moment.",
-      bullets: [`Rôle détecté: ${roleLabel}`, "Le tour ne s’affiche qu’à la première connexion."],
+        "Here is a quick guided tour (about 2 minutes) to help you navigate SimuVaction. You can skip it at any time.",
+      bullets: [`Detected role: ${roleLabel}`, "This tour is shown only on first login."],
     },
     ...getRoleSteps(role),
     {
       id: "dashboard",
-      title: "Dashboard = vue live",
+      title: "Dashboard = live overview",
       description:
-        "Le Dashboard rassemble l’essentiel: carte des délégations, votes actifs, meetings et signaux de la newsroom.",
+        "The Dashboard centralizes essentials: delegation map, active votes, meetings, and newsroom signals.",
       bullets: [
-        "Clique une délégation sur la carte ou dans la liste “Delegations”.",
-        "Surveille les votes ouverts et les échéances à venir.",
-        "Utilise cette page comme “cockpit” pendant la simulation.",
+        "Click a delegation on the map or in the Delegations list.",
+        "Monitor open votes and upcoming deadlines.",
+        "Use this page as your simulation cockpit.",
       ],
-      cta: { label: "Ouvrir le Dashboard", href: "/dashboard" },
+      cta: { label: "Open Dashboard", href: "/dashboard" },
     },
     {
       id: "comms",
-      title: "Messages & coordination",
+      title: "Messages and coordination",
       description:
-        "La plateforme est pensée pour travailler vite: échanges, coordination, et actions dans un même flux.",
+        "The platform is designed for fast execution: communication, coordination, and actions in one workflow.",
       bullets: [
-        "“Messages” = discussions et coordination (rooms/équipes).",
-        "“Notifications” t’aide à ne rien rater (votes, mentions, publications).",
+        "Messages = discussions and coordination (rooms/teams).",
+        "Notifications help you avoid missing key events (votes, mentions, publications).",
       ],
-      cta: { label: "Ouvrir Messages", href: "/chat" },
+      cta: { label: "Open Messages", href: "/chat" },
     },
     {
       id: "surveys",
-      title: "Surveys (feedback & progression)",
+      title: "Surveys (feedback and progression)",
       description:
-        "Tu trouveras ici les formulaires de satisfaction (conférences) et le questionnaire longitudinal de discernement.",
+        "Here you will find conference satisfaction forms and the longitudinal discernment questionnaire.",
       bullets: [
-        "Réponds aux surveys quand ils sont disponibles (1 réponse par vague/sondage).",
-        "Les leaders/admin peuvent consulter des stats agrégées (si autorisés).",
+        "Complete surveys when available (one response per wave/survey).",
+        "Leaders/admins can access aggregate metrics when authorized.",
       ],
-      cta: { label: "Ouvrir Surveys", href: "/surveys" },
+      cta: { label: "Open Surveys", href: "/surveys" },
     },
     {
       id: "done",
-      title: "C’est parti",
+      title: "You are ready",
       description:
-        "Tu peux relire les conseils rapides via SimuBot (en bas à droite). Bon travail et bonne simulation.",
-      bullets: ["Astuce: si tu es perdu, commence par “Dashboard”, puis “Workspace”.", "Tu peux fermer ce tour maintenant."],
+        "You can revisit quick guidance through SimuBot (bottom-right). Have a great simulation.",
+      bullets: ["Tip: if you are unsure where to go, start with Dashboard, then Workspace.", "You can close this tour now."],
     },
   ];
 
@@ -282,7 +282,7 @@ export function FirstLoginTour({
         <div className="flex items-start justify-between gap-4 border-b border-ink-border/80 px-5 py-4">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink/60">
-              Tour guidé • Étape {stepIndex + 1}/{steps.length}
+              Guided Tour • Step {stepIndex + 1}/{steps.length}
             </p>
             <h2 className="mt-1 font-serif text-2xl font-bold text-ink">{step.title}</h2>
           </div>
@@ -291,7 +291,7 @@ export function FirstLoginTour({
             type="button"
             onClick={handleSkip}
             className="rounded-lg p-2 text-ink/50 transition hover:bg-black/5 hover:text-ink"
-            aria-label="Fermer le tour"
+            aria-label="Close guided tour"
             disabled={isSaving}
           >
             <X className="h-5 w-5" />
@@ -329,7 +329,7 @@ export function FirstLoginTour({
             className="rounded-xl px-4 py-2 text-sm font-semibold text-ink/70 transition hover:bg-black/5"
             disabled={isSaving}
           >
-            Passer le tour
+            Skip tour
           </button>
 
           <div className="flex items-center justify-end gap-2">
@@ -339,7 +339,7 @@ export function FirstLoginTour({
               className="rounded-xl border border-ink-border bg-white px-4 py-2 text-sm font-semibold text-ink/70 shadow-sm transition hover:border-ink-blue/40 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSaving || stepIndex === 0}
             >
-              Précédent
+              Previous
             </button>
 
             {stepIndex >= steps.length - 1 ? (
@@ -349,7 +349,7 @@ export function FirstLoginTour({
                 className="rounded-xl bg-ink-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-blue-hover disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={isSaving}
               >
-                {isSaving ? "Enregistrement…" : "Terminer"}
+                {isSaving ? "Saving..." : "Finish"}
               </button>
             ) : (
               <button
@@ -358,7 +358,7 @@ export function FirstLoginTour({
                 className="rounded-xl bg-ink-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-blue-hover disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={isSaving}
               >
-                Suivant
+                Next
               </button>
             )}
           </div>
