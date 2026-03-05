@@ -1,308 +1,282 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { LoginForm } from "@/components/login-form";
+import { NextSimulationCountdown } from "@/components/public/next-simulation-countdown";
 import copyJson from "@/content/simuvaction-site-copy.json";
-
-export type SimuvactionSourcePage = {
-  sourceUrl: string;
-  path: string;
-  title: string;
-  blocks: string[];
-};
-
-export type SimuvactionSiteCopy = {
-  generatedAt: string;
-  sourceUrl: string;
-  pages: SimuvactionSourcePage[];
-};
-
-type SourceBlock = {
-  text: string;
-  path: string;
-};
-
-type SectionDefinition = {
-  id: string;
-  title: string;
-  subtitle: string;
-  matcher: (text: string) => boolean;
-};
+import {
+  type MappedBlock,
+  type MappedSection,
+  type MappedSectionId,
+  type SimuvactionSiteCopy,
+  formatGeneratedAt,
+  mapSimuvactionHomeContent,
+  toMappedBlockKey,
+} from "@/lib/public/simuvaction-copy-mapper";
 
 const siteCopy = copyJson as SimuvactionSiteCopy;
+const mappedContent = mapSimuvactionHomeContent(siteCopy);
 
-const NAV_AND_CHROME_TEXT = new Set([
-  "Home",
-  "General",
-  "About",
-  "Our partners and stakeholders",
-  "Timeline",
-  "Objectives and Benefits",
-  "Sponsors",
-  "2023 Partners",
-  "2022 Partners",
-  "Enrollment",
-  "FAQs",
-  "Media",
-  "Contacts",
-  "More...",
-]);
+type ObjectiveCard = {
+  key: string;
+  title: string;
+  lines: string[];
+};
 
-const LEGACY_PATTERNS = [/this is a paragraph/i, /for the other universities and their own pages/i, /copyright ©/i];
+type FaqItem = {
+  key: string;
+  question: string;
+  answer: string;
+};
 
-const SECTIONS: SectionDefinition[] = [
-  {
-    id: "general",
-    title: "General",
-    subtitle: "Program overview and positioning",
-    matcher: (text) =>
-      /simuvaction consists/i.test(text) ||
-      /interested students/i.test(text) ||
-      /simulation - innovation - action/i.test(text) ||
-      /a simulation/i.test(text) ||
-      /a symposium/i.test(text),
-  },
-  {
-    id: "about",
-    title: "About",
-    subtitle: "Who, what, where, why",
-    matcher: (text) =>
-      /^who \?/i.test(text) ||
-      /^what \?/i.test(text) ||
-      /^where \?/i.test(text) ||
-      /^why \?/i.test(text) ||
-      /experiential learning program/i.test(text),
-  },
-  {
-    id: "timeline",
-    title: "Timeline",
-    subtitle: "Stages, dates, and D-Day sequence",
-    matcher: (text) =>
-      /kick-off meeting/i.test(text) ||
-      /stage \d/i.test(text) ||
-      /from january 12, 2026 to april 24, 2026/i.test(text) ||
-      /arrival for international students/i.test(text) ||
-      /action-day/i.test(text),
-  },
-  {
-    id: "objectives",
-    title: "Objectives",
-    subtitle: "Ecosystem and learning outcomes",
-    matcher: (text) =>
-      /objectives/i.test(text) ||
-      /create an ecosystem/i.test(text) ||
-      /active learning/i.test(text) ||
-      /a way to /i.test(text) ||
-      /think globally, act locally/i.test(text),
-  },
-  {
-    id: "enrollment",
-    title: "Enrollment",
-    subtitle: "Eligibility and operational requirements",
-    matcher: (text) =>
-      /registration/i.test(text) ||
-      /enrollment/i.test(text) ||
-      /certificate of attendance/i.test(text) ||
-      /home university/i.test(text),
-  },
-  {
-    id: "faqs",
-    title: "FAQs",
-    subtitle: "Common questions answered",
-    matcher: (text) =>
-      /frequently asked questions/i.test(text) ||
-      /what are the requirements to obtain the certificate of attendance/i.test(text) ||
-      /what assignments should i expect/i.test(text) ||
-      /what are the expectations/i.test(text) ||
-      /what does the mentoring entail within the project/i.test(text) ||
-      /are there awards for this project/i.test(text) ||
-      /what if i have zero experience in negotiation/i.test(text) ||
-      /if i were to participate, how much would i have to pay/i.test(text) ||
-      /is it open to all students/i.test(text) ||
-      /how does enrollment work/i.test(text),
-  },
-  {
-    id: "media",
-    title: "Media",
-    subtitle: "Videos, reports, and publications",
-    matcher: (text) =>
-      /^media$/i.test(text) ||
-      /see the video/i.test(text) ||
-      /see the slideshow/i.test(text) ||
-      /see the clip/i.test(text) ||
-      /see the article/i.test(text),
-  },
-  {
-    id: "contacts",
-    title: "Contacts",
-    subtitle: "Follow and outreach channels",
-    matcher: (text) => /^contacts$/i.test(text) || /follow us/i.test(text) || /simuvaction\.bsky\.social/i.test(text),
-  },
-  {
-    id: "sponsors",
-    title: "Sponsors",
-    subtitle: "Sponsor cohorts by cycle",
-    matcher: (text) => /sponsors/i.test(text) || /^2023-2024$/i.test(text) || /^2022-2023$/i.test(text),
-  },
-  {
-    id: "partners",
-    title: "Partners",
-    subtitle: "Academic and institutional participants",
-    matcher: (text) =>
-      /partners and stakeholders/i.test(text) ||
-      /our 2023 partners/i.test(text) ||
-      /our 2022 partners/i.test(text) ||
-      /^emory university$/i.test(text) ||
-      /^unitar$/i.test(text) ||
-      /^georgia tech$/i.test(text) ||
-      /^other university$/i.test(text),
-  },
-];
-
-function normalizeText(value: string) {
-  return value.replace(/\u200b/g, "").replace(/\s+/g, " ").trim();
+function sectionAnchor(id: MappedSectionId): string {
+  return `section-${id}`;
 }
 
-function isDisplayNoise(text: string) {
-  if (!text) return true;
-  if (NAV_AND_CHROME_TEXT.has(text)) return true;
-  if (/^[\s\-–—•·]+$/.test(text)) return true;
-  if (text === "​" || text === "​ ​" || text === "​ ​​​") return true;
-  return false;
-}
-
-function toBlocks(data: SimuvactionSiteCopy): SourceBlock[] {
-  return data.pages.flatMap((page) =>
-    page.blocks.map((text) => ({
-      text: normalizeText(text),
-      path: page.path,
-    })),
+function getSection(sectionId: MappedSectionId): MappedSection {
+  return (
+    mappedContent.sections.find((section) => section.id === sectionId) ?? {
+      id: sectionId,
+      title: sectionId,
+      subtitle: "",
+      blocks: [],
+    }
   );
 }
 
-function dedupeByPathAndText(blocks: SourceBlock[]) {
+function findLabeledValue(blocks: MappedBlock[], label: string): string | null {
+  const expression = new RegExp(`^${label}\\s*\\?\\s*`, "i");
+  const candidate = blocks.find((block) => expression.test(block.text));
+  if (!candidate) return null;
+
+  const stripped = candidate.text.replace(expression, "").trim();
+  return stripped.length > 0 ? stripped : null;
+}
+
+function uniqueBlocks(blocks: MappedBlock[]): MappedBlock[] {
   const seen = new Set<string>();
-  const output: SourceBlock[] = [];
+  const output: MappedBlock[] = [];
+
   for (const block of blocks) {
-    const key = `${block.path}::${block.text}`;
+    const key = toMappedBlockKey(block);
     if (seen.has(key)) continue;
     seen.add(key);
     output.push(block);
   }
+
   return output;
 }
 
-function classifyBlocks(blocks: SourceBlock[]) {
-  const buckets = new Map<string, SourceBlock[]>();
-  for (const section of SECTIONS) buckets.set(section.id, []);
+function buildFaqItems(blocks: MappedBlock[]): FaqItem[] {
+  const items: FaqItem[] = [];
 
-  const legacy: SourceBlock[] = [];
-  const unmatched: SourceBlock[] = [];
+  for (let cursor = 0; cursor < blocks.length; cursor += 1) {
+    const block = blocks[cursor];
+    const text = block.text.trim();
 
-  for (const block of blocks) {
-    if (!block.text) continue;
-    if (LEGACY_PATTERNS.some((pattern) => pattern.test(block.text))) {
-      legacy.push(block);
-      continue;
+    if (!text.endsWith("?")) continue;
+    if (/^frequently asked questions$/i.test(text)) continue;
+
+    let answer = "Details are available in the source appendix.";
+    const next = blocks[cursor + 1];
+    if (next && !next.text.trim().endsWith("?")) {
+      answer = next.text;
     }
-    if (isDisplayNoise(block.text)) {
-      continue;
-    }
-    const section = SECTIONS.find((candidate) => candidate.matcher(block.text));
-    if (section) {
-      buckets.get(section.id)?.push(block);
-      continue;
-    }
-    unmatched.push(block);
+
+    items.push({
+      key: toMappedBlockKey(block),
+      question: text,
+      answer,
+    });
   }
 
-  return { buckets, legacy, unmatched };
+  return items;
 }
 
-function formatGeneratedAt(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
+function buildObjectiveCards(blocks: MappedBlock[]): ObjectiveCard[] {
+  const headingMatcher =
+    /objectives:\s*create an ecosystem|an exercise for students|a way to consider collaboration|a way to develop international thinking|a way to engage with communities/i;
+
+  const cards: ObjectiveCard[] = [];
+  let currentCard: ObjectiveCard | null = null;
+
+  for (const block of blocks) {
+    if (headingMatcher.test(block.text)) {
+      if (currentCard) {
+        cards.push(currentCard);
+      }
+
+      currentCard = {
+        key: toMappedBlockKey(block),
+        title: block.text.replace(/^objectives:\s*/i, "").trim(),
+        lines: [],
+      };
+
+      continue;
+    }
+
+    if (currentCard && currentCard.lines.length < 3) {
+      currentCard.lines.push(block.text);
+    }
+  }
+
+  if (currentCard) {
+    cards.push(currentCard);
+  }
+
+  if (cards.length > 0) {
+    return cards;
+  }
+
+  return blocks.slice(0, 4).map((block) => ({
+    key: toMappedBlockKey(block),
+    title: block.text,
+    lines: [],
+  }));
 }
 
-function sectionAnchor(id: string) {
-  return `section-${id}`;
+function firstMatchingText(blocks: MappedBlock[], matcher: RegExp): string | null {
+  return blocks.find((block) => matcher.test(block.text))?.text ?? null;
+}
+
+function trimPrefix(value: string, matcher: RegExp): string {
+  return value.replace(matcher, "").trim();
 }
 
 export function SimuvactionEntryPage() {
-  const allBlocks = dedupeByPathAndText(toBlocks(siteCopy));
-  const { buckets, legacy, unmatched } = classifyBlocks(allBlocks);
-  const renderedSections = SECTIONS.map((section) => ({
-    ...section,
-    blocks: buckets.get(section.id) ?? [],
-  })).filter((section) => section.blocks.length > 0);
-  const curatedCount = renderedSections.reduce((acc, section) => acc + section.blocks.length, 0);
+  const generalSection = getSection("general");
+  const aboutSection = getSection("about");
+  const timelineSection = getSection("timeline");
+  const objectivesSection = getSection("objectives");
+  const enrollmentSection = getSection("enrollment");
+  const faqSection = getSection("faqs");
+  const mediaSection = getSection("media");
+  const contactsSection = getSection("contacts");
+  const sponsorsSection = getSection("sponsors");
+  const partnersSection = getSection("partners");
+
+  const visibleSections = mappedContent.sections.filter((section) => section.blocks.length > 0);
+  const visibleBlockCount = visibleSections.reduce((sum, section) => sum + section.blocks.length, 0);
+
+  const simulationLine =
+    firstMatchingText(generalSection.blocks, /\*\s*a simulation/i) ??
+    "A full-scale role-based simulation on global AI governance.";
+  const symposiumLine =
+    firstMatchingText(generalSection.blocks, /\*\s*a symposium/i) ??
+    "A companion symposium connecting academic and professional ecosystems.";
+  const missionLine =
+    firstMatchingText(generalSection.blocks, /opportunity for 40 university students|actively engage/i) ??
+    "SimuVaction is an experiential program where students research, negotiate, and produce actionable recommendations.";
+
+  const aboutBlocks = uniqueBlocks(aboutSection.blocks);
+  const whoValue =
+    findLabeledValue(aboutBlocks, "WHO") ??
+    "International and interdisciplinary student teams with diverse backgrounds.";
+  const whatValue =
+    findLabeledValue(aboutBlocks, "WHAT") ??
+    "Teams play assigned roles, debate, draft amendments, and vote policy recommendations.";
+  const whenValue =
+    findLabeledValue(aboutBlocks, "WHEN") ??
+    "January 12, 2026 to April 24, 2026, with a key in-person sequence in March.";
+  const whereValue =
+    findLabeledValue(aboutBlocks, "WHERE") ??
+    "Online collaboration with an in-person week in Paris-Versailles.";
+
+  const whyPoints = aboutBlocks
+    .filter((block) => /^to\s+/i.test(block.text))
+    .map((block) => trimPrefix(block.text, /^to\s+/i))
+    .slice(0, 4);
+
+  const timelineBlocks = uniqueBlocks(timelineSection.blocks);
+  const timelineStages = timelineBlocks.filter((block) =>
+    /kick-off meeting|^stage\s+\d|action-day|\*\s*a simulation|\*\s*a symposium/i.test(block.text),
+  );
+  const stageThreeSchedule = timelineBlocks.filter((block) =>
+    /arrival for international students|monday,\s*march|tuesday,\s*march|wednesday,\s*march|thursday,\s*march/i.test(
+      block.text,
+    ),
+  );
+
+  const objectiveCards = buildObjectiveCards(uniqueBlocks(objectivesSection.blocks));
+  const enrollmentHighlights = uniqueBlocks(enrollmentSection.blocks)
+    .map((block) => block.text)
+    .filter((text) => !/^registration$/i.test(text))
+    .slice(0, 6);
+  const faqItems = buildFaqItems(uniqueBlocks(faqSection.blocks));
+
+  const sponsorsItems = uniqueBlocks(sponsorsSection.blocks)
+    .map((block) => block.text)
+    .filter((text) => !/^sponsors/i.test(text));
+  const partnerItems = uniqueBlocks(partnersSection.blocks)
+    .map((block) => block.text)
+    .filter((text) => !/^our\s+\d{4}\s+partners/i.test(text));
+  const mediaItems = uniqueBlocks(mediaSection.blocks).map((block) => block.text);
+  const contactItems = uniqueBlocks(contactsSection.blocks).map((block) => block.text);
 
   return (
-    <div className="min-h-screen bg-[#f4f6fb]">
-      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-        <section className="overflow-hidden rounded-3xl border border-[#d8deec] bg-white shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_390px]">
-            <div className="space-y-5 p-6 lg:p-8">
-              <BrandLogo size="lg" priority />
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">SimuVaction · Public Entry</p>
-              <h1 className="font-serif text-4xl font-bold leading-tight text-[#0f172a] lg:text-5xl">
-                AI governance simulation with complete public program information.
-              </h1>
-              <p className="max-w-3xl text-base text-zinc-700">
-                Version propre et structurée du contenu public SimuVaction, avec conservation intégrale des textes
-                sources accessibles en bas de page.
-              </p>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(29,78,216,0.08),transparent_40%),radial-gradient(circle_at_100%_0%,rgba(15,23,42,0.08),transparent_38%),linear-gradient(180deg,#f7f9ff_0%,#eef2fb_100%)]">
+      <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-10">
+        <section className="relative overflow-hidden rounded-3xl border border-[#cad7ef] bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.1)]">
+          <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-100/70 blur-3xl" aria-hidden="true" />
+          <div className="absolute -bottom-28 right-0 h-64 w-64 rounded-full bg-slate-200/60 blur-3xl" aria-hidden="true" />
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Pages sources</p>
-                  <p className="mt-1 text-xl font-bold text-zinc-900">{siteCopy.pages.length}</p>
-                </div>
-                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Blocs affichés</p>
-                  <p className="mt-1 text-xl font-bold text-zinc-900">{curatedCount}</p>
-                </div>
-                <div className="rounded-xl border border-[#e3e7f2] bg-[#f8faff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Extraction</p>
-                  <p className="mt-1 text-sm font-semibold text-zinc-900">{formatGeneratedAt(siteCopy.generatedAt)}</p>
-                </div>
+          <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:p-10">
+            <div className="space-y-6">
+              <BrandLogo size="lg" priority />
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1d4ed8]">AI Governance Simulation Program</p>
+                <h1 className="max-w-4xl font-serif text-4xl font-bold leading-tight text-[#0f172a] lg:text-5xl">
+                  SimuVaction helps students understand, negotiate, and shape global AI governance.
+                </h1>
+                <p className="max-w-3xl text-base leading-relaxed text-slate-700">{missionLine}</p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {renderedSections.map((section) => (
-                  <a
-                    key={section.id}
-                    href={`#${sectionAnchor(section.id)}`}
-                    className="rounded-full border border-[#d7deef] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#1E3A8A]/40"
-                  >
-                    {section.title}
-                  </a>
-                ))}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Source pages</p>
+                  <p className="mt-1 text-2xl font-bold text-[#0f172a]">{mappedContent.pageCount}</p>
+                </div>
+                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Mapped content blocks</p>
+                  <p className="mt-1 text-2xl font-bold text-[#0f172a]">{visibleBlockCount}</p>
+                </div>
+                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Source extraction</p>
+                  <p className="mt-1 text-sm font-semibold text-[#0f172a]">{formatGeneratedAt(mappedContent.generatedAt)}</p>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <a
                   href="#login-anchor"
-                  className="rounded-lg bg-[#1E3A8A] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-blue-900"
+                  className="rounded-lg bg-[#1d4ed8] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[#1e40af]"
                 >
-                  Se connecter
+                  Access Platform
                 </a>
                 <Link
-                  href={siteCopy.sourceUrl}
-                  className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                  href={mappedContent.sourceUrl}
+                  className="rounded-lg border border-[#cbd5e1] bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Site source
+                  Source website
                 </Link>
               </div>
+
+              <NextSimulationCountdown
+                eventStartIsoParis="2026-03-25T08:30:00"
+                eventEndIsoParis="2026-03-25T18:00:00"
+                eventLabel="Action-Day - Paris-Versailles"
+              />
             </div>
 
             <aside
               id="login-anchor"
-              className="border-t border-[#d8deec] bg-gradient-to-b from-[#f9fbff] to-white p-6 lg:border-l lg:border-t-0 lg:p-8"
+              className="self-start rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.08)] lg:sticky lg:top-6"
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Connexion</p>
-              <h2 className="mt-2 font-serif text-2xl font-bold text-zinc-900">Accès sécurisé</h2>
-              <p className="mt-2 text-sm text-zinc-600">Utilise tes identifiants SimuVaction pour entrer sur la plateforme.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Secure Login</p>
+              <h2 className="mt-2 font-serif text-2xl font-bold text-[#0f172a]">Enter SimuVaction</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Sign in with your official account to access your role workspace, surveys, votes, and newsroom tools.
+              </p>
               <div className="mt-5">
                 <LoginForm />
               </div>
@@ -310,90 +284,284 @@ export function SimuvactionEntryPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          {renderedSections.map((section) => (
-            <article key={section.id} id={sectionAnchor(section.id)} className="rounded-2xl border border-[#d8deec] bg-white p-4 shadow-sm lg:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{section.title}</p>
-                  <h3 className="mt-1 font-serif text-2xl font-bold text-zinc-900">{section.subtitle}</h3>
-                </div>
-                <span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-xs font-semibold text-[#1E3A8A]">
-                  {section.blocks.length} blocs
-                </span>
-              </div>
-
-              <ul className="mt-4 space-y-2">
-                {section.blocks.slice(0, 8).map((block, index) => (
-                  <li key={`${section.id}-preview-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-relaxed text-zinc-800">
-                    {block.text}
-                  </li>
-                ))}
-              </ul>
-
-              {section.blocks.length > 8 ? (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-[#1E3A8A]">
-                    Voir le reste ({section.blocks.length - 8} blocs)
-                  </summary>
-                  <ul className="mt-3 space-y-2">
-                    {section.blocks.slice(8).map((block, index) => (
-                      <li key={`${section.id}-full-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-relaxed text-zinc-800">
-                        {block.text}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-            </article>
-          ))}
+        <section className="rounded-2xl border border-[#cad7ef] bg-white p-5 shadow-sm lg:p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Quick Navigation</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {visibleSections.map((section) => (
+              <a
+                key={section.id}
+                href={`#${sectionAnchor(section.id)}`}
+                className="rounded-full border border-[#d6dff2] bg-[#f8faff] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#93b0ea] hover:text-[#1d4ed8]"
+              >
+                {section.title}
+              </a>
+            ))}
+            <a
+              href="#source-appendix"
+              className="rounded-full border border-[#d6dff2] bg-[#f8faff] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#93b0ea] hover:text-[#1d4ed8]"
+            >
+              Source Appendix
+            </a>
+          </div>
         </section>
 
-        <section className="rounded-2xl border border-[#d8deec] bg-white p-4 shadow-sm lg:p-5">
-          <h2 className="font-serif text-2xl font-bold text-zinc-900">Source integrity</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Sections techniques pour garantir l’intégralité de l’information source.
+        {generalSection.blocks.length > 0 ? (
+          <section id={sectionAnchor("general")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">What Is SimuVaction</p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">A simulation and symposium designed for real-world AI governance learning</h2>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <article className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Simulation</p>
+                <p className="mt-2 text-base font-semibold text-[#0f172a]">{simulationLine}</p>
+                <p className="mt-2 text-sm text-slate-700">
+                  Students assume high-responsibility roles and work through research, negotiation, drafting, amendments,
+                  and policy voting.
+                </p>
+              </article>
+              <article className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Symposium</p>
+                <p className="mt-2 text-base font-semibold text-[#0f172a]">{symposiumLine}</p>
+                <p className="mt-2 text-sm text-slate-700">
+                  The symposium expands the academic and professional conversation on AI and education with partners and
+                  stakeholders.
+                </p>
+              </article>
+            </div>
+          </section>
+        ) : null}
+
+        {aboutSection.blocks.length > 0 ? (
+          <section id={sectionAnchor("about")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Program At A Glance</p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Who participates, what happens, and why it matters</h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <article className="rounded-xl border border-[#dbe4f7] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Who</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whoValue}</p>
+              </article>
+              <article className="rounded-xl border border-[#dbe4f7] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">What</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whatValue}</p>
+              </article>
+              <article className="rounded-xl border border-[#dbe4f7] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">When</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whenValue}</p>
+              </article>
+              <article className="rounded-xl border border-[#dbe4f7] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Where</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whereValue}</p>
+              </article>
+              <article className="rounded-xl border border-[#dbe4f7] p-4 md:col-span-2 lg:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Why</p>
+                <ul className="mt-2 space-y-1">
+                  {whyPoints.map((point) => (
+                    <li key={point} className="text-sm leading-relaxed text-slate-700">
+                      {point}
+                    </li>
+                  ))}
+                  {whyPoints.length === 0 ? (
+                    <li className="text-sm leading-relaxed text-slate-700">
+                      To discuss AI governance, build professional capability, and collaborate across cultures.
+                    </li>
+                  ) : null}
+                </ul>
+              </article>
+            </div>
+          </section>
+        ) : null}
+
+        {timelineSection.blocks.length > 0 ? (
+          <section id={sectionAnchor("timeline")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Timeline</p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">From Kick-off to Action-Day and closing review</h2>
+
+            <ol className="mt-5 space-y-3">
+              {timelineStages.map((block) => (
+                <li key={toMappedBlockKey(block)} className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] px-4 py-3 text-sm text-slate-700">
+                  {block.text}
+                </li>
+              ))}
+            </ol>
+
+            {stageThreeSchedule.length > 0 ? (
+              <details className="mt-5 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">Stage 3 in-person schedule (Paris-Versailles)</summary>
+                <ul className="mt-3 space-y-2">
+                  {stageThreeSchedule.map((block) => (
+                    <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
+                      {block.text}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </section>
+        ) : null}
+
+        {objectivesSection.blocks.length > 0 ? (
+          <section id={sectionAnchor("objectives")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Objectives</p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Academic impact, collaboration, and civic capability</h2>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              {objectiveCards.map((card) => (
+                <article key={card.key} className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+                  <h3 className="font-serif text-xl font-bold text-[#0f172a]">{card.title}</h3>
+                  {card.lines.length > 0 ? (
+                    <ul className="mt-3 space-y-2">
+                      {card.lines.map((line) => (
+                        <li key={`${card.key}::${line}`} className="text-sm leading-relaxed text-slate-700">
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {enrollmentSection.blocks.length > 0 || faqSection.blocks.length > 0 ? (
+          <section className="grid gap-6 lg:grid-cols-2">
+            {enrollmentSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("enrollment")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Enrollment</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Participation requirements</h2>
+                <ul className="mt-4 space-y-2">
+                  {enrollmentHighlights.map((line) => (
+                    <li key={line} className="rounded-lg border border-[#dbe4f7] bg-[#f8faff] px-3 py-2 text-sm text-slate-700">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
+
+            {faqSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("faqs")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">FAQs</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Common questions</h2>
+                <div className="mt-4 space-y-2">
+                  {faqItems.map((item) => (
+                    <details key={item.key} className="rounded-lg border border-[#dbe4f7] bg-[#f8faff] p-3">
+                      <summary className="cursor-pointer text-sm font-semibold text-[#0f172a]">{item.question}</summary>
+                      <p className="mt-2 text-sm text-slate-700">{item.answer}</p>
+                    </details>
+                  ))}
+                  {faqItems.length === 0 ? (
+                    <p className="text-sm text-slate-700">FAQ details are available in the source appendix.</p>
+                  ) : null}
+                </div>
+              </article>
+            ) : null}
+          </section>
+        ) : null}
+
+        {partnersSection.blocks.length > 0 ||
+        sponsorsSection.blocks.length > 0 ||
+        mediaSection.blocks.length > 0 ||
+        contactsSection.blocks.length > 0 ? (
+          <section className="grid gap-6 lg:grid-cols-2">
+            {partnersSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("partners")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Partners</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Academic and institutional network</h2>
+                <ul className="mt-4 space-y-2">
+                  {partnerItems.slice(0, 14).map((item) => (
+                    <li key={`partner-${item}`} className="text-sm text-slate-700">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
+
+            {sponsorsSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("sponsors")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Sponsors</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Support by cycle</h2>
+                <ul className="mt-4 space-y-2">
+                  {sponsorsItems.slice(0, 14).map((item) => (
+                    <li key={`sponsor-${item}`} className="text-sm text-slate-700">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
+
+            {mediaSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("media")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Media</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Public reports and references</h2>
+                <ul className="mt-4 space-y-2">
+                  {mediaItems.slice(0, 16).map((item) => (
+                    <li key={`media-${item}`} className="text-sm text-slate-700">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
+
+            {contactsSection.blocks.length > 0 ? (
+              <article id={sectionAnchor("contacts")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Contacts</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Follow and connect</h2>
+                <ul className="mt-4 space-y-2">
+                  {contactItems.map((item) => (
+                    <li key={`contact-${item}`} className="text-sm text-slate-700">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section id="source-appendix" className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Source Appendix</p>
+          <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Full source integrity and traceability</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            This appendix preserves legacy and unmatched source blocks and keeps the full verbatim corpus accessible.
           </p>
 
-          {legacy.length > 0 ? (
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
-                Legacy source notes ({legacy.length})
-              </summary>
-              <ul className="mt-3 space-y-2">
-                {legacy.map((block, index) => (
-                  <li key={`legacy-${block.path}-${index}`} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    {block.text}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
+          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">Legacy notes ({mappedContent.legacyBlocks.length})</summary>
+            <ul className="mt-3 space-y-2">
+              {mappedContent.legacyBlocks.map((block) => (
+                <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
+                  {block.text}
+                </li>
+              ))}
+            </ul>
+          </details>
 
-          {unmatched.length > 0 ? (
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
-                Unmatched but preserved blocks ({unmatched.length})
-              </summary>
-              <ul className="mt-3 space-y-2">
-                {unmatched.map((block, index) => (
-                  <li key={`unmatched-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
-                    {block.text}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
-
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
-              Full verbatim source copy ({allBlocks.length})
+          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">
+              Unmatched but preserved blocks ({mappedContent.unmatchedBlocks.length})
             </summary>
             <ul className="mt-3 space-y-2">
-              {allBlocks.map((block, index) => (
-                <li key={`verbatim-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+              {mappedContent.unmatchedBlocks.map((block) => (
+                <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
+                  {block.text}
+                </li>
+              ))}
+            </ul>
+          </details>
+
+          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">
+              Full verbatim source copy ({mappedContent.allBlocks.length})
+            </summary>
+            <ul className="mt-3 space-y-2">
+              {mappedContent.allBlocks.map((block) => (
+                <li key={toMappedBlockKey(block)} className="rounded-lg border border-[#dbe4f7] bg-white px-3 py-2 text-sm text-slate-700">
                   <p>{block.text}</p>
-                  <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">Source {block.path}</p>
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Source: {block.path}</p>
                 </li>
               ))}
             </ul>
