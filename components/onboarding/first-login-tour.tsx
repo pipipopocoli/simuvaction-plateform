@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
@@ -198,23 +198,7 @@ export function FirstLoginTour({
     }
   }, [isCompleted]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        void handleSkip();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
-  async function markCompleted() {
+  const markCompleted = useCallback(async () => {
     setIsSaving(true);
     setSaveError(null);
 
@@ -231,9 +215,9 @@ export function FirstLoginTour({
     } finally {
       setIsSaving(false);
     }
-  }
+  }, []);
 
-  async function handleSkip() {
+  const handleSkip = useCallback(async () => {
     try {
       await markCompleted();
     } catch {
@@ -241,26 +225,47 @@ export function FirstLoginTour({
       return;
     }
     setIsOpen(false);
-  }
+  }, [markCompleted]);
 
-  async function handleFinish() {
+  const handleFinish = useCallback(async () => {
     try {
       await markCompleted();
     } catch {
       return;
     }
     setIsOpen(false);
-  }
+  }, [markCompleted]);
 
-  function handleNext() {
+  const handleNext = useCallback(() => {
     setStepIndex((index) => Math.min(index + 1, steps.length - 1));
-  }
+  }, [steps.length]);
 
-  function handlePrev() {
+  const handlePrev = useCallback(() => {
     setStepIndex((index) => Math.max(index - 1, 0));
-  }
+  }, []);
 
   const step = steps[stepIndex];
+
+  const handleCtaClick = useCallback(() => {
+    if (!step.cta) return;
+    router.push(step.cta.href);
+    router.refresh();
+  }, [router, step.cta]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        void handleSkip();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSkip, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -284,7 +289,7 @@ export function FirstLoginTour({
 
           <button
             type="button"
-            onClick={() => void handleSkip()}
+            onClick={handleSkip}
             className="rounded-lg p-2 text-ink/50 transition hover:bg-black/5 hover:text-ink"
             aria-label="Fermer le tour"
             disabled={isSaving}
@@ -307,10 +312,7 @@ export function FirstLoginTour({
           {step.cta ? (
             <button
               type="button"
-              onClick={() => {
-                router.push(step.cta!.href);
-                router.refresh();
-              }}
+              onClick={handleCtaClick}
               className="mt-5 inline-flex items-center justify-center rounded-xl border border-ink-border bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:border-ink-blue/40"
             >
               {step.cta.label}
@@ -323,7 +325,7 @@ export function FirstLoginTour({
         <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-ink-border/80 px-5 py-4 sm:flex-row sm:items-center">
           <button
             type="button"
-            onClick={() => void handleSkip()}
+            onClick={handleSkip}
             className="rounded-xl px-4 py-2 text-sm font-semibold text-ink/70 transition hover:bg-black/5"
             disabled={isSaving}
           >
@@ -343,7 +345,7 @@ export function FirstLoginTour({
             {stepIndex >= steps.length - 1 ? (
               <button
                 type="button"
-                onClick={() => void handleFinish()}
+                onClick={handleFinish}
                 className="rounded-xl bg-ink-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-blue-hover disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={isSaving}
               >
@@ -365,4 +367,3 @@ export function FirstLoginTour({
     </div>
   );
 }
-
