@@ -47,6 +47,24 @@ const profilePatchSchema = z
     }
   });
 
+const userProfileSelect = {
+  id: true,
+  email: true,
+  hashedPassword: true,
+  mustChangePassword: true,
+  name: true,
+  role: true,
+  teamId: true,
+  eventId: true,
+  avatarUrl: true,
+  whatsAppNumber: true,
+  xUrl: true,
+  linkedinUrl: true,
+  positionPaperUrl: true,
+  positionPaperSummary: true,
+  team: { select: { countryName: true } },
+} as const;
+
 export async function GET() {
   const session = await getUserSession();
   if (!session) {
@@ -55,7 +73,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    include: { team: { select: { countryName: true } } },
+    select: userProfileSelect,
   });
 
   if (!user) {
@@ -95,7 +113,7 @@ export async function PATCH(request: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    include: { team: { select: { countryName: true } } },
+    select: userProfileSelect,
   });
 
   if (!user) {
@@ -141,7 +159,7 @@ export async function PATCH(request: NextRequest) {
           : positionPaperSummary || null,
       ...(newPassword ? { hashedPassword: await bcrypt.hash(newPassword, 10) } : {}),
     },
-    include: { team: { select: { countryName: true } } },
+    select: userProfileSelect,
   });
 
   const sessionToken = await createSessionJwt({

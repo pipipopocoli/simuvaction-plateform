@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createSessionJwt } from "@/lib/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
@@ -46,6 +47,17 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        hashedPassword: true,
+        mustChangePassword: true,
+        name: true,
+        role: true,
+        teamId: true,
+        eventId: true,
+        avatarUrl: true,
+      },
     });
 
     if (!user) {
@@ -110,8 +122,12 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error("Login Crash:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022") {
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Please contact support." },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ error: "Login temporarily unavailable." }, { status: 500 });
   }
 }

@@ -116,6 +116,11 @@ npm run prisma:migrate:deploy
 ```bash
 npm run prisma:seed
 ```
+5. Deployment checklist (must pass before production rollout):
+- [ ] `npm run prisma:migrate:deploy` finished with no errors on the target environment.
+- [ ] New columns/tables required by this release exist in production DB.
+- [ ] Login works after deploy (valid account returns `200` and session cookie).
+- [ ] No Prisma `P2022` errors in runtime logs.
 
 ## API surface (v1)
 - `POST /api/auth/login`

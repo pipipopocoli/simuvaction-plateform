@@ -56,6 +56,17 @@ export async function decrypt(token: string | undefined = "") {
 export async function loginUser(email: string, pass: string) {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
+    select: {
+      id: true,
+      email: true,
+      hashedPassword: true,
+      mustChangePassword: true,
+      name: true,
+      role: true,
+      teamId: true,
+      eventId: true,
+      avatarUrl: true,
+    },
   });
 
   if (!user) {

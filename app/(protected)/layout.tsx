@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { TopNav } from "@/components/top-nav";
 import { getUserSession } from "@/lib/server-auth";
 import { TutorialBot } from "@/components/tutorial-bot";
@@ -25,8 +26,13 @@ export default async function ProtectedLayout({
       select: { onboardingCompletedAt: true },
     });
     isOnboardingCompleted = Boolean(user?.onboardingCompletedAt);
-  } catch {
-    // Fail-safe: never break authenticated pages if migrations are pending.
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022") {
+      console.warn("Onboarding column missing in database. Falling back to completed state.");
+    } else {
+      console.error("Failed to read onboarding status.", error);
+    }
+    // Fail-safe: never break authenticated pages if migrations are pending or query fails.
     isOnboardingCompleted = true;
   }
 
