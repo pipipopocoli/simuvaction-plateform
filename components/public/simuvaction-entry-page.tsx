@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandLogo } from "@/components/brand-logo";
+import Image from "next/image";
 import { LoginForm } from "@/components/login-form";
 import { NextSimulationCountdown } from "@/components/public/next-simulation-countdown";
 import copyJson from "@/content/simuvaction-site-copy.json";
@@ -221,7 +221,16 @@ export function SimuvactionEntryPage() {
 
           <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:p-10">
             <div className="space-y-6">
-              <BrandLogo size="lg" priority />
+              <div className="inline-flex rounded-2xl border border-[#1f2937] bg-black p-2 shadow-[0_10px_22px_rgba(2,6,23,0.18)]">
+                <Image
+                  src="/simuvaction-logo.png"
+                  alt="SimuVaction official logo"
+                  width={240}
+                  height={240}
+                  priority
+                  className="h-auto w-[180px] sm:w-[210px] lg:w-[240px]"
+                />
+              </div>
 
               <div className="space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1d4ed8]">AI Governance Simulation Program</p>
