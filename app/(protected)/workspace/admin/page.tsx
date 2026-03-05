@@ -12,7 +12,7 @@ export default async function AdminWorkspacePage() {
 
     // Double check authorization: only 'admin' role can enter directly here 
     if (!isAdminLike(session.role)) {
-        redirect("/"); // Or redirect to their specific workspace
+        redirect("/dashboard");
     }
 
     return (

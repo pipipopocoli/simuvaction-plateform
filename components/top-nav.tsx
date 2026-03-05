@@ -2,24 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Globe2, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { NotificationsDropdown } from "@/components/notifications/notifications-dropdown";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageToggle } from "@/components/settings/language-toggle";
 import type { SessionPayload } from "@/lib/auth";
+import { BrandLogo } from "@/components/brand-logo";
 
 const navItems = [
-  { href: "/", label: "Dashboard" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/workspace", label: "Workspace" },
   { href: "/newsroom", label: "Newsroom" },
+  { href: "/surveys", label: "Surveys" },
   { href: "/votes", label: "Votes" },
   { href: "/chat", label: "Messages" },
   { href: "/archive", label: "Archive" },
 ];
 
 function getActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function TopNav({ session }: { session?: SessionPayload }) {
@@ -28,14 +30,9 @@ export function TopNav({ session }: { session?: SessionPayload }) {
   return (
     <header className="sticky top-0 z-50 border-b border-ink-border bg-[var(--color-surface)]/95 backdrop-blur dark:bg-[var(--color-surface)]/95">
       <div className="mx-auto flex w-full max-w-[1440px] items-center gap-4 px-4 py-3 md:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-full border border-ink-blue/30 bg-white text-ink-blue shadow-sm dark:bg-slate-900">
-            <Globe2 className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="font-serif text-[34px] leading-none text-ink">SimuVaction <span className="text-ink-blue">2026</span></p>
-          </div>
-        </Link>
+        <div className="shrink-0">
+          <BrandLogo href="/dashboard" size="md" />
+        </div>
 
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
           {navItems.map((item) => {

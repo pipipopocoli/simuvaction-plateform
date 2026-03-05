@@ -6,7 +6,7 @@ import { isAdminLike } from "@/lib/authz";
 export default async function JournalistWorkspace() {
     const session = await getUserSession();
     if (!session || (session.role !== "journalist" && !isAdminLike(session.role))) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

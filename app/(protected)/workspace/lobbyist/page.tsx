@@ -6,7 +6,7 @@ import { isAdminLike } from "@/lib/authz";
 export default async function LobbyistWorkspace() {
     const session = await getUserSession();
     if (!session || (session.role !== "lobbyist" && !isAdminLike(session.role))) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

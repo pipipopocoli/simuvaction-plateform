@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Globe } from "lucide-react";
 
 export function LanguageToggle() {
-    const [lang, setLang] = useState<"en" | "fr">("en");
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const saved = localStorage.getItem("language") as "en" | "fr" | null;
-            if (saved) setLang(saved);
+    const [lang, setLang] = useState<"en" | "fr">(() => {
+        if (typeof window === "undefined") {
+            return "en";
         }
-    }, []);
+        const saved = localStorage.getItem("language");
+        return saved === "fr" ? "fr" : "en";
+    });
 
     const toggleLang = () => {
         const nextLang = lang === "en" ? "fr" : "en";

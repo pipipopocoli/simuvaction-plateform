@@ -1,0 +1,8 @@
+<svg width="512" height="128" viewBox="0 0 512 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="128" rx="24" fill="#0F172A"/>
+  <circle cx="64" cy="64" r="36" fill="#2563EB"/>
+  <path d="M64 34C51.8497 34 42 43.8497 42 56C42 68.1503 51.8497 78 64 78C76.1503 78 86 68.1503 86 56C86 43.8497 76.1503 34 64 34ZM64 40C72.8366 40 80 47.1634 80 56C80 64.8366 72.8366 72 64 72C55.1634 72 48 64.8366 48 56C48 47.1634 55.1634 40 64 40Z" fill="white"/>
+  <path d="M54 86C54 80.4772 58.4772 76 64 76C69.5228 76 74 80.4772 74 86V90H54V86Z" fill="white"/>
+  <text x="116" y="72" fill="white" font-size="42" font-family="Inter, Arial, sans-serif" font-weight="700">SimuVaction</text>
+  <text x="396" y="72" fill="#60A5FA" font-size="42" font-family="Inter, Arial, sans-serif" font-weight="700">2026</text>
+</svg>

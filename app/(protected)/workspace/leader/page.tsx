@@ -6,7 +6,7 @@ import { isAdminLike } from "@/lib/authz";
 export default async function LeaderWorkspace() {
     const session = await getUserSession();
     if (!session || (session.role !== "leader" && !isAdminLike(session.role))) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

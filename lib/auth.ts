@@ -4,10 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
-const fallbackSecret = "Simuvaction2026-Super-Secret-Token-Infaillible-Fallback-Key-1234567890";
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.SESSION_SECRET || fallbackSecret
-);
+function getSecretKey(): Uint8Array {
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret || sessionSecret.length < 32) {
+    throw new Error("SESSION_SECRET must be set with at least 32 characters.");
+  }
+
+  return new TextEncoder().encode(sessionSecret);
+}
 
 export interface SessionPayload {
   userId: string;
@@ -21,16 +25,18 @@ export interface SessionPayload {
 }
 
 export async function createSessionJwt(payload: SessionPayload): Promise<string> {
+  const secretKey = getSecretKey();
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(SECRET_KEY);
+    .sign(secretKey);
 }
 
 export async function verifySessionJwt(token: string | undefined = ""): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY, {
+    const secretKey = getSecretKey();
+    const { payload } = await jwtVerify(token, secretKey, {
       algorithms: ["HS256"],
     });
     return payload as unknown as SessionPayload;

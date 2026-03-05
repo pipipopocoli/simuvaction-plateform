@@ -23,6 +23,43 @@ type UserSeedInput = {
   mediaOutlet: string | null;
 };
 
+const CONFERENCE_SURVEYS = Array.from({ length: 7 }, (_, index) => ({
+  conferenceNumber: index + 1,
+  title: `Conference ${index + 1} Satisfaction Survey`,
+  description: "Rate the conference quality, usefulness, and facilitation.",
+}));
+
+const CONFERENCE_SURVEY_QUESTIONS = [
+  {
+    prompt: "How satisfied are you with this conference overall?",
+    questionType: "rating",
+    required: true,
+    orderIndex: 1,
+  },
+  {
+    prompt: "How useful were the insights for your simulation strategy?",
+    questionType: "rating",
+    required: true,
+    orderIndex: 2,
+  },
+  {
+    prompt: "What should be improved for the next conference?",
+    questionType: "text",
+    required: false,
+    orderIndex: 3,
+  },
+] as const;
+
+const DISCERNMENT_TEMPLATE_TITLE = "Discernment Progression Questionnaire";
+const DISCERNMENT_QUESTIONS = [
+  "I identify the most reliable information quickly.",
+  "I can distinguish signal from noise when new information appears.",
+  "I choose relevant stakeholders for my objectives.",
+  "I adapt my position with a coherent strategy.",
+  "I build alliances that improve negotiation outcomes.",
+  "I reassess alliances when context changes.",
+] as const;
+
 async function seedInitialNews(eventId: string, authorId: string) {
   const existing = await prisma.newsPost.count({
     where: { eventId, status: "published" },
@@ -64,6 +101,108 @@ async function seedInitialNews(eventId: string, authorId: string) {
       },
     ],
   });
+}
+
+async function seedConferenceSurveys(eventId: string, createdById: string | null) {
+  for (const surveySeed of CONFERENCE_SURVEYS) {
+    const survey = await prisma.conferenceSurvey.upsert({
+      where: {
+        eventId_conferenceNumber: {
+          eventId,
+          conferenceNumber: surveySeed.conferenceNumber,
+        },
+      },
+      update: {
+        title: surveySeed.title,
+        description: surveySeed.description,
+        isPublished: true,
+        createdById,
+      },
+      create: {
+        eventId,
+        createdById,
+        conferenceNumber: surveySeed.conferenceNumber,
+        title: surveySeed.title,
+        description: surveySeed.description,
+        isPublished: true,
+      },
+    });
+
+    const questionCount = await prisma.conferenceSurveyQuestion.count({
+      where: { surveyId: survey.id },
+    });
+
+    if (questionCount === 0) {
+      await prisma.conferenceSurveyQuestion.createMany({
+        data: CONFERENCE_SURVEY_QUESTIONS.map((question) => ({
+          surveyId: survey.id,
+          prompt: question.prompt,
+          questionType: question.questionType,
+          required: question.required,
+          orderIndex: question.orderIndex,
+        })),
+      });
+    }
+  }
+}
+
+async function seedDiscernmentTemplateAndWaves(
+  eventId: string,
+  createdById: string | null,
+  eventStartDate: Date,
+) {
+  const template = await prisma.discernmentTemplate.upsert({
+    where: {
+      eventId_title: {
+        eventId,
+        title: DISCERNMENT_TEMPLATE_TITLE,
+      },
+    },
+    update: {
+      description: "Repeated wave questionnaire to track student discernment progression.",
+      questionsJson: DISCERNMENT_QUESTIONS,
+      createdById,
+    },
+    create: {
+      eventId,
+      createdById,
+      title: DISCERNMENT_TEMPLATE_TITLE,
+      description: "Repeated wave questionnaire to track student discernment progression.",
+      questionsJson: DISCERNMENT_QUESTIONS,
+    },
+  });
+
+  const intervalDays = Math.max(1, Number(process.env.SURVEY_WAVE_INTERVAL_DAYS ?? "15"));
+
+  for (const orderIndex of [1, 2, 3]) {
+    const opensAt = DateTime.fromJSDate(eventStartDate)
+      .plus({ days: (orderIndex - 1) * intervalDays })
+      .toJSDate();
+    const closesAt = DateTime.fromJSDate(opensAt).plus({ days: intervalDays - 1 }).toJSDate();
+
+    await prisma.discernmentWave.upsert({
+      where: {
+        eventId_orderIndex: {
+          eventId,
+          orderIndex,
+        },
+      },
+      update: {
+        templateId: template.id,
+        label: orderIndex === 1 ? "Wave T0" : `Wave T+${(orderIndex - 1) * intervalDays}d`,
+        opensAt,
+        closesAt,
+      },
+      create: {
+        eventId,
+        templateId: template.id,
+        label: orderIndex === 1 ? "Wave T0" : `Wave T+${(orderIndex - 1) * intervalDays}d`,
+        orderIndex,
+        opensAt,
+        closesAt,
+      },
+    });
+  }
 }
 
 async function main() {
@@ -268,6 +407,16 @@ async function main() {
     }
 
     await seedInitialNews(eventId, ownerUser.id);
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { startDate: true },
+  });
+
+  if (event) {
+    await seedConferenceSurveys(eventId, ownerUser?.id ?? null);
+    await seedDiscernmentTemplateAndWaves(eventId, ownerUser?.id ?? null, event.startDate);
   }
 }
 

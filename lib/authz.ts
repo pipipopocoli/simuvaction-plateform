@@ -8,7 +8,7 @@ export function resolveWorkspacePath(role: string | null | undefined): string {
   if (role === "leader") return "/workspace/leader";
   if (role === "lobbyist") return "/workspace/lobbyist";
   if (isAdminLike(role)) return "/workspace/admin";
-  return "/";
+  return "/dashboard";
 }
 
 export function normalizeMemberRole(rawRole: string): {

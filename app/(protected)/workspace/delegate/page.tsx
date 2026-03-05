@@ -6,7 +6,7 @@ import { isAdminLike } from "@/lib/authz";
 export default async function DelegateWorkspace() {
     const session = await getUserSession();
     if (!session || (session.role !== "delegate" && !isAdminLike(session.role))) {
-        redirect("/");
+        redirect("/dashboard");
     }
 
     return (

@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
+function hashResetToken(token: string): string {
+    return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { email } = await req.json();
@@ -25,11 +29,13 @@ export async function POST(req: NextRequest) {
         const expiry = new Date();
         expiry.setHours(expiry.getHours() + 1); // 1 hour validity
 
-        // Save token to database
+        const tokenHash = hashResetToken(token);
+
+        // Save hash to database (never the raw token)
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                resetToken: token,
+                resetToken: tokenHash,
                 resetTokenExpiry: expiry,
             },
         });
@@ -55,9 +61,11 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json({ error: "Invalid token or password." }, { status: 400 });
         }
 
+        const tokenHash = hashResetToken(token);
+
         const user = await prisma.user.findFirst({
             where: {
-                resetToken: token,
+                resetToken: tokenHash,
                 resetTokenExpiry: {
                     gte: new Date(),
                 },

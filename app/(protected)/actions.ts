@@ -13,7 +13,7 @@ const meetingFormSchema = z.object({
 
 export async function generateWeeklyPlanAction() {
   await generateOrUpdateWeeklyPlan();
-  revalidatePath("/");
+  revalidatePath("/dashboard");
 }
 
 export async function saveNextMeetingAction(formData: FormData) {
@@ -28,5 +28,5 @@ export async function saveNextMeetingAction(formData: FormData) {
   }
 
   await saveNextMeeting(parsed.data);
-  revalidatePath("/");
+  revalidatePath("/dashboard");
 }

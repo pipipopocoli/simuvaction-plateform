@@ -1,0 +1,246 @@
+{
+  "model": "moonshotai/kimi-k2.5",
+  "tasks": [
+    {
+      "id": "kimi-01",
+      "objective": "Harden SESSION_SECRET/JWT guards with explicit runtime failures and no fallback secret.",
+      "allowed_files": ["lib/auth.ts", "lib/server-auth.ts"],
+      "acceptance_criteria": [
+        "No fallback secret remains.",
+        "Missing or weak SESSION_SECRET fails explicitly.",
+        "Existing valid sessions continue working."
+      ],
+      "validation_commands": ["npm run lint", "npm run build"]
+    },
+    {
+      "id": "kimi-02",
+      "objective": "Tighten middleware public route allowlist and unauthorized behavior.",
+      "allowed_files": ["middleware.ts"],
+      "acceptance_criteria": [
+        "Only intended public routes are open.",
+        "Private APIs return 401 without valid session.",
+        "Protected pages redirect to login."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-03",
+      "objective": "Secure reset password lifecycle by storing only token hashes and avoiding token leaks.",
+      "allowed_files": ["app/api/auth/reset/route.ts", "app/auth/reset/page.tsx"],
+      "acceptance_criteria": [
+        "Reset token is never stored in plain text.",
+        "Validation compares hashed token.",
+        "No user-facing token leak introduced."
+      ],
+      "validation_commands": ["npm run lint"]
+    },
+    {
+      "id": "kimi-04",
+      "objective": "Consolidate global security headers and CSP compatibility.",
+      "allowed_files": ["next.config.ts"],
+      "acceptance_criteria": [
+        "CSP works with existing analytics/assets.",
+        "No build regression from header policy.",
+        "Security headers remain explicit."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-05",
+      "objective": "Improve consent utility robustness and null-safety for cookie/session handling.",
+      "allowed_files": ["lib/visitor-consent.ts"],
+      "acceptance_criteria": [
+        "Cookie parsing is deterministic.",
+        "Consent status defaults safely.",
+        "Visitor session upsert handles nullable context."
+      ],
+      "validation_commands": ["npm run lint"]
+    },
+    {
+      "id": "kimi-06",
+      "objective": "Strengthen consent API payload validation and logging guarantees.",
+      "allowed_files": ["app/api/consent/route.ts"],
+      "acceptance_criteria": [
+        "Invalid payload returns HTTP 400.",
+        "Successful consent always writes ConsentLog.",
+        "Cookie/state stays synchronized."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-07",
+      "objective": "Harden analytics API to stay strictly consent-gated and payload-safe.",
+      "allowed_files": ["app/api/analytics/event/route.ts"],
+      "acceptance_criteria": [
+        "No tracking when consent is not granted.",
+        "Metadata validation prevents malformed payloads.",
+        "Endpoint remains stable under missing optional fields."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-08",
+      "objective": "Eliminate consent banner client race conditions across reload/navigation.",
+      "allowed_files": [
+        "components/consent/cookie-consent-banner.tsx",
+        "components/consent/consented-analytics-events.tsx",
+        "components/consent/consented-vercel-analytics.tsx",
+        "app/layout.tsx"
+      ],
+      "acceptance_criteria": [
+        "Analytics starts only after explicit acceptance.",
+        "Reload/navigation keeps consent state correctly.",
+        "No render loops or client errors."
+      ],
+      "validation_commands": ["npm run lint"]
+    },
+    {
+      "id": "kimi-09",
+      "objective": "Review Prisma schema relations/indexes for new consent and survey models.",
+      "allowed_files": ["prisma/schema.prisma"],
+      "acceptance_criteria": [
+        "Relations compile with prisma generate.",
+        "Indexes match expected query patterns.",
+        "Naming remains consistent with existing schema."
+      ],
+      "validation_commands": ["npm run prisma:generate"]
+    },
+    {
+      "id": "kimi-10",
+      "objective": "Align migration SQL with the final Prisma schema.",
+      "allowed_files": ["prisma/migrations/20260305_consent_surveys/migration.sql"],
+      "reference_files": ["prisma/schema.prisma"],
+      "acceptance_criteria": [
+        "FKs and uniques match schema.",
+        "Index definitions align with model indexes.",
+        "Migration is idempotent for deployment flow."
+      ],
+      "validation_commands": ["npm run prisma:generate"]
+    },
+    {
+      "id": "kimi-11",
+      "objective": "Ensure conference survey seed is idempotent and conflict-safe.",
+      "allowed_files": ["prisma/seed.ts"],
+      "acceptance_criteria": [
+        "Re-running seed does not duplicate conference surveys.",
+        "Question seeding remains deterministic.",
+        "No conflict with existing event seed logic."
+      ],
+      "validation_commands": ["npm run prisma:seed"]
+    },
+    {
+      "id": "kimi-12",
+      "objective": "Align environment template and API setup doc with orchestrator requirements.",
+      "allowed_files": [".env.example", "documentation/technical/API_SETUP_COMPLETE.md"],
+      "acceptance_criteria": [
+        "OPENROUTER-related variables are documented clearly.",
+        "API setup instructions are executable end-to-end.",
+        "No stale references to removed routes or old orchestration flow."
+      ],
+      "validation_commands": ["rg \"OPENROUTER_API_KEY|kimi\" .env.example documentation/technical/API_SETUP_COMPLETE.md"]
+    },
+    {
+      "id": "kimi-13",
+      "objective": "Stabilize conference surveys read API payload shape and ordering.",
+      "allowed_files": ["app/api/surveys/conferences/route.ts"],
+      "acceptance_criteria": [
+        "Payload shape stays consistent.",
+        "hasResponded is accurate per user.",
+        "Surveys/questions ordering is deterministic."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-14",
+      "objective": "Tighten conference survey submission validation for required fields and type mismatches.",
+      "allowed_files": ["app/api/surveys/conferences/[id]/responses/route.ts"],
+      "acceptance_criteria": [
+        "Required questions are enforced.",
+        "Type mismatches return explicit 400 errors.",
+        "Upsert behavior remains one response per user/survey."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-15",
+      "objective": "Improve active wave selection and fallback behavior for discernment current endpoint.",
+      "allowed_files": ["app/api/surveys/discernment/current/route.ts"],
+      "acceptance_criteria": [
+        "Active wave takes priority when available.",
+        "Fallback selects deterministic wave when none active.",
+        "Null response behavior is explicit and safe."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-16",
+      "objective": "Stabilize discernment scoring/upsert and admin aggregation logic.",
+      "allowed_files": [
+        "app/api/surveys/discernment/responses/route.ts",
+        "app/api/admin/surveys/insights/route.ts"
+      ],
+      "acceptance_criteria": [
+        "Score calculations are accurate and bounded.",
+        "No NaN values in admin insights.",
+        "One response per user/wave remains enforced."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-17",
+      "objective": "Improve surveys UX feedback states, error handling, and accessibility clarity.",
+      "allowed_files": ["components/surveys/surveys-client.tsx", "app/(protected)/surveys/page.tsx"],
+      "acceptance_criteria": [
+        "Save success and error states are explicit.",
+        "Forms remain stable after save attempts.",
+        "Accessibility labels and interactions are clear."
+      ],
+      "validation_commands": ["npm run lint"]
+    },
+    {
+      "id": "kimi-18",
+      "objective": "Verify public/dashboard navigation and branding consistency end-to-end.",
+      "allowed_files": [
+        "components/top-nav.tsx",
+        "components/brand-logo.tsx",
+        "app/page.tsx",
+        "app/login/page.tsx",
+        "app/auth/setup/page.tsx",
+        "app/login/forgot/page.tsx",
+        "public/manifest.json"
+      ],
+      "acceptance_criteria": [
+        "No broken route links.",
+        "Brand logo usage is consistent.",
+        "Public and protected entry flow is coherent."
+      ],
+      "validation_commands": ["npm run build"]
+    },
+    {
+      "id": "kimi-19",
+      "objective": "Align public API and orchestration documentation with current implemented behavior.",
+      "allowed_files": [
+        "README.md",
+        "documentation/technical/API_ROUTES.md",
+        "scripts/generate_api_routes_doc.py"
+      ],
+      "acceptance_criteria": [
+        "Documented endpoints match implemented endpoints.",
+        "Route inventory generation is deterministic and complete.",
+        "No stale references to deprecated paths."
+      ],
+      "validation_commands": ["python3 scripts/generate_api_routes_doc.py", "rg \"/api/\" README.md documentation/technical/API_ROUTES.md"]
+    },
+    {
+      "id": "kimi-20",
+      "objective": "Produce executable QA runbook covering vocal-request acceptance scenarios.",
+      "allowed_files": ["documentation/technical/AGENT_PARALLEL_RUNBOOK.md"],
+      "acceptance_criteria": [
+        "Checklist covers consent, security, surveys, navigation.",
+        "Validation order is explicit and actionable.",
+        "Escalation/failure handling steps are documented."
+      ],
+      "validation_commands": ["manual review by orchestrator"]
+    }
+  ]
+}

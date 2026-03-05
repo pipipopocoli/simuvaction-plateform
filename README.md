@@ -48,6 +48,8 @@ Set the following values:
 - `APP_PASSPHRASE_BCRYPT_HASH`: bcrypt hash of the shared passphrase
 - `SESSION_SECRET`: random secret (minimum 32 chars)
 - `CRON_SECRET`: optional token for `/api/cron/weekly-plan`
+- `NEXT_PUBLIC_COOKIE_CONSENT_ENABLED`: set to `true` to enable consent-gated analytics
+- `SURVEY_WAVE_INTERVAL_DAYS`: interval between discernment waves (default `15`)
 
 Important for Next.js `.env` parsing: if a bcrypt hash contains `$` (it always does), escape each `$` as `\$` in `.env`.
 
@@ -90,7 +92,8 @@ npm run dev
 ```
 
 6. Open:
-- App: http://localhost:3000
+- Public site: http://localhost:3000
+- Authenticated dashboard: http://localhost:3000/dashboard
 - Unlock with shared passphrase (validated via env hash)
 
 ## Prisma notes
@@ -115,8 +118,13 @@ npm run prisma:seed
 ```
 
 ## API surface (v1)
-- `POST /api/auth/unlock`
+- `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `POST /api/auth/reset`
+- `POST /api/auth/setup`
+- `GET /api/public/config`
+- `POST /api/consent`
+- `POST /api/analytics/event`
 - `GET /api/deadlines`
 - `GET /api/pillars`
 - `GET /api/pillars/[slug]/tasks`
@@ -136,3 +144,59 @@ npm run prisma:seed
 - `POST /api/weekly-plan/generate`
 - `GET|POST /api/cron/weekly-plan` (token-protected)
 - `GET|PATCH /api/settings/whatsapp`
+- `GET /api/surveys/conferences`
+- `POST /api/surveys/conferences/[id]/responses`
+- `GET /api/surveys/discernment/current`
+- `POST /api/surveys/discernment/responses`
+- `GET /api/admin/surveys/insights`
+
+## Kimi 2.5 parallel orchestration (20 agents)
+Task manifest:
+- `documentation/technical/kimi_tasks.json`
+
+Runbook:
+- `documentation/technical/AGENT_PARALLEL_RUNBOOK.md`
+
+Generate API route inventory:
+```bash
+python3 scripts/generate_api_routes_doc.py
+```
+
+Create 20 worktrees/branches:
+```bash
+bash scripts/setup_kimi_worktrees.sh \
+  /Users/oliviercloutier/Desktop/Simuvaction \
+  /Users/oliviercloutier/Desktop/Simuvaction-agents \
+  main 20 codex/kimi-
+```
+
+Run all Kimi agents (collect diffs only):
+```bash
+OPENROUTER_API_KEY=<your_key> \
+python3 scripts/orchestrate_kimi_agents.py \
+  --tasks-file documentation/technical/kimi_tasks.json \
+  --model moonshotai/kimi-k2.5 \
+  --max-workers 20 \
+  --expected-task-count 20
+```
+
+Apply valid diffs on integration branch:
+```bash
+OPENROUTER_API_KEY=<your_key> \
+python3 scripts/orchestrate_kimi_agents.py \
+  --tasks-file documentation/technical/kimi_tasks.json \
+  --model moonshotai/kimi-k2.5 \
+  --max-workers 20 \
+  --expected-task-count 20 \
+  --apply-diffs \
+  --integration-branch codex/integration-kimi \
+  --base-branch main
+```
+
+Shortcut wrapper (inventory + run):
+```bash
+OPENROUTER_API_KEY=<your_key> bash scripts/run_kimi_parallel.sh \
+  /Users/oliviercloutier/Desktop/Simuvaction \
+  documentation/technical/kimi_tasks.json \
+  moonshotai/kimi-k2.5 20 false
+```

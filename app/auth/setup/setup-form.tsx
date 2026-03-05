@@ -40,7 +40,7 @@ export function SetupPasswordForm() {
             }
 
             // Force refresh to reload the new session payload without mustChangePassword
-            router.push("/");
+            router.push("/dashboard");
             router.refresh();
         } finally {
             setIsPending(false);

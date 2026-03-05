@@ -188,6 +188,14 @@ model Event {
   documents         EventDocument[]
   twitterConfigs    TwitterConfig[]
   socialPosts       SocialPost[]
+  visitorSessions   VisitorSession[]
+  visitorEvents     VisitorEvent[]
+  consentLogs       ConsentLog[]
+  conferenceSurveys ConferenceSurvey[]
+  conferenceSurveyResponses ConferenceSurveyResponse[]
+  discernmentTemplates DiscernmentTemplate[]
+  discernmentWaves  DiscernmentWave[]
+  discernmentResponses DiscernmentResponse[]
 }
 
 model User {
@@ -235,6 +243,13 @@ model User {
   deadlinesCreated  EventDeadline[]
   documentsCreated  EventDocument[]
   socialPosts       SocialPost[]
+  visitorSessions   VisitorSession[] @relation("VisitorSessionUser")
+  visitorEvents     VisitorEvent[] @relation("VisitorEventUser")
+  consentLogs       ConsentLog[] @relation("ConsentLogUser")
+  conferenceSurveysCreated ConferenceSurvey[] @relation("ConferenceSurveyCreator")
+  conferenceSurveyResponses ConferenceSurveyResponse[] @relation("ConferenceSurveyRespondent")
+  discernmentTemplatesCreated DiscernmentTemplate[] @relation("DiscernmentTemplateCreator")
+  discernmentResponses DiscernmentResponse[] @relation("DiscernmentRespondent")
 
   @@index([eventId])
   @@index([teamId])
@@ -627,4 +642,176 @@ model SocialPost {
 
   @@index([eventId, createdAt(sort: Desc)])
   @@index([authorId])
+}
+
+// ----------------------------------------------------------------------------
+// CONSENT, VISITOR ANALYTICS & SURVEYS v2.3
+// ----------------------------------------------------------------------------
+
+model VisitorSession {
+  id               String   @id @default(cuid())
+  eventId          String?
+  userId           String?
+  sessionKey       String   @unique
+  consentStatus    String   @default("unknown") // unknown, granted, denied
+  analyticsEnabled Boolean  @default(false)
+  policyVersion    String?
+  ipHash           String?
+  userAgent        String?
+  referrer         String?
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  event            Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user             User?    @relation("VisitorSessionUser", fields: [userId], references: [id], onDelete: SetNull)
+  events           VisitorEvent[]
+  consentLogs      ConsentLog[]
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model VisitorEvent {
+  id          String   @id @default(cuid())
+  eventId     String?
+  userId      String?
+  sessionId   String
+  eventType   String
+  pagePath    String
+  referrer    String?
+  dwellMs     Int?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user        User?    @relation("VisitorEventUser", fields: [userId], references: [id], onDelete: SetNull)
+  session     VisitorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([sessionId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ConsentLog {
+  id            String   @id @default(cuid())
+  eventId       String?
+  userId        String?
+  sessionId     String
+  consentStatus String   // granted, denied
+  analyticsEnabled Boolean
+  policyVersion String?
+  createdAt     DateTime @default(now())
+
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user          User?    @relation("ConsentLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  session       VisitorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([sessionId, createdAt(sort: Desc)])
+}
+
+model ConferenceSurvey {
+  id          String   @id @default(cuid())
+  eventId     String
+  createdById String?
+  conferenceNumber Int
+  title       String
+  description String?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation("ConferenceSurveyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  questions   ConferenceSurveyQuestion[]
+  responses   ConferenceSurveyResponse[]
+
+  @@unique([eventId, conferenceNumber])
+  @@index([eventId, isPublished, conferenceNumber])
+}
+
+model ConferenceSurveyQuestion {
+  id          String   @id @default(cuid())
+  surveyId    String
+  prompt      String
+  questionType String  // rating, text
+  required    Boolean  @default(true)
+  orderIndex  Int      @default(0)
+
+  survey      ConferenceSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId, orderIndex])
+}
+
+model ConferenceSurveyResponse {
+  id          String   @id @default(cuid())
+  eventId     String
+  surveyId    String
+  userId      String
+  answersJson Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  survey      ConferenceSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user        User     @relation("ConferenceSurveyRespondent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, userId])
+  @@index([eventId, createdAt(sort: Desc)])
+}
+
+model DiscernmentTemplate {
+  id          String   @id @default(cuid())
+  eventId     String
+  createdById String?
+  title       String
+  description String?
+  questionsJson Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation("DiscernmentTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  waves       DiscernmentWave[]
+
+  @@unique([eventId, title])
+  @@index([eventId, createdAt(sort: Desc)])
+}
+
+model DiscernmentWave {
+  id          String   @id @default(cuid())
+  eventId     String
+  templateId  String
+  label       String
+  orderIndex  Int
+  opensAt     DateTime
+  closesAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  template    DiscernmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  responses   DiscernmentResponse[]
+
+  @@unique([eventId, orderIndex])
+  @@index([eventId, opensAt, closesAt])
+}
+
+model DiscernmentResponse {
+  id          String   @id @default(cuid())
+  eventId     String
+  waveId      String
+  userId      String
+  answersJson Json
+  score       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  wave        DiscernmentWave @relation(fields: [waveId], references: [id], onDelete: Cascade)
+  user        User     @relation("DiscernmentRespondent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([waveId, userId])
+  @@index([eventId, createdAt(sort: Desc)])
 }
