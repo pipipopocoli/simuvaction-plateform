@@ -24,59 +24,70 @@ type SourceBlock = {
 type SectionDefinition = {
   id: string;
   title: string;
-  description: string;
+  subtitle: string;
   matcher: (text: string) => boolean;
 };
 
 const siteCopy = copyJson as SimuvactionSiteCopy;
 
-const legacyPatterns = [
-  /this is a paragraph/i,
-  /for the other universities and their own pages/i,
-  /copyright ©/i,
-];
+const NAV_AND_CHROME_TEXT = new Set([
+  "Home",
+  "General",
+  "About",
+  "Our partners and stakeholders",
+  "Timeline",
+  "Objectives and Benefits",
+  "Sponsors",
+  "2023 Partners",
+  "2022 Partners",
+  "Enrollment",
+  "FAQs",
+  "Media",
+  "Contacts",
+  "More...",
+]);
 
-const sectionDefinitions: SectionDefinition[] = [
+const legacyPatterns = [/this is a paragraph/i, /for the other universities and their own pages/i, /copyright ©/i];
+
+const sections: SectionDefinition[] = [
   {
     id: "general",
     title: "General",
-    description: "Core narrative and public framing of SimuVaction.",
+    subtitle: "Overview and framing",
     matcher: (text) =>
-      /^home$/i.test(text) ||
-      /^general$/i.test(text) ||
       /simuvaction consists/i.test(text) ||
-      /\* a simulation/i.test(text) ||
-      /\* a symposium/i.test(text) ||
+      /simulation/i.test(text) ||
+      /symposium/i.test(text) ||
+      /interested students/i.test(text) ||
       /ai and education/i.test(text),
   },
   {
     id: "about",
     title: "About",
-    description: "Program mission, audience, format, and educational intent.",
+    subtitle: "Who, what, where, why",
     matcher: (text) =>
-      /who \?/i.test(text) ||
-      /what \?/i.test(text) ||
-      /where \?/i.test(text) ||
-      /why \?/i.test(text) ||
+      /^who \?/i.test(text) ||
+      /^what \?/i.test(text) ||
+      /^where \?/i.test(text) ||
+      /^why \?/i.test(text) ||
       /experiential learning program/i.test(text) ||
       /opportunity for 40 university students/i.test(text),
   },
   {
     id: "timeline",
     title: "Timeline",
-    description: "Schedule milestones, stages, and in-person week agenda.",
+    subtitle: "Stages and key dates",
     matcher: (text) =>
-      /timeline/i.test(text) ||
       /kick-off meeting/i.test(text) ||
       /stage \d/i.test(text) ||
+      /from january 12, 2026 to april 24, 2026/i.test(text) ||
       /arrival for international students/i.test(text) ||
-      /action-day/i.test(text) ||
-      /from january 12, 2026 to april 24, 2026/i.test(text),
+      /action-day/i.test(text),
   },
   {
     id: "objectives",
     title: "Objectives",
-    description: "Program objectives and ecosystem outcomes.",
+    subtitle: "Learning and ecosystem outcomes",
     matcher: (text) =>
       /objectives/i.test(text) ||
       /create an ecosystem/i.test(text) ||
@@ -88,66 +99,57 @@ const sectionDefinitions: SectionDefinition[] = [
   {
     id: "enrollment",
     title: "Enrollment",
-    description: "Eligibility and enrollment requirements.",
+    subtitle: "Requirements and eligibility",
     matcher: (text) =>
-      /enrollment/i.test(text) ||
       /registration/i.test(text) ||
-      /certificate of attendance/i.test(text) ||
-      /home university/i.test(text),
+      /enrollment/i.test(text) ||
+      /home university/i.test(text) ||
+      /certificate of attendance/i.test(text),
   },
   {
     id: "faqs",
     title: "FAQs",
-    description: "Frequently asked questions and operational answers.",
+    subtitle: "Operational questions",
     matcher: (text) =>
       /frequently asked questions/i.test(text) ||
-      /^is it conceived as a course\?/i.test(text) ||
-      /^what are the requirements to obtain the certificate of attendance\?/i.test(text) ||
-      /^what assignments should i expect\?/i.test(text) ||
-      /^what are the expectations\?/i.test(text) ||
-      /^what does the mentoring entail within the project\?/i.test(text) ||
-      /^are there awards for this project\?/i.test(text) ||
-      /^what if i have zero experience in negotiation\?/i.test(text) ||
-      /^if i were to participate, how much would i have to pay\?/i.test(text) ||
-      /^is it open to all students\?/i.test(text) ||
-      /^which universities are partners to the program/i.test(text) ||
-      /^how does enrollment work\?/i.test(text) ||
-      /^upon completion of the program/i.test(text),
+      /what are the requirements to obtain the certificate of attendance/i.test(text) ||
+      /what assignments should i expect/i.test(text) ||
+      /what are the expectations/i.test(text) ||
+      /what does the mentoring entail within the project/i.test(text) ||
+      /are there awards for this project/i.test(text) ||
+      /what if i have zero experience in negotiation/i.test(text) ||
+      /if i were to participate, how much would i have to pay/i.test(text) ||
+      /is it open to all students/i.test(text) ||
+      /how does enrollment work/i.test(text),
   },
   {
     id: "media",
     title: "Media",
-    description: "Published media references and external mentions.",
+    subtitle: "References and publications",
     matcher: (text) =>
       /^media$/i.test(text) ||
       /see the video/i.test(text) ||
       /see the slideshow/i.test(text) ||
+      /see the clip/i.test(text) ||
       /see the article/i.test(text) ||
-      /emory report/i.test(text) ||
-      /consulat général de france/i.test(text),
+      /emory report/i.test(text),
   },
   {
     id: "contacts",
     title: "Contacts",
-    description: "Follow-up channels and contact entry points.",
-    matcher: (text) =>
-      /^contacts$/i.test(text) ||
-      /follow us/i.test(text) ||
-      /simuvaction\.bsky\.social/i.test(text),
+    subtitle: "Follow and communication",
+    matcher: (text) => /^contacts$/i.test(text) || /follow us/i.test(text) || /simuvaction\.bsky\.social/i.test(text),
   },
   {
     id: "sponsors",
     title: "Sponsors",
-    description: "Sponsor references by yearly cohort.",
-    matcher: (text) =>
-      /sponsors/i.test(text) ||
-      /^2023-2024$/i.test(text) ||
-      /^2022-2023$/i.test(text),
+    subtitle: "Sponsor cohorts",
+    matcher: (text) => /sponsors/i.test(text) || /^2023-2024$/i.test(text) || /^2022-2023$/i.test(text),
   },
   {
     id: "partners",
     title: "Partners",
-    description: "Academic and stakeholder partner references.",
+    subtitle: "Academic and institutional partners",
     matcher: (text) =>
       /partners and stakeholders/i.test(text) ||
       /our 2023 partners/i.test(text) ||
@@ -159,42 +161,77 @@ const sectionDefinitions: SectionDefinition[] = [
   },
 ];
 
-function normalizeText(text: string) {
-  return text.trim();
+function normalizeText(value: string) {
+  return value.replace(/\u200b/g, "").replace(/\s+/g, " ").trim();
 }
 
-function toSourceBlocks(data: SimuvactionSiteCopy): SourceBlock[] {
-  return data.pages.flatMap((page) =>
-    page.blocks.map((text) => ({
-      text: normalizeText(text),
-      path: page.path,
-    })),
-  );
+function isDisplayNoise(text: string) {
+  if (!text) {
+    return true;
+  }
+  if (NAV_AND_CHROME_TEXT.has(text)) {
+    return true;
+  }
+  if (/^[\u200b\s·•\-–—]+$/.test(text)) {
+    return true;
+  }
+  return false;
 }
 
-function classifyBlocks(blocks: SourceBlock[]) {
-  const buckets = new Map<string, SourceBlock[]>();
-  for (const section of sectionDefinitions) {
-    buckets.set(section.id, []);
+function toBlocks(data: SimuvactionSiteCopy): SourceBlock[] {
+  const blocks: SourceBlock[] = [];
+  for (const page of data.pages) {
+    for (const rawText of page.blocks) {
+      blocks.push({
+        text: normalizeText(rawText),
+        path: page.path,
+      });
+    }
+  }
+  return blocks;
+}
+
+function uniqueByTextWithSource(blocks: SourceBlock[]) {
+  const seen = new Set<string>();
+  const out: SourceBlock[] = [];
+  for (const block of blocks) {
+    const key = `${block.path}::${block.text}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(block);
+  }
+  return out;
+}
+
+function classify(blocks: SourceBlock[]) {
+  const sectionBuckets = new Map<string, SourceBlock[]>();
+  for (const section of sections) {
+    sectionBuckets.set(section.id, []);
   }
   const legacy: SourceBlock[] = [];
 
   for (const block of blocks) {
+    if (!block.text) {
+      continue;
+    }
     if (legacyPatterns.some((pattern) => pattern.test(block.text))) {
       legacy.push(block);
       continue;
     }
-
-    const match = sectionDefinitions.find((section) => section.matcher(block.text));
-    if (!match) {
-      buckets.get("general")?.push(block);
+    if (isDisplayNoise(block.text)) {
       continue;
     }
-
-    buckets.get(match.id)?.push(block);
+    const section = sections.find((candidate) => candidate.matcher(block.text));
+    if (section) {
+      sectionBuckets.get(section.id)?.push(block);
+    } else {
+      sectionBuckets.get("general")?.push(block);
+    }
   }
 
-  return { buckets, legacy };
+  return { sectionBuckets, legacy };
 }
 
 function formatGeneratedAt(value: string) {
@@ -206,12 +243,12 @@ function formatGeneratedAt(value: string) {
 }
 
 export function SimuvactionEntryPage() {
-  const sourceBlocks = toSourceBlocks(siteCopy);
-  const { buckets, legacy } = classifyBlocks(sourceBlocks);
-  const renderedSections = sectionDefinitions
+  const allBlocks = uniqueByTextWithSource(toBlocks(siteCopy));
+  const { sectionBuckets, legacy } = classify(allBlocks);
+  const renderedSections = sections
     .map((section) => ({
       ...section,
-      blocks: buckets.get(section.id) ?? [],
+      blocks: sectionBuckets.get(section.id) ?? [],
     }))
     .filter((section) => section.blocks.length > 0);
 
@@ -226,11 +263,11 @@ export function SimuvactionEntryPage() {
                 SimuVaction — Official Public Information
               </p>
               <h1 className="font-serif text-4xl font-bold leading-tight text-[#111827] lg:text-5xl">
-                Simulation + Symposium platform for AI governance and education.
+                Simulation, innovation, and action in AI governance and education.
               </h1>
               <p className="max-w-3xl text-base leading-relaxed text-zinc-700">
-                This page consolidates the complete text extracted from the SimuVaction public website, organized by
-                theme and kept verbatim.
+                This page consolidates the complete SimuVaction public copy in a structured format while preserving full
+                source text access.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-3">
@@ -239,8 +276,10 @@ export function SimuvactionEntryPage() {
                   <p className="mt-1 text-xl font-bold text-zinc-900">{siteCopy.pages.length}</p>
                 </div>
                 <div className="rounded-xl border border-[#e4e7ef] bg-[#f9fbff] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Text blocks</p>
-                  <p className="mt-1 text-xl font-bold text-zinc-900">{sourceBlocks.length}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Display blocks</p>
+                  <p className="mt-1 text-xl font-bold text-zinc-900">
+                    {renderedSections.reduce((acc, section) => acc + section.blocks.length, 0)}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-[#e4e7ef] bg-[#f9fbff] px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Extracted</p>
@@ -288,7 +327,7 @@ export function SimuvactionEntryPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">{section.title}</p>
-                      <h3 className="mt-1 font-serif text-2xl font-bold text-zinc-900">{section.description}</h3>
+                      <h3 className="mt-1 font-serif text-2xl font-bold text-zinc-900">{section.subtitle}</h3>
                     </div>
                     <span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-xs font-semibold text-[#1E3A8A]">
                       {section.blocks.length} blocks
@@ -314,7 +353,7 @@ export function SimuvactionEntryPage() {
           <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
             <h2 className="font-serif text-2xl font-bold text-amber-900">Legacy source notes</h2>
             <p className="mt-2 text-sm text-amber-800">
-              Preserved verbatim from source pages, including legacy/placeholder editor content.
+              Preserved verbatim from source pages, including placeholder/editorial leftover content.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-amber-900">
               {legacy.map((block, index) => (
@@ -328,6 +367,25 @@ export function SimuvactionEntryPage() {
             </ul>
           </section>
         ) : null}
+
+        <section className="rounded-2xl border border-[#d9deea] bg-white p-5">
+          <details>
+            <summary className="cursor-pointer list-none text-sm font-semibold uppercase tracking-[0.1em] text-zinc-700">
+              Full verbatim source copy ({allBlocks.length} blocks)
+            </summary>
+            <p className="mt-3 text-sm text-zinc-600">
+              Complete extracted text from all locked source pages, including navigation/chrome text.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-zinc-800">
+              {allBlocks.map((block, index) => (
+                <li key={`verbatim-${block.path}-${index}`} className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-2">
+                  <p>{block.text || " "}</p>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">Source {block.path}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </section>
       </main>
     </div>
   );
