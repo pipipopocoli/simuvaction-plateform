@@ -18,6 +18,9 @@ function isPublicPath(rawPathname: string): boolean {
   if (pathname === "/api/auth/reset") return true;
 
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
+  if (/\.(?:png|svg|jpg|jpeg|gif|webp|ico|json|txt|xml|woff|woff2|ttf|otf)$/i.test(pathname)) {
+    return true;
+  }
 
   return false;
 }
