@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 import { isAdminLike } from "@/lib/authz";
+import { getPublicEditorialByline } from "@/lib/news-author";
 
 export async function GET() {
   try {
@@ -42,7 +43,12 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(documents);
+    return NextResponse.json(
+      documents.map((document) => ({
+        ...document,
+        publicAuthorName: getPublicEditorialByline(),
+      })),
+    );
   } catch (error) {
     console.error("Failed to fetch documents:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

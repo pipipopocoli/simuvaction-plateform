@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlignLeft, CalendarClock, Clock, Send, Users } from "lucide-react";
+import { AlignLeft, CalendarClock, Clock, Send, Sparkles, Users } from "lucide-react";
 import { Panel } from "@/components/ui/commons";
 
 type ContactsPayload = {
@@ -22,6 +22,42 @@ type ContactsPayload = {
   }>;
 };
 
+type AvailabilityPayload = {
+  organizerTimeZone: string;
+  participants: Array<{
+    id: string;
+    name: string;
+    role: string;
+    teamName: string | null;
+    preferredTimeZone: string;
+    isOrganizer: boolean;
+  }>;
+  suggestedSlots: Array<{
+    startsAt: string;
+    endsAt: string;
+    participantTimes: Array<{
+      userId: string;
+      name: string;
+      timeZone: string;
+      localStart: string;
+      localEnd: string;
+    }>;
+  }>;
+};
+
+function toDateTimeLocalValue(isoDate: string) {
+  const date = new Date(isoDate);
+  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return shifted.toISOString().slice(0, 16);
+}
+
+function formatSlotLabel(isoDate: string) {
+  return new Date(isoDate).toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
   const [contacts, setContacts] = useState<ContactsPayload>({
     currentUserTimeZone: "UTC",
@@ -41,6 +77,13 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityPayload>({
+    organizerTimeZone: "UTC",
+    participants: [],
+    suggestedSlots: [],
+  });
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
 
   useEffect(() => {
     fetch("/api/chat/contacts")
@@ -51,15 +94,100 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
       .finally(() => setLoadingContacts(false));
   }, []);
 
-  const selectedAttendees = useMemo(() => {
-    if (recipientMode === "individual") {
-      return contacts.members.filter((member) => member.id === targetUserId);
+  const durationMin = useMemo(() => {
+    const parsed = Number.parseInt(duration, 10);
+    return Number.isFinite(parsed) ? parsed : 30;
+  }, [duration]);
+
+  const organizerTimeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || contacts.currentUserTimeZone || "UTC",
+    [contacts.currentUserTimeZone],
+  );
+
+  const availabilityRequest = useMemo(() => {
+    if (loadingContacts || durationMin < 10 || durationMin > 240) {
+      return null;
     }
-    if (recipientMode === "team") {
-      return contacts.teams.filter((team) => team.id === targetTeamId);
+
+    if (recipientMode === "individual" && !targetUserId) {
+      return null;
     }
-    return contacts.members.filter((member) => attendeeIds.includes(member.id));
-  }, [attendeeIds, contacts.members, contacts.teams, recipientMode, targetTeamId, targetUserId]);
+
+    if (recipientMode === "team" && !targetTeamId) {
+      return null;
+    }
+
+    if (recipientMode === "group" && attendeeIds.length === 0) {
+      return null;
+    }
+
+    return {
+      recipientMode,
+      targetUserId: recipientMode === "individual" ? targetUserId : undefined,
+      targetTeamId: recipientMode === "team" ? targetTeamId : undefined,
+      attendeeIds: recipientMode === "group" ? attendeeIds : [],
+      durationMin,
+      organizerTimeZone,
+      rangeDays: 7,
+    };
+  }, [attendeeIds, durationMin, loadingContacts, organizerTimeZone, recipientMode, targetTeamId, targetUserId]);
+
+  useEffect(() => {
+    if (!availabilityRequest) {
+      setAvailability({
+        organizerTimeZone,
+        participants: [],
+        suggestedSlots: [],
+      });
+      setAvailabilityError("");
+      setLoadingAvailability(false);
+      return;
+    }
+
+    let active = true;
+    setLoadingAvailability(true);
+    setAvailabilityError("");
+
+    fetch("/api/meetings/availability", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(availabilityRequest),
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => ({}))) as AvailabilityPayload & { error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to load suggested time slots.");
+        }
+        if (!active) {
+          return;
+        }
+        setAvailability(payload);
+      })
+      .catch((availabilityLoadError) => {
+        if (!active) {
+          return;
+        }
+        setAvailability({
+          organizerTimeZone,
+          participants: [],
+          suggestedSlots: [],
+        });
+        setAvailabilityError(
+          availabilityLoadError instanceof Error
+            ? availabilityLoadError.message
+            : "Unable to load suggested time slots.",
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingAvailability(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [availabilityRequest, organizerTimeZone]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -99,9 +227,8 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
           title,
           note: note || undefined,
           proposedStartAt: new Date(dateTime).toISOString(),
-          durationMin: parseInt(duration, 10),
-          organizerTimeZone:
-            Intl.DateTimeFormat().resolvedOptions().timeZone || contacts.currentUserTimeZone || "UTC",
+          durationMin,
+          organizerTimeZone,
           googleMeetRequested,
         }),
       });
@@ -118,6 +245,7 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
       setTitle("");
       setNote("");
       setDateTime("");
+      setDuration("30");
       if (onSuccess) onSuccess();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Unable to send request.");
@@ -167,9 +295,7 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
               disabled={loadingContacts}
               className="w-full rounded-lg border border-ink-border bg-white px-3 py-2 text-ink shadow-sm outline-none focus:border-ink-blue"
             >
-              <option value="">
-                {loadingContacts ? "Loading directory..." : "Select a member"}
-              </option>
+              <option value="">{loadingContacts ? "Loading directory..." : "Select a member"}</option>
               {contacts.members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name} ({member.teamName ?? member.role}) · {member.preferredTimeZone}
@@ -268,18 +394,64 @@ export function MeetingRequestForm({ onSuccess }: { onSuccess?: () => void }) {
           </label>
         </div>
 
-        {selectedAttendees.length > 0 ? (
+        {availability.participants.length > 0 ? (
           <div className="rounded-xl border border-ink-border bg-ivory p-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Timezone preview</p>
             <div className="mt-2 space-y-1 text-sm text-ink/80">
-              {selectedAttendees.map((attendee) => (
-                <p key={attendee.id}>
-                  {attendee.name} · {attendee.preferredTimeZone}
+              {availability.participants.map((participant) => (
+                <p key={participant.id}>
+                  {participant.isOrganizer ? "You" : participant.name}
+                  {participant.teamName ? ` (${participant.teamName})` : ""} · {participant.preferredTimeZone}
                 </p>
               ))}
             </div>
           </div>
         ) : null}
+
+        <div className="rounded-xl border border-ink-border bg-white p-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-ink-blue" />
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Suggested slots</p>
+          </div>
+          <p className="mt-1 text-xs text-ink/60">
+            Common availability across the next 7 days, constrained to 08:00–22:00 local time for every participant.
+          </p>
+          {availabilityError ? <p className="mt-3 text-sm text-alert-red">{availabilityError}</p> : null}
+          {loadingAvailability ? (
+            <p className="mt-3 text-sm text-ink/60">Loading suggested slots...</p>
+          ) : availability.suggestedSlots.length > 0 ? (
+            <div className="mt-3 grid gap-2">
+              {availability.suggestedSlots.slice(0, 12).map((slot) => {
+                const localValue = toDateTimeLocalValue(slot.startsAt);
+                const isSelected = localValue === dateTime;
+
+                return (
+                  <button
+                    key={slot.startsAt}
+                    type="button"
+                    onClick={() => setDateTime(localValue)}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${
+                      isSelected ? "border-ink-blue bg-blue-50" : "border-ink-border bg-ivory hover:border-ink-blue/40"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-ink">{formatSlotLabel(slot.startsAt)}</p>
+                    <div className="mt-2 space-y-1 text-xs text-ink/65">
+                      {slot.participantTimes.map((entry) => (
+                        <p key={`${slot.startsAt}-${entry.userId}`}>
+                          {entry.name}: {entry.localStart} → {entry.localEnd} ({entry.timeZone})
+                        </p>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : availabilityRequest ? (
+            <p className="mt-3 text-sm text-ink/60">No common slot found in the next 7 days. You can still propose a manual time.</p>
+          ) : (
+            <p className="mt-3 text-sm text-ink/60">Select your attendees and duration to generate suggestions.</p>
+          )}
+        </div>
 
         <label className="block">
           <span className="mb-1 flex items-center gap-1 text-sm font-bold text-ink/70">

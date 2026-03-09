@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminLike } from "@/lib/authz";
+import { getPublicAuthorName, getPublicAuthorRole } from "@/lib/news-author";
+import { getEditorialNewsAsset } from "@/lib/editorial-news";
 
 // GET /api/news
 // Fetch news articles based on role and status
@@ -93,6 +95,7 @@ export async function GET(req: NextRequest) {
             const journalistApprovals = post.approvals.filter(a => a.approverRole === "journalist" && a.decision === "approve").length;
             const leaderApprovals = post.approvals.filter(a => (a.approverRole === "leader" || a.approverRole === "admin") && a.decision === "approve").length;
             const rejections = post.approvals.filter(a => a.decision === "reject").length;
+            const editorialAsset = getEditorialNewsAsset(post.title);
 
             // Re-verify if this user has already voted on this specific article
             const hasUserVoted = post.approvals.some(a => a.approverId === userId);
@@ -107,7 +110,11 @@ export async function GET(req: NextRequest) {
                     requiredLeaders: 1,
                     canPublish: journalistApprovals >= 2 && leaderApprovals >= 1
                 },
-                hasUserVoted
+                hasUserVoted,
+                publicAuthorName: getPublicAuthorName(post.author),
+                publicAuthorRole: getPublicAuthorRole(post.author),
+                imageUrl: editorialAsset?.imageUrl ?? null,
+                source: editorialAsset?.sourceLabel ?? null,
             };
         });
 

@@ -1,10 +1,12 @@
 import { DateTime } from "luxon";
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { buildFixedWordSummary } from "@/lib/news-summary";
 import { Panel, SectionHeader, StatusBadge } from "@/components/ui/commons";
 import { getPublicAuthorName } from "@/lib/news-author";
+import { getEditorialNewsAsset } from "@/lib/editorial-news";
 
 type NewsroomArticlePageProps = {
   params: Promise<{ id: string }>;
@@ -37,6 +39,7 @@ export default async function NewsroomArticlePage({ params }: NewsroomArticlePag
 
   const summary50 = buildFixedWordSummary(article.body, 50);
   const summary100 = buildFixedWordSummary(article.body, 100);
+  const editorialAsset = getEditorialNewsAsset(article.title);
 
   return (
     <div className="space-y-6">
@@ -53,6 +56,19 @@ export default async function NewsroomArticlePage({ params }: NewsroomArticlePag
             {formatDate(article.publishedAt ?? article.createdAt)} • {getPublicAuthorName(article.author)}
           </p>
         </div>
+
+        {editorialAsset?.imageUrl ? (
+          <div className="mt-4 overflow-hidden rounded-xl border border-ink-border bg-ivory">
+            <Image
+              src={editorialAsset.imageUrl}
+              alt={article.title}
+              width={1200}
+              height={675}
+              unoptimized
+              className="h-auto w-full object-cover"
+            />
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-xl border border-ink-border bg-ivory p-4">

@@ -9,6 +9,7 @@ import {
   PARIS_TIMEZONE,
   PILLARS,
 } from "../lib/constants";
+import { EDITORIAL_NEWS_SEEDS } from "../lib/editorial-news";
 import { normalizeMemberRole } from "../lib/authz";
 
 const prisma = new PrismaClient();
@@ -61,46 +62,57 @@ const DISCERNMENT_QUESTIONS = [
 ] as const;
 
 async function seedInitialNews(eventId: string, authorId: string) {
-  const existing = await prisma.newsPost.count({
-    where: { eventId, status: "published" },
-  });
+  const legacyTitles = [
+    "Ceasefire monitoring mission launched",
+    "Emergency energy package enters final vote window",
+    "Digital governance framework moves to review",
+  ];
 
-  if (existing > 0) {
-    return;
-  }
+  await prisma.newsPost.deleteMany({
+    where: {
+      eventId,
+      authorId,
+      title: { in: legacyTitles },
+    },
+  });
 
   const now = Date.now();
-  await prisma.newsPost.createMany({
-    data: [
-      {
+
+  for (const article of EDITORIAL_NEWS_SEEDS) {
+    const existing = await prisma.newsPost.findFirst({
+      where: {
         eventId,
         authorId,
-        title: "Ceasefire monitoring mission launched",
-        body:
-          "Delegations approved a coordinated observer mission while bilateral talks continue in parallel. Security and humanitarian access remain priority tracks.",
-        status: "published",
-        publishedAt: new Date(now - 20 * 60 * 1000),
+        title: { in: [...article.lookupTitles] },
       },
-      {
+      select: { id: true },
+    });
+
+    if (existing) {
+      await prisma.newsPost.update({
+        where: { id: existing.id },
+        data: {
+          authorId,
+          title: article.title,
+          body: article.body,
+          status: "published",
+          publishedAt: new Date(now - article.publishedOffsetMinutes * 60 * 1000),
+        },
+      });
+      continue;
+    }
+
+    await prisma.newsPost.create({
+      data: {
         eventId,
         authorId,
-        title: "Emergency energy package enters final vote window",
-        body:
-          "Policy negotiators converged on a compromise text. Final amendments are expected before the parliamentary close.",
+        title: article.title,
+        body: article.body,
         status: "published",
-        publishedAt: new Date(now - 60 * 60 * 1000),
+        publishedAt: new Date(now - article.publishedOffsetMinutes * 60 * 1000),
       },
-      {
-        eventId,
-        authorId,
-        title: "Digital governance framework moves to review",
-        body:
-          "Leaders requested an accelerated review cycle after delegates reported broad alignment across regional blocs.",
-        status: "published",
-        publishedAt: new Date(now - 2 * 60 * 60 * 1000),
-      },
-    ],
-  });
+    });
+  }
 }
 
 async function seedConferenceSurveys(eventId: string, createdById: string | null) {
@@ -423,6 +435,7 @@ async function main() {
 main()
   .then(async () => {
     await prisma.$disconnect();
+    process.exit(0);
   })
   .catch(async (error) => {
     console.error(error);

@@ -16,6 +16,8 @@ type PublicNewsPost = {
   source: string | null;
   publishedAt: string | null;
   createdAt: string;
+  publicAuthorName?: string;
+  publicAuthorRole?: string;
   author: {
     id: string;
     name: string;
@@ -35,6 +37,14 @@ function toClock(isoDate: string | null, fallbackDate: string) {
   }
 
   return parsed.toUTC().toFormat("HH:mm 'UTC'");
+}
+
+function resolveAuthorName(post: PublicNewsPost) {
+  return post.publicAuthorName ?? getPublicAuthorName(post.author);
+}
+
+function resolveAuthorRole(post: PublicNewsPost) {
+  return post.publicAuthorRole ?? getPublicAuthorRole(post.author);
 }
 
 export function FrontPageNewsFeed() {
@@ -153,13 +163,13 @@ export function FrontPageNewsFeed() {
             </div>
           )}
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
-            {toClock(leadStory.publishedAt, leadStory.createdAt)} • {getPublicAuthorName(leadStory.author)}
+            {toClock(leadStory.publishedAt, leadStory.createdAt)} • {resolveAuthorName(leadStory)}
           </p>
           <h3 className="mt-2 font-serif text-4xl font-bold leading-tight text-ink">{leadStory.title}</h3>
 
           <div className="mt-4 border-l-4 border-ink-border/50 pl-4 py-1 mb-4 bg-ink/5 pr-4 rounded-r-md">
             <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 group-hover:text-ink-blue transition-colors">
-              By {getPublicAuthorName(leadStory.author)} — {getPublicAuthorRole(leadStory.author).toUpperCase()}
+              By {resolveAuthorName(leadStory)} — {resolveAuthorRole(leadStory).toUpperCase()}
             </p>
             {leadStory.source && <p className="text-[10px] italic text-ink/40 mt-1">Source: {leadStory.source}</p>}
           </div>
@@ -174,7 +184,7 @@ export function FrontPageNewsFeed() {
             <ListCard
               title={post.title}
               description={post.body.slice(0, 150) + "..."}
-              meta={`${toClock(post.publishedAt, post.createdAt)} • By ${getPublicAuthorName(post.author)} ${post.source ? `(Source: ${post.source})` : ""}`}
+              meta={`${toClock(post.publishedAt, post.createdAt)} • By ${resolveAuthorName(post)} ${post.source ? `(Source: ${post.source})` : ""}`}
               aside={<StatusBadge tone="neutral">Dispatch</StatusBadge>}
               className="hover:border-ink-blue/40 transition"
             />

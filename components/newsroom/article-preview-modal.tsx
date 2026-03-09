@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DateTime } from "luxon";
@@ -12,6 +13,8 @@ type ArticlePreviewPayload = {
   body: string;
   createdAt: string;
   publishedAt: string | null;
+  imageUrl: string | null;
+  publicAuthorName?: string;
   author: { name: string; role: string };
   summary50: string;
   summary100: string;
@@ -94,9 +97,22 @@ export function ArticlePreviewModal({ articleId, onClose }: ArticlePreviewModalP
         ) : (
           <div className="space-y-4">
             <p className="text-xs uppercase tracking-[0.1em] text-ink/55">
-              {formatDate(article.publishedAt ?? article.createdAt)} • {getPublicAuthorName(article.author)}
+              {formatDate(article.publishedAt ?? article.createdAt)} • {article.publicAuthorName ?? getPublicAuthorName(article.author)}
             </p>
             <h2 className="font-serif text-4xl font-bold text-ink">{article.title}</h2>
+
+            {article.imageUrl ? (
+              <div className="overflow-hidden rounded-xl border border-ink-border bg-ivory">
+                <Image
+                  src={article.imageUrl}
+                  alt={article.title}
+                  width={1200}
+                  height={675}
+                  unoptimized
+                  className="h-auto w-full object-cover"
+                />
+              </div>
+            ) : null}
 
             <div className="rounded-xl border border-ink-border bg-ivory p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">50-word summary</p>

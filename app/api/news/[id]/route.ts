@@ -3,6 +3,8 @@ import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminLike } from "@/lib/authz";
 import { buildFixedWordSummary } from "@/lib/news-summary";
+import { getPublicAuthorName, getPublicAuthorRole } from "@/lib/news-author";
+import { getEditorialNewsAsset } from "@/lib/editorial-news";
 
 export async function GET(
     _req: NextRequest,
@@ -44,6 +46,7 @@ export async function GET(
         const journalistApprovals = post.approvals.filter(a => a.approverRole === "journalist" && a.decision === "approve").length;
         const leaderApprovals = post.approvals.filter(a => (a.approverRole === "leader" || a.approverRole === "admin") && a.decision === "approve").length;
         const rejections = post.approvals.filter(a => a.decision === "reject").length;
+        const editorialAsset = getEditorialNewsAsset(post.title);
 
         const hasUserVoted = post.approvals.some(a => a.approverId === userId);
 
@@ -51,6 +54,10 @@ export async function GET(
             ...post,
             summary50: buildFixedWordSummary(post.body, 50),
             summary100: buildFixedWordSummary(post.body, 100),
+            publicAuthorName: getPublicAuthorName(post.author),
+            publicAuthorRole: getPublicAuthorRole(post.author),
+            imageUrl: editorialAsset?.imageUrl ?? null,
+            source: editorialAsset?.sourceLabel ?? null,
             stats: {
                 journalistApprovals,
                 leaderApprovals,

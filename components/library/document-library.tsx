@@ -15,6 +15,7 @@ type EventDocument = {
   isPublic: boolean;
   createdAt: string;
   createdBy: { name: string; displayRole: string | null; role: string };
+  publicAuthorName: string;
   targetTeams?: { id: string; countryCode: string; countryName: string }[];
 };
 
@@ -279,7 +280,7 @@ export function DocumentLibrary({
                 <h3 className="mt-4 font-serif text-xl font-bold text-ink group-hover:text-ink-blue">{doc.title}</h3>
                 {doc.description ? <p className="mt-2 text-sm text-ink/70">{doc.description}</p> : null}
                 <div className="mt-auto pt-4 text-xs text-ink/55">
-                  <p>{formatDate(doc.createdAt)} · {doc.createdBy.name}</p>
+                  <p>{formatDate(doc.createdAt)} · {doc.publicAuthorName}</p>
                   {!doc.isPublic && doc.targetTeams?.length ? (
                     <p className="mt-1">Restricted to: {doc.targetTeams.map((team) => team.countryName).join(", ")}</p>
                   ) : null}
