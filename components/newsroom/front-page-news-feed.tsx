@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { Newspaper } from "lucide-react";
 import { ListCard, Panel, StatusBadge } from "@/components/ui/commons";
 import { ArticlePreviewModal } from "@/components/newsroom/article-preview-modal";
+import { getPublicAuthorName, getPublicAuthorRole } from "@/lib/news-author";
 
 type PublicNewsPost = {
   id: string;
@@ -111,14 +113,21 @@ export function FrontPageNewsFeed() {
               {journalistDesks.map((author) => (
                 <div key={author.id} className="flex items-center gap-2 rounded-full border border-ink-border bg-ivory px-2.5 py-1.5">
                   {author.avatarUrl ? (
-                    <img src={author.avatarUrl} alt={author.name} className="h-6 w-6 rounded-full object-cover" />
+                    <Image
+                      src={author.avatarUrl}
+                      alt={author.name}
+                      width={24}
+                      height={24}
+                      unoptimized
+                      className="h-6 w-6 rounded-full object-cover"
+                    />
                   ) : (
                     <span className="grid h-6 w-6 place-items-center rounded-full border border-ink-border bg-white text-[10px] font-bold text-ink/70">
-                      {author.name.slice(0, 2).toUpperCase()}
+                      {getPublicAuthorName(author).slice(0, 2).toUpperCase()}
                     </span>
                   )}
                   <div>
-                    <p className="text-xs font-semibold text-ink">{author.name}</p>
+                    <p className="text-xs font-semibold text-ink">{getPublicAuthorName(author)}</p>
                     <p className="text-[11px] text-ink/60">{author.mediaOutlet?.trim() || "Independent"}</p>
                     <p className="text-[11px] text-ink/55">
                       {(author.positionPaperSummary?.trim() || "No stance provided.").slice(0, 64)}
@@ -132,18 +141,25 @@ export function FrontPageNewsFeed() {
 
         <button type="button" onClick={() => setPreviewArticleId(leadStory.id)} className="block w-full text-left">
           {leadStory.imageUrl && (
-            <div className="mb-4 h-64 w-full overflow-hidden rounded-lg bg-ink-border/30">
-              <img src={leadStory.imageUrl} alt={leadStory.title} className="h-full w-full object-cover" />
+            <div className="relative mb-4 h-64 w-full overflow-hidden rounded-lg bg-ink-border/30">
+              <Image
+                src={leadStory.imageUrl}
+                alt={leadStory.title}
+                fill
+                unoptimized
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover"
+              />
             </div>
           )}
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink/55">
-            {toClock(leadStory.publishedAt, leadStory.createdAt)} • {leadStory.author.name}
+            {toClock(leadStory.publishedAt, leadStory.createdAt)} • {getPublicAuthorName(leadStory.author)}
           </p>
           <h3 className="mt-2 font-serif text-4xl font-bold leading-tight text-ink">{leadStory.title}</h3>
 
           <div className="mt-4 border-l-4 border-ink-border/50 pl-4 py-1 mb-4 bg-ink/5 pr-4 rounded-r-md">
             <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 group-hover:text-ink-blue transition-colors">
-              By {leadStory.author.name} — {(leadStory.author.displayRole || leadStory.author.role).toUpperCase()}
+              By {getPublicAuthorName(leadStory.author)} — {getPublicAuthorRole(leadStory.author).toUpperCase()}
             </p>
             {leadStory.source && <p className="text-[10px] italic text-ink/40 mt-1">Source: {leadStory.source}</p>}
           </div>
@@ -158,7 +174,7 @@ export function FrontPageNewsFeed() {
             <ListCard
               title={post.title}
               description={post.body.slice(0, 150) + "..."}
-              meta={`${toClock(post.publishedAt, post.createdAt)} • By ${post.author.name} ${post.source ? `(Source: ${post.source})` : ""}`}
+              meta={`${toClock(post.publishedAt, post.createdAt)} • By ${getPublicAuthorName(post.author)} ${post.source ? `(Source: ${post.source})` : ""}`}
               aside={<StatusBadge tone="neutral">Dispatch</StatusBadge>}
               className="hover:border-ink-blue/40 transition"
             />

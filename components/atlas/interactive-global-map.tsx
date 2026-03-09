@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
@@ -629,9 +630,12 @@ export function InteractiveGlobalMap({
                   {selectedMembers.map((member) => (
                     <div key={member.id} className="relative">
                       {member.avatarUrl ? (
-                        <img
+                        <Image
                           src={member.avatarUrl}
                           alt={member.name}
+                          width={32}
+                          height={32}
+                          unoptimized
                           className="h-8 w-8 rounded-full border border-ink-border object-cover"
                         />
                       ) : (

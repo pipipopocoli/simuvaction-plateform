@@ -12,11 +12,12 @@ type Contact = {
   role: string;
   teamId: string | null;
   teamName: string | null;
+  preferredTimeZone: string;
 };
 
 type CalendarEvent = {
   id: string;
-  type: "deadline" | "meeting";
+  type: "deadline" | "meeting" | "press_conference";
   title: string;
   startsAt: string;
   details: string;
@@ -27,6 +28,7 @@ export function QuickActionsPanel({ role }: { role: string }) {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [agenda, setAgenda] = useState<CalendarEvent[]>([]);
+  const [organizerTimeZone, setOrganizerTimeZone] = useState("UTC");
   const [selectedContactId, setSelectedContactId] = useState("");
   const [meetingNote, setMeetingNote] = useState("");
   const [meetingDateTime, setMeetingDateTime] = useState("");
@@ -42,8 +44,9 @@ export function QuickActionsPanel({ role }: { role: string }) {
       ]);
 
       if (contactsResponse.ok) {
-        const payload = (await contactsResponse.json()) as Contact[];
-        setContacts(payload);
+        const payload = (await contactsResponse.json()) as { members: Contact[]; currentUserTimeZone: string };
+        setContacts(payload.members);
+        setOrganizerTimeZone(payload.currentUserTimeZone || "UTC");
       }
 
       if (calendarResponse.ok) {
@@ -112,6 +115,8 @@ export function QuickActionsPanel({ role }: { role: string }) {
           note: meetingNote || undefined,
           proposedStartAt: new Date(meetingDateTime).toISOString(),
           durationMin: 30,
+          organizerTimeZone,
+          googleMeetRequested: true,
         }),
       });
 
@@ -162,6 +167,11 @@ export function QuickActionsPanel({ role }: { role: string }) {
           Request Meeting
           <Plus className="h-4 w-4" />
         </ActionButton>
+
+        <ActionButton variant="ghost" className="w-full justify-between" onClick={() => router.push("/press-conferences")}>
+          Press Conferences
+          <ChevronRight className="h-4 w-4" />
+        </ActionButton>
       </div>
 
       {mode !== "none" ? (
@@ -178,7 +188,7 @@ export function QuickActionsPanel({ role }: { role: string }) {
             <option value="">Select a member</option>
             {contacts.map((contact) => (
               <option key={contact.id} value={contact.id}>
-                {contact.name} ({contact.teamName ?? contact.role})
+                {contact.name} ({contact.teamName ?? contact.role}) · {contact.preferredTimeZone}
               </option>
             ))}
           </select>
@@ -242,7 +252,7 @@ export function QuickActionsPanel({ role }: { role: string }) {
               time={new Date(event.startsAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
               title={event.title}
               details={event.details}
-              tone={event.type === "meeting" ? "accent" : "alert"}
+              tone={event.type === "meeting" ? "accent" : event.type === "press_conference" ? "default" : "alert"}
             />
           ))
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Upload, CheckCircle, User2, PenLine } from "lucide-react";
 import { Panel } from "@/components/ui/commons";
@@ -76,7 +77,7 @@ export function ProfileEditor() {
           ${isDragging ? "border-ink-blue bg-ink-blue/10 scale-110" : "border-ink-border hover:border-ink-blue/50"}`}
             >
                 {avatarUrl ? (
-                    <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+                    <Image src={avatarUrl} alt="avatar" fill unoptimized sizes="96px" className="object-cover" />
                 ) : (
                     <div className="flex flex-col items-center gap-1 text-ink/40">
                         <Upload className="h-6 w-6" />

@@ -31,7 +31,7 @@ export function LobbyistWorkspaceClient({ userId, role }: { userId: string; role
 
     useEffect(() => {
         fetch("/api/admin/deadlines").then(r => r.json()).then(d => { if (!d.error) setDeadlines(d); });
-        fetch("/api/admin/documents").then(r => r.json()).then(d => { if (!d.error) setDocuments(d); });
+        fetch("/api/documents").then(r => r.json()).then(d => { if (!d.error) setDocuments(d); });
     }, []);
 
     const tabs = [

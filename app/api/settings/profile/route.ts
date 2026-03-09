@@ -26,6 +26,7 @@ const profilePatchSchema = z
     positionPaperSummary: z
       .union([z.string().trim().max(5000), z.literal(""), z.null()])
       .optional(),
+    preferredTimeZone: z.union([z.string().trim().max(80), z.literal(""), z.null()]).optional(),
     currentPassword: z.string().optional(),
     newPassword: z.string().min(8).optional(),
   })
@@ -62,6 +63,13 @@ const userProfileSelect = {
   linkedinUrl: true,
   positionPaperUrl: true,
   positionPaperSummary: true,
+  preferredTimeZone: true,
+  googleCalendarConnection: {
+    select: {
+      providerAccountEmail: true,
+      updatedAt: true,
+    },
+  },
   team: { select: { countryName: true } },
 } as const;
 
@@ -90,8 +98,11 @@ export async function GET() {
       linkedinUrl: user.linkedinUrl,
       positionPaperUrl: user.positionPaperUrl,
       positionPaperSummary: user.positionPaperSummary,
+      preferredTimeZone: user.preferredTimeZone,
       role: user.role,
       teamName: user.team?.countryName ?? null,
+      googleCalendarConnected: Boolean(user.googleCalendarConnection),
+      googleCalendarAccountEmail: user.googleCalendarConnection?.providerAccountEmail ?? null,
     },
   });
 }
@@ -128,6 +139,7 @@ export async function PATCH(request: NextRequest) {
     linkedinUrl,
     positionPaperUrl,
     positionPaperSummary,
+    preferredTimeZone,
     currentPassword,
     newPassword,
   } = parsed.data;
@@ -157,6 +169,8 @@ export async function PATCH(request: NextRequest) {
         positionPaperSummary === undefined
           ? user.positionPaperSummary
           : positionPaperSummary || null,
+      preferredTimeZone:
+        preferredTimeZone === undefined ? user.preferredTimeZone : preferredTimeZone || null,
       ...(newPassword ? { hashedPassword: await bcrypt.hash(newPassword, 10) } : {}),
     },
     select: userProfileSelect,
@@ -193,8 +207,11 @@ export async function PATCH(request: NextRequest) {
       linkedinUrl: updatedUser.linkedinUrl,
       positionPaperUrl: updatedUser.positionPaperUrl,
       positionPaperSummary: updatedUser.positionPaperSummary,
+      preferredTimeZone: updatedUser.preferredTimeZone,
       role: updatedUser.role,
       teamName: updatedUser.team?.countryName ?? null,
+      googleCalendarConnected: Boolean(updatedUser.googleCalendarConnection),
+      googleCalendarAccountEmail: updatedUser.googleCalendarConnection?.providerAccountEmail ?? null,
     },
   });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Panel } from "@/components/ui/commons";
@@ -15,6 +16,9 @@ type ProfilePayload = {
   linkedinUrl: string | null;
   positionPaperUrl: string | null;
   positionPaperSummary: string | null;
+  preferredTimeZone: string | null;
+  googleCalendarConnected?: boolean;
+  googleCalendarAccountEmail?: string | null;
 };
 
 type AvatarStatusPayload = {
@@ -32,6 +36,7 @@ export function SettingsProfile() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [positionPaperUrl, setPositionPaperUrl] = useState("");
   const [positionPaperSummary, setPositionPaperSummary] = useState("");
+  const [preferredTimeZone, setPreferredTimeZone] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -74,6 +79,11 @@ export function SettingsProfile() {
         setLinkedinUrl(fetchedProfile.linkedinUrl ?? "");
         setPositionPaperUrl(fetchedProfile.positionPaperUrl ?? "");
         setPositionPaperSummary(fetchedProfile.positionPaperSummary ?? "");
+        setPreferredTimeZone(
+          fetchedProfile.preferredTimeZone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone ??
+            "UTC",
+        );
         setAvatarUploadConfigured(statusResponse.ok ? Boolean(statusPayload.configured) : false);
         if (typeof statusPayload.maxSizeMb === "number" && Number.isFinite(statusPayload.maxSizeMb)) {
           setAvatarMaxSizeMb(statusPayload.maxSizeMb);
@@ -190,6 +200,7 @@ export function SettingsProfile() {
         linkedinUrl: string | null;
         positionPaperUrl: string | null;
         positionPaperSummary: string | null;
+        preferredTimeZone: string | null;
         currentPassword?: string;
         newPassword?: string;
       } = {
@@ -200,6 +211,7 @@ export function SettingsProfile() {
         linkedinUrl: linkedinUrl.trim() ? linkedinUrl.trim() : null,
         positionPaperUrl: positionPaperUrl.trim() ? positionPaperUrl.trim() : null,
         positionPaperSummary: positionPaperSummary.trim() ? positionPaperSummary.trim() : null,
+        preferredTimeZone: preferredTimeZone.trim() ? preferredTimeZone.trim() : null,
       };
 
       if (newPassword.trim()) {
@@ -228,6 +240,7 @@ export function SettingsProfile() {
       setLinkedinUrl(updatedProfile.linkedinUrl ?? "");
       setPositionPaperUrl(updatedProfile.positionPaperUrl ?? "");
       setPositionPaperSummary(updatedProfile.positionPaperSummary ?? "");
+      setPreferredTimeZone(updatedProfile.preferredTimeZone ?? "");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -244,6 +257,21 @@ export function SettingsProfile() {
 
   if (!profile) {
     return <p className="text-sm text-red-600">Unable to load profile data.</p>;
+  }
+
+  async function connectGoogleCalendar() {
+    setError(null);
+    try {
+      const response = await fetch("/api/integrations/google/calendar/connect", { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.authUrl) {
+        setError(payload.error ?? "Unable to start Google Calendar connection.");
+        return;
+      }
+      window.location.href = payload.authUrl;
+    } catch (connectError) {
+      setError(connectError instanceof Error ? connectError.message : "Unable to start Google Calendar connection.");
+    }
   }
 
   return (
@@ -306,6 +334,19 @@ export function SettingsProfile() {
             </div>
 
             <div>
+              <label htmlFor="preferred-timezone" className="block text-sm font-medium text-zinc-700">
+                Preferred timezone
+              </label>
+              <input
+                id="preferred-timezone"
+                value={preferredTimeZone}
+                onChange={(event) => setPreferredTimeZone(event.target.value)}
+                placeholder="Europe/Paris"
+                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-zinc-900"
+              />
+            </div>
+
+            <div>
               <label htmlFor="position-paper-url" className="block text-sm font-medium text-zinc-700">
                 Position paper URL
               </label>
@@ -346,6 +387,22 @@ export function SettingsProfile() {
               <p className="mt-1 text-sm text-zinc-800">{profile.teamName ?? "No team"}</p>
             </div>
           </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Google Calendar</p>
+            <p className="mt-2 text-sm text-zinc-700">
+              {profile.googleCalendarConnected
+                ? `Connected as ${profile.googleCalendarAccountEmail ?? "Google account"}`
+                : "Not connected yet. Connect it to create Google Meet links automatically for meetings and press conferences."}
+            </p>
+            <button
+              type="button"
+              onClick={connectGoogleCalendar}
+              className="mt-3 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900"
+            >
+              {profile.googleCalendarConnected ? "Reconnect Google Calendar" : "Connect Google Calendar"}
+            </button>
+          </div>
         </div>
 
         <Panel className="flex flex-col gap-3 p-4">
@@ -367,7 +424,14 @@ export function SettingsProfile() {
             onDrop={onAvatarDrop}
           >
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile avatar" className="h-full w-full rounded-lg object-cover" />
+              <Image
+                src={avatarUrl}
+                alt="Profile avatar"
+                fill
+                unoptimized
+                sizes="176px"
+                className="rounded-lg object-cover"
+              />
             ) : (
               <div className="grid h-20 w-20 place-items-center rounded-full border border-zinc-300 bg-white text-xl font-semibold text-zinc-700">
                 {avatarInitials}

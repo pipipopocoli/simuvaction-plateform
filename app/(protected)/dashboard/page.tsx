@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { toAtlasDelegations } from "@/lib/atlas";
 import { DashboardHub } from "@/components/dashboard/dashboard-hub";
 import type { DashboardUpcomingEvent } from "@/components/dashboard/upcoming-events-drawer";
+import { getPublicAuthorName } from "@/lib/news-author";
 
 function appendAction(actionMap: Map<string, string[]>, teamId: string | null | undefined, action: string) {
   if (!teamId) {
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
-      include: { author: { select: { id: true, name: true, teamId: true } } },
+      include: { author: { select: { id: true, name: true, role: true, teamId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 12,
     }),
@@ -114,11 +115,12 @@ export default async function DashboardPage() {
     prisma.user.findMany({
       where: {
         eventId: session.eventId,
-        role: "leader",
+        role: { in: ["leader", "journalist"] },
       },
       select: {
         id: true,
         name: true,
+        role: true,
         avatarUrl: true,
         displayRole: true,
         mediaOutlet: true,
@@ -197,12 +199,18 @@ export default async function DashboardPage() {
     id: profile.id,
     name: profile.name,
     avatarUrl: profile.avatarUrl,
+    role: profile.role,
+    teamId: profile.team?.id ?? null,
     teamName: profile.team?.countryName ?? null,
-    displayRole: profile.displayRole?.trim() || "Head Delegate",
-    mediaOutlet: profile.mediaOutlet?.trim() || "Independent",
+    displayRole:
+      profile.displayRole?.trim() ||
+      (profile.role === "journalist" ? "Journalist" : "Head Delegate"),
+    mediaOutlet: profile.mediaOutlet?.trim() || (profile.role === "journalist" ? "SimuVaction Press" : "Independent"),
     stance:
       profile.positionPaperSummary?.trim() ||
-      `${profile.name} is coordinating strategic guidance across active delegations.`,
+      (profile.role === "journalist"
+        ? `${profile.name} is tracking the simulation and reporting from the field.`
+        : `${profile.name} is coordinating strategic guidance across active delegations.`),
     latestActions: userActionMap.get(profile.id) ?? ["No recent tracked action."],
   }));
 
@@ -213,7 +221,7 @@ export default async function DashboardPage() {
         id: post.id,
         title: post.title,
         body: post.body,
-        authorName: post.author.name,
+        authorName: getPublicAuthorName(post.author),
         publishedAtIso: (post.publishedAt ?? post.createdAt).toISOString(),
       }))}
       activeVotes={activeVotes.map((voteItem) => ({

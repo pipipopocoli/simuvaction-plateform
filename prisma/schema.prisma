@@ -186,8 +186,12 @@ model Event {
   meetingRequests   MeetingRequest[]
   deadlines         EventDeadline[]
   documents         EventDocument[]
+  teamLibraryItems  TeamLibraryItem[]
   twitterConfigs    TwitterConfig[]
   socialPosts       SocialPost[]
+  meetingSessions   MeetingSession[]
+  pressConferences  PressConference[]
+  googleCalendarConnections GoogleCalendarConnection[]
   visitorSessions   VisitorSession[]
   visitorEvents     VisitorEvent[]
   consentLogs       ConsentLog[]
@@ -217,6 +221,7 @@ model User {
   linkedinUrl        String?
   positionPaperUrl   String?
   positionPaperSummary String?
+  preferredTimeZone  String?
   createdAt          DateTime  @default(now())
   onboardingCompletedAt DateTime?
 
@@ -241,9 +246,15 @@ model User {
   meetingRequestsSent     MeetingRequest[] @relation("MeetingRequester")
   meetingRequestsReceived MeetingRequest[] @relation("MeetingTarget")
   meetingRequestsResponded MeetingRequest[] @relation("MeetingResponder")
+  meetingSessionsOrganized MeetingSession[] @relation("MeetingSessionOrganizer")
+  meetingSessionParticipations MeetingParticipant[] @relation("MeetingSessionUser")
   deadlinesCreated  EventDeadline[]
   documentsCreated  EventDocument[]
+  teamLibraryItemsCreated TeamLibraryItem[]
   socialPosts       SocialPost[]
+  pressConferencesCreated PressConference[] @relation("PressConferenceCreator")
+  pressConferenceParticipations PressConferenceParticipant[] @relation("PressConferenceParticipantUser")
+  googleCalendarConnection GoogleCalendarConnection?
   visitorSessions   VisitorSession[] @relation("VisitorSessionUser")
   visitorEvents     VisitorEvent[] @relation("VisitorEventUser")
   consentLogs       ConsentLog[] @relation("ConsentLogUser")
@@ -277,6 +288,7 @@ model Team {
   incomingMeetingRequests MeetingRequest[] @relation("MeetingTargetTeam")
   socialPosts             SocialPost[]
   targetedDocuments       EventDocument[]  @relation("DocumentTargets")
+  teamLibraryItems        TeamLibraryItem[]
 
   @@unique([eventId, countryCode])
 }
@@ -290,8 +302,10 @@ model ChatRoom {
   eventId     String
   name        String
   roomType    String   // 'global', 'team', 'private', 'direct'
+  recipientMode String @default("group") // direct, team, group, global
   directPairKey String? @unique
   teamId      String?
+  topic       String?
   createdById String
   createdAt   DateTime @default(now())
 
@@ -303,6 +317,7 @@ model ChatRoom {
   messages    ChatMessage[]
   reads       ChatRead[]
   meetingRequests MeetingRequest[]
+  meetingSession MeetingSession?
 
   @@index([eventId, roomType])
   @@index([eventId, teamId])
@@ -356,14 +371,20 @@ model MeetingRequest {
   id               String   @id @default(cuid())
   eventId          String
   requesterId      String
-  targetUserId     String
+  targetUserId     String?
   requesterTeamId  String?
   targetTeamId     String?
   chatRoomId       String?
+  meetingSessionId String?
+  recipientMode    String   @default("individual") // individual, team, group
+  attendeeUserIds  String[] @default([])
+  targetLabel      String?
   title            String
   note             String?
   proposedStartAt  DateTime
   durationMin      Int      @default(30)
+  organizerTimeZone String?
+  googleMeetRequested Boolean @default(false)
   status           String   @default("pending") // pending, accepted, declined, cancelled
   scheduledStartAt DateTime?
   responseNote     String?
@@ -374,15 +395,94 @@ model MeetingRequest {
 
   event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   requester        User     @relation("MeetingRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  targetUser       User     @relation("MeetingTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetUser       User?    @relation("MeetingTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
   requesterTeam    Team?    @relation("MeetingRequesterTeam", fields: [requesterTeamId], references: [id], onDelete: SetNull)
   targetTeam       Team?    @relation("MeetingTargetTeam", fields: [targetTeamId], references: [id], onDelete: SetNull)
   chatRoom         ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
   respondedBy      User?    @relation("MeetingResponder", fields: [respondedById], references: [id], onDelete: SetNull)
+  meetingSession   MeetingSession? @relation("MeetingRequestSession", fields: [meetingSessionId], references: [id], onDelete: SetNull)
 
   @@index([eventId, status, proposedStartAt])
   @@index([targetUserId, status])
   @@index([requesterId, createdAt(sort: Desc)])
+  @@unique([meetingSessionId])
+}
+
+model MeetingSession {
+  id                String   @id @default(cuid())
+  eventId           String
+  organizerId       String
+  chatRoomId        String?  @unique
+  title             String
+  description       String?
+  scheduledStartAt  DateTime
+  scheduledEndAt    DateTime
+  organizerTimeZone String?
+  status            String   @default("scheduled") // scheduled, live, completed, cancelled
+  videoRoomName     String   @unique
+  googleMeetUrl     String?
+  googleCalendarEventId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizer         User     @relation("MeetingSessionOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  meetingRequest    MeetingRequest? @relation("MeetingRequestSession")
+  chatRoom          ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+  participants      MeetingParticipant[]
+
+  @@index([eventId, status, scheduledStartAt])
+  @@index([organizerId, scheduledStartAt])
+}
+
+model MeetingParticipant {
+  meetingSessionId String
+  userId           String
+  role             String   @default("attendee") // host, attendee
+  joinedAt         DateTime?
+
+  meetingSession   MeetingSession @relation(fields: [meetingSessionId], references: [id], onDelete: Cascade)
+  user             User     @relation("MeetingSessionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([meetingSessionId, userId])
+  @@index([userId])
+}
+
+model PressConference {
+  id                String   @id @default(cuid())
+  eventId           String
+  createdById       String
+  title             String
+  description       String?
+  scheduledStartAt  DateTime
+  scheduledEndAt    DateTime
+  organizerTimeZone String?
+  status            String   @default("scheduled") // scheduled, live, completed, cancelled
+  videoRoomName     String   @unique
+  googleMeetUrl     String?
+  googleCalendarEventId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy         User     @relation("PressConferenceCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants      PressConferenceParticipant[]
+
+  @@index([eventId, status, scheduledStartAt])
+  @@index([createdById, scheduledStartAt])
+}
+
+model PressConferenceParticipant {
+  pressConferenceId String
+  userId            String
+  role              String   @default("speaker") // host, speaker
+  joinedAt          DateTime?
+
+  pressConference   PressConference @relation(fields: [pressConferenceId], references: [id], onDelete: Cascade)
+  user              User     @relation("PressConferenceParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pressConferenceId, userId])
+  @@index([userId])
 }
 
 // ----------------------------------------------------------------------------
@@ -607,6 +707,9 @@ model EventDocument {
   description String?
   url         String   // Link to the PDF, Image, etc.
   type        String   @default("pdf")
+  fileName    String?
+  mimeType    String?
+  fileSizeBytes Int?
   createdById String
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -616,6 +719,49 @@ model EventDocument {
   createdBy   User     @relation(fields: [createdById], references: [id])
 
   @@index([eventId])
+}
+
+model TeamLibraryItem {
+  id            String   @id @default(cuid())
+  eventId       String
+  teamId        String
+  createdById   String
+  title         String
+  description   String?
+  fileUrl       String
+  fileName      String?
+  fileType      String   @default("file")
+  mimeType      String?
+  fileSizeBytes Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([eventId, teamId, createdAt(sort: Desc)])
+  @@index([createdById, createdAt(sort: Desc)])
+}
+
+model GoogleCalendarConnection {
+  id                   String   @id @default(cuid())
+  eventId              String
+  userId               String   @unique
+  providerAccountEmail String?
+  accessToken          String?
+  refreshToken         String?
+  tokenType            String?
+  scope                String?
+  expiresAt            DateTime?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  event                Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt(sort: Desc)])
 }
 
 model TwitterConfig {

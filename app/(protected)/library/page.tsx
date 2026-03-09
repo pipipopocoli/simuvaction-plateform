@@ -12,10 +12,10 @@ export default async function LibraryPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { role: true },
+    select: { role: true, teamId: true },
   });
 
   const isAdmin = user?.role === "admin" || user?.role === "operator";
 
-  return <DocumentLibrary isAdmin={isAdmin} />;
+  return <DocumentLibrary isAdmin={isAdmin} teamId={user?.teamId ?? null} />;
 }

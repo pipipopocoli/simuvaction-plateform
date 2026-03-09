@@ -39,7 +39,7 @@ export function LeaderWorkspaceClient({ userId, role }: { userId: string; role: 
     fetch("/api/admin/deadlines").then(res => res.json()).then(data => {
       if (!data.error) setDeadlines(data);
     });
-    fetch("/api/admin/documents").then(res => res.json()).then(data => {
+    fetch("/api/documents").then(res => res.json()).then(data => {
       if (!data.error) setDocuments(data);
     });
     fetch("/api/teams/profile").then(res => res.json()).then(data => {

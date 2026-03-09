@@ -4,6 +4,7 @@ import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { buildFixedWordSummary } from "@/lib/news-summary";
 import { Panel, SectionHeader, StatusBadge } from "@/components/ui/commons";
+import { getPublicAuthorName } from "@/lib/news-author";
 
 type NewsroomArticlePageProps = {
   params: Promise<{ id: string }>;
@@ -49,7 +50,7 @@ export default async function NewsroomArticlePage({ params }: NewsroomArticlePag
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge tone={article.status === "published" ? "success" : "neutral"}>{article.status}</StatusBadge>
           <p className="text-xs uppercase tracking-[0.08em] text-ink/55">
-            {formatDate(article.publishedAt ?? article.createdAt)} • {article.author.name}
+            {formatDate(article.publishedAt ?? article.createdAt)} • {getPublicAuthorName(article.author)}
           </p>
         </div>
 

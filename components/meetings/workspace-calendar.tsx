@@ -8,14 +8,14 @@ import { Panel, StatusBadge } from "@/components/ui/commons";
 
 type WorkspaceCalendarEvent = {
   id: string;
-  type: "deadline" | "meeting";
+  type: "deadline" | "meeting" | "press_conference";
   title: string;
   startsAt: string;
   endsAt?: string;
   details: string;
   deepLink: string | null;
   visibilityScope: "global" | "personal" | "team";
-  source: "event_deadline" | "official_deadline" | "meeting_request";
+  source: "event_deadline" | "official_deadline" | "meeting_request" | "press_conference";
 };
 
 function dayKey(date: DateTime) {
@@ -142,7 +142,7 @@ export function WorkspaceCalendar() {
               <div key={event.id} className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-ink">{event.title}</p>
-                  <StatusBadge tone={event.type === "meeting" ? "live" : "alert"}>{event.type}</StatusBadge>
+                  <StatusBadge tone={event.type === "meeting" ? "live" : event.type === "press_conference" ? "success" : "alert"}>{event.type}</StatusBadge>
                 </div>
                 <p className="mt-1 text-xs text-ink/65">{DateTime.fromISO(event.startsAt).toFormat("HH:mm")}</p>
                 <p className="mt-1 text-xs text-ink/70">{event.details}</p>

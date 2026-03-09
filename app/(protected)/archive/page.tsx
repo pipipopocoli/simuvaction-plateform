@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { ArchiveIcon, FileClock } from "lucide-react";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { getPublicAuthorName } from "@/lib/news-author";
 import { ListCard, Panel, SectionHeader, StatusBadge } from "@/components/ui/commons";
 
 export default async function ArchivePage() {
@@ -13,7 +14,7 @@ export default async function ArchivePage() {
   const [publishedNews, recentVotes] = await Promise.all([
     prisma.newsPost.findMany({
       where: { eventId: session.eventId, status: "published" },
-      include: { author: { select: { name: true } } },
+      include: { author: { select: { name: true, role: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 12,
     }),
@@ -45,7 +46,7 @@ export default async function ArchivePage() {
                 key={item.id}
                 title={item.title}
                 description={item.body.slice(0, 150)}
-                meta={`${DateTime.fromJSDate(item.publishedAt ?? item.createdAt).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")} • ${item.author.name}`}
+                meta={`${DateTime.fromJSDate(item.publishedAt ?? item.createdAt).toUTC().toFormat("dd LLL yyyy HH:mm 'UTC'")} • ${getPublicAuthorName(item.author)}`}
                 aside={<StatusBadge tone="success">Published</StatusBadge>}
               />
             ))}

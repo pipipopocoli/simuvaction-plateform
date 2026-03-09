@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Search } from "lucide-react";
@@ -14,6 +15,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/workspace", label: "Workspace" },
   { href: "/newsroom", label: "Newsroom" },
+  { href: "/press-conferences", label: "Press" },
+  { href: "/library", label: "Library" },
   { href: "/surveys", label: "Surveys" },
   { href: "/votes", label: "Votes" },
   { href: "/chat", label: "Messages" },
@@ -67,7 +70,14 @@ export function TopNav({ session }: { session?: SessionPayload }) {
             <Link href="/settings">
               <div className="hidden cursor-pointer items-center gap-3 rounded-xl border border-ink-border bg-white px-3 py-2 shadow-sm transition hover:border-ink-blue/40 sm:flex dark:bg-slate-900">
                 {session.avatarUrl ? (
-                  <img src={session.avatarUrl} alt="avatar" className="h-8 w-8 rounded-full object-cover" />
+                  <Image
+                    src={session.avatarUrl}
+                    alt="avatar"
+                    width={32}
+                    height={32}
+                    unoptimized
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
                 ) : (
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                     {session.name.slice(0, 2).toUpperCase()}

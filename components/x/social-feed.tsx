@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { Send, User as UserIcon, Loader2, MessageCircle, Heart, Repeat2 } from "lucide-react";
 import { DateTime } from "luxon";
 
@@ -33,7 +34,7 @@ export function SocialFeed({ limit = 50, allowPosting = true }: SocialFeedProps)
     const [isPosting, setIsPosting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    async function fetchPosts() {
+    const fetchPosts = useCallback(async () => {
         try {
             const res = await fetch(`/api/social?limit=${limit}`);
             if (res.ok) {
@@ -44,13 +45,15 @@ export function SocialFeed({ limit = 50, allowPosting = true }: SocialFeedProps)
         } finally {
             setIsLoading(false);
         }
-    }
+    }, [limit]);
 
     useEffect(() => {
-        fetchPosts();
-        const interval = setInterval(fetchPosts, 30000); // Poll every 30s
+        void fetchPosts();
+        const interval = setInterval(() => {
+            void fetchPosts();
+        }, 30000);
         return () => clearInterval(interval);
-    }, [limit]);
+    }, [fetchPosts]);
 
     async function handlePost(e: React.FormEvent) {
         e.preventDefault();
@@ -127,7 +130,14 @@ export function SocialFeed({ limit = 50, allowPosting = true }: SocialFeedProps)
                                 <div className="flex gap-3">
                                     <div className="shrink-0">
                                         {post.author.avatarUrl ? (
-                                            <img src={post.author.avatarUrl} alt={post.author.name} className="h-10 w-10 rounded-full object-cover" />
+                                            <Image
+                                                src={post.author.avatarUrl}
+                                                alt={post.author.name}
+                                                width={40}
+                                                height={40}
+                                                unoptimized
+                                                className="h-10 w-10 rounded-full object-cover"
+                                            />
                                         ) : (
                                             <div className="grid h-10 w-10 place-items-center rounded-full bg-zinc-200 text-zinc-600">
                                                 <UserIcon className="h-5 w-5" />

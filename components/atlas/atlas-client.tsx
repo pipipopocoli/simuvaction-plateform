@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Filter,
   Globe2,
+  Loader2,
   MapPin,
   MessageSquare,
   Search,
@@ -22,10 +24,14 @@ import {
 } from "@/components/ui/commons";
 
 export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showAlliances, setShowAlliances] = useState(true);
   const [showVotes, setShowVotes] = useState(true);
   const [selectedId, setSelectedId] = useState(delegations[0]?.id ?? "");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
+  const [isOpeningThread, setIsOpeningThread] = useState(false);
 
   const filteredDelegations = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -48,6 +54,73 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
     () => delegations.filter((delegation) => delegation.kind === "country" && delegation.mapPoint),
     [delegations],
   );
+
+  async function requestMeeting() {
+    if (!selectedDelegation) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsRequestingMeeting(true);
+
+    try {
+      const response = await fetch("/api/meetings/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientMode: "team",
+          targetTeamId: selectedDelegation.id,
+          title: `Bilateral with ${selectedDelegation.name}`,
+          note: "Request created from Atlas.",
+          proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          durationMin: 30,
+          organizerTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          googleMeetRequested: true,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setFeedback(payload.error || "Unable to send meeting request.");
+        return;
+      }
+
+      setFeedback("Meeting request sent.");
+    } finally {
+      setIsRequestingMeeting(false);
+    }
+  }
+
+  async function openDelegationThread() {
+    if (!selectedDelegation) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsOpeningThread(true);
+    try {
+      const response = await fetch("/api/chat/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomType: "team",
+          targetTeamId: selectedDelegation.id,
+          name: `Delegation channel · ${selectedDelegation.name}`,
+          topic: `atlas:${selectedDelegation.id}`,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.id) {
+        setFeedback(payload.error || "Unable to open delegation thread.");
+        return;
+      }
+
+      router.push(`/chat/${payload.id}`);
+    } finally {
+      setIsOpeningThread(false);
+    }
+  }
 
   if (delegations.length === 0) {
     return (
@@ -230,15 +303,26 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
             ) : null}
 
             <div className="mt-4 grid gap-2">
-              <ActionButton className="w-full justify-between">
+              <ActionButton
+                className="w-full justify-between"
+                onClick={requestMeeting}
+                disabled={isRequestingMeeting}
+              >
                 Request meeting
-                <MessageSquare className="h-4 w-4" />
+                {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
               </ActionButton>
-              <ActionButton variant="secondary" className="w-full justify-between">
+              <ActionButton
+                variant="secondary"
+                className="w-full justify-between"
+                onClick={openDelegationThread}
+                disabled={isOpeningThread}
+              >
                 Open delegation thread
-                <Users className="h-4 w-4" />
+                {isOpeningThread ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
               </ActionButton>
             </div>
+
+            {feedback ? <p className="mt-2 text-xs text-ink/65">{feedback}</p> : null}
 
             <div className="mt-6 space-y-3 border-t border-ink-border pt-4">
               <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">

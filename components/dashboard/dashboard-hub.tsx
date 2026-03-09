@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
-import { Globe2, Newspaper, Siren } from "lucide-react";
+import { Globe2, Loader2, MessageSquare, Newspaper, Siren, Video } from "lucide-react";
 import type { AtlasDelegation } from "@/lib/atlas";
 import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
@@ -17,6 +19,7 @@ import {
   PageShell,
   Panel,
   SectionHeader,
+  ActionButton,
   StatTile,
   StatusBadge,
 } from "@/components/ui/commons";
@@ -39,6 +42,8 @@ type DashboardLeadershipProfile = {
   id: string;
   name: string;
   avatarUrl: string | null;
+  role: string;
+  teamId: string | null;
   teamName: string | null;
   displayRole: string;
   mediaOutlet: string;
@@ -77,9 +82,13 @@ export function DashboardHub({
   leadershipProfiles,
   upcomingEvents,
 }: DashboardHubProps) {
+  const router = useRouter();
   const [selection, setSelection] = useState<SelectionState>(null);
   const [previewArticleId, setPreviewArticleId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
+  const [isOpeningThread, setIsOpeningThread] = useState(false);
 
   const selectedDelegation = useMemo(() => {
     if (!selection || selection.type !== "delegation") {
@@ -106,6 +115,109 @@ export function DashboardHub({
     () => upcomingEvents.find((item) => item.id === selectedEventId) ?? null,
     [upcomingEvents, selectedEventId],
   );
+
+  async function requestContextMeeting() {
+    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setActionFeedback(null);
+    setIsRequestingMeeting(true);
+
+    try {
+      if (selectedLeadership) {
+        const response = await fetch("/api/meetings/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientMode: "individual",
+            targetUserId: selectedLeadership.id,
+            title: `Meeting with ${selectedLeadership.name}`,
+            note: "Request created from the dashboard profile detail.",
+            proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            durationMin: 30,
+            organizerTimeZone: browserTimeZone,
+            googleMeetRequested: true,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setActionFeedback(payload.error || "Unable to send meeting request.");
+          return;
+        }
+        setActionFeedback("Meeting request sent.");
+        return;
+      }
+
+      if (selectedDelegation) {
+        const response = await fetch("/api/meetings/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientMode: "team",
+            targetTeamId: selectedDelegation.id,
+            title: `Bilateral with ${selectedDelegation.name}`,
+            note: "Request created from the dashboard profile detail.",
+            proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            durationMin: 30,
+            organizerTimeZone: browserTimeZone,
+            googleMeetRequested: true,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setActionFeedback(payload.error || "Unable to send meeting request.");
+          return;
+        }
+        setActionFeedback("Meeting request sent.");
+      }
+    } finally {
+      setIsRequestingMeeting(false);
+    }
+  }
+
+  async function openContextThread() {
+    setActionFeedback(null);
+    setIsOpeningThread(true);
+
+    try {
+      if (selectedLeadership) {
+        const response = await fetch("/api/chat/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roomType: "direct",
+            targetUserId: selectedLeadership.id,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.id) {
+          setActionFeedback(payload.error || "Unable to open private thread.");
+          return;
+        }
+        router.push(`/chat/${payload.id}`);
+        return;
+      }
+
+      if (selectedDelegation) {
+        const response = await fetch("/api/chat/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roomType: "team",
+            targetTeamId: selectedDelegation.id,
+            name: `Delegation channel · ${selectedDelegation.name}`,
+            topic: `dashboard:${selectedDelegation.id}`,
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.id) {
+          setActionFeedback(payload.error || "Unable to open delegation thread.");
+          return;
+        }
+        router.push(`/chat/${payload.id}`);
+      }
+    } finally {
+      setIsOpeningThread(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -222,13 +334,13 @@ export function DashboardHub({
 
       <PageShell>
         <SectionHeader
-          title="Leadership & Global Actors"
-          subtitle="Delegation leadership profiles followed by non-state actors in the current event roster."
+          title="Leadership, Press & Global Actors"
+          subtitle="Leaders and journalists are listed with the same communication tools as global actors."
         />
 
         <div className="mt-3 grid gap-4 lg:grid-cols-3">
           <Panel>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Leadership</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Leadership & Press</p>
             <div className="mt-3 grid gap-3">
               {leadershipProfiles.length === 0 ? (
                 <p className="text-sm text-ink/65">No leadership profile available.</p>
@@ -240,9 +352,16 @@ export function DashboardHub({
                     onClick={() => setSelection({ type: "leadership", id: profile.id })}
                     className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3 text-left transition hover:border-ink-blue/40"
                   >
-                    <div className="flex items-center gap-2">
-                      {profile.avatarUrl ? (
-                        <img src={profile.avatarUrl} alt={profile.name} className="h-8 w-8 rounded-full object-cover" />
+                      <div className="flex items-center gap-2">
+                        {profile.avatarUrl ? (
+                        <Image
+                          src={profile.avatarUrl}
+                          alt={profile.name}
+                          width={32}
+                          height={32}
+                          unoptimized
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
                       ) : (
                         <span className="grid h-8 w-8 place-items-center rounded-full bg-ivory text-xs font-bold text-ink">
                           {profile.name.slice(0, 2).toUpperCase()}
@@ -296,6 +415,17 @@ export function DashboardHub({
                   {selectedLeadership.displayRole} · {selectedLeadership.mediaOutlet}
                 </p>
                 <p className="text-sm text-ink/80">{selectedLeadership.stance}</p>
+                <div className="grid gap-2">
+                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting} disabled={isRequestingMeeting}>
+                    Request meeting
+                    {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                  </ActionButton>
+                  <ActionButton variant="secondary" className="w-full justify-between" onClick={openContextThread} disabled={isOpeningThread}>
+                    Open private thread
+                    {isOpeningThread ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                  </ActionButton>
+                </div>
+                {actionFeedback ? <p className="text-xs text-ink/65">{actionFeedback}</p> : null}
                 <div className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Latest actions</p>
                   <ul className="mt-2 space-y-1 text-sm text-ink/80">
@@ -311,6 +441,16 @@ export function DashboardHub({
                   {selectedDelegation.flagEmoji} {selectedDelegation.name}
                 </h3>
                 <p className="text-sm text-ink/80">{selectedDelegation.stance}</p>
+                <div className="grid gap-2">
+                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting} disabled={isRequestingMeeting}>
+                    Request meeting
+                    {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                  </ActionButton>
+                  <ActionButton variant="secondary" className="w-full justify-between" onClick={openContextThread} disabled={isOpeningThread}>
+                    Open delegation thread
+                    {isOpeningThread ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                  </ActionButton>
+                </div>
                 {selectedDelegation.memberPreviews.length > 0 ? (
                   <div className="rounded-lg border border-ink-border bg-[var(--color-surface)] p-3">
                     <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/55">Profiles</p>
@@ -331,6 +471,7 @@ export function DashboardHub({
                     ))}
                   </ul>
                 </div>
+                {actionFeedback ? <p className="text-xs text-ink/65">{actionFeedback}</p> : null}
               </div>
             ) : (
               <p className="mt-3 text-sm text-ink/65">

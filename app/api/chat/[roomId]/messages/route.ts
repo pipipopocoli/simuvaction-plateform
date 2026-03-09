@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getUserSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
-import { isAdminLike } from "@/lib/authz";
 
 function truncateBody(value: string, limit = 110) {
     const text = value.trim();
@@ -20,7 +19,7 @@ export async function GET(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { eventId, userId, role } = session;
+    const { eventId, userId } = session;
     const { roomId } = await params;
 
     try {
@@ -38,7 +37,7 @@ export async function GET(
             return NextResponse.json({ error: "Room not found" }, { status: 404 });
         }
 
-        if (!isAdminLike(role) && room.roomType !== "global" && room.memberships.length === 0) {
+        if (room.roomType !== "global" && room.memberships.length === 0) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -77,7 +76,7 @@ export async function POST(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { eventId, userId, role } = session;
+    const { eventId, userId } = session;
     const { roomId } = await params;
 
     try {
@@ -100,7 +99,7 @@ export async function POST(
             return NextResponse.json({ error: "Room not found" }, { status: 404 });
         }
 
-        if (!isAdminLike(role) && room.roomType !== "global" && room.memberships.length === 0) {
+        if (room.roomType !== "global" && room.memberships.length === 0) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

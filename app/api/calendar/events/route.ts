@@ -5,14 +5,14 @@ import { isAdminLike } from "@/lib/authz";
 
 type CalendarEventPayload = {
   id: string;
-  type: "deadline" | "meeting";
+  type: "deadline" | "meeting" | "press_conference";
   title: string;
   startsAt: string;
   endsAt?: string;
   details: string;
   deepLink: string | null;
   visibilityScope: "global" | "personal" | "team";
-  source: "event_deadline" | "official_deadline" | "meeting_request";
+  source: "event_deadline" | "official_deadline" | "meeting_request" | "press_conference";
 };
 
 export async function GET() {
@@ -35,7 +35,7 @@ export async function GET() {
         ],
       };
 
-  const [eventDeadlines, officialDeadlines, meetings] = await Promise.all([
+  const [eventDeadlines, officialDeadlines, meetings, pressConferences] = await Promise.all([
     prisma.eventDeadline.findMany({
       where: { eventId: session.eventId },
       orderBy: { date: "asc" },
@@ -51,7 +51,13 @@ export async function GET() {
         requester: { select: { id: true, name: true } },
         targetUser: { select: { id: true, name: true } },
         chatRoom: { select: { id: true, name: true } },
+        meetingSession: { select: { id: true } },
       },
+      orderBy: { scheduledStartAt: "asc" },
+      take: 120,
+    }),
+    prisma.pressConference.findMany({
+      where: { eventId: session.eventId, status: { not: "cancelled" } },
       orderBy: { scheduledStartAt: "asc" },
       take: 120,
     }),
@@ -94,14 +100,26 @@ export async function GET() {
       title: meeting.title,
       startsAt: startsAt.toISOString(),
       endsAt: endsAt.toISOString(),
-      details: `${meeting.requester.name} <> ${meeting.targetUser.name}`,
-      deepLink: meeting.chatRoomId ? `/chat/${meeting.chatRoomId}` : null,
+      details: `${meeting.requester.name} <> ${meeting.targetUser?.name ?? meeting.targetLabel ?? "group"}`,
+      deepLink: meeting.meetingSession?.id ? `/meetings/${meeting.meetingSession.id}` : meeting.chatRoomId ? `/chat/${meeting.chatRoomId}` : null,
       visibilityScope,
       source: "meeting_request",
     };
   });
 
-  const events = [...deadlineEvents, ...meetingEvents].sort(
+  const pressConferenceEvents: CalendarEventPayload[] = pressConferences.map((conference) => ({
+    id: `press:${conference.id}`,
+    type: "press_conference",
+    title: conference.title,
+    startsAt: conference.scheduledStartAt.toISOString(),
+    endsAt: conference.scheduledEndAt.toISOString(),
+    details: conference.description?.trim() || "Press conference",
+    deepLink: `/press-conferences/${conference.id}`,
+    visibilityScope: "global",
+    source: "press_conference",
+  }));
+
+  const events = [...deadlineEvents, ...meetingEvents, ...pressConferenceEvents].sort(
     (left, right) => +new Date(left.startsAt) - +new Date(right.startsAt),
   );
 

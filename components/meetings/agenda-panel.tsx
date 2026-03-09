@@ -7,7 +7,7 @@ import { Panel, TimelineItem } from "@/components/ui/commons";
 
 type CalendarEvent = {
   id: string;
-  type: "deadline" | "meeting";
+  type: "deadline" | "meeting" | "press_conference";
   title: string;
   startsAt: string;
   details: string;
@@ -49,7 +49,7 @@ export function AgendaPanel({ limit = 5 }: { limit?: number }) {
                 time={new Date(event.startsAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
                 title={event.title}
                 details={event.details}
-                tone={event.type === "meeting" ? "accent" : "alert"}
+                tone={event.type === "meeting" ? "accent" : event.type === "press_conference" ? "default" : "alert"}
               />
               {event.deepLink ? (
                 <Link href={event.deepLink} className="ml-4 text-xs font-semibold text-ink-blue hover:underline">

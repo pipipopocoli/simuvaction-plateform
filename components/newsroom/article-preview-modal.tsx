@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DateTime } from "luxon";
 import { X } from "lucide-react";
+import { getPublicAuthorName } from "@/lib/news-author";
 
 type ArticlePreviewPayload = {
   id: string;
@@ -93,7 +94,7 @@ export function ArticlePreviewModal({ articleId, onClose }: ArticlePreviewModalP
         ) : (
           <div className="space-y-4">
             <p className="text-xs uppercase tracking-[0.1em] text-ink/55">
-              {formatDate(article.publishedAt ?? article.createdAt)} • {article.author.name}
+              {formatDate(article.publishedAt ?? article.createdAt)} • {getPublicAuthorName(article.author)}
             </p>
             <h2 className="font-serif text-4xl font-bold text-ink">{article.title}</h2>
 

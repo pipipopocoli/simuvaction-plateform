@@ -9,6 +9,7 @@ import { Panel } from "@/components/ui/commons";
 import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
 import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
+import { PressConferencesPanel } from "@/components/press/press-conferences-panel";
 
 type RolePayload = {
     userId: string;
@@ -231,16 +232,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
 
                     {/* PRESS ROOM TAB */}
                     {activeTab === "press" && (
-                        <div className="space-y-4">
-                            <h2 className="font-serif text-2xl font-bold text-ink flex items-center gap-2">
-                                <Newspaper className="h-6 w-6 text-ink-blue" /> Press Room
-                            </h2>
-                            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                                <p className="text-sm font-bold text-amber-800 mb-2">🎤 Press Conference</p>
-                                <p className="text-sm text-ink/70">Request a bilateral interview with a delegation leader. Submit your article to the official SimuVaction press feed for public display.</p>
-                            </div>
-                            <p className="text-xs text-ink/40 italic">Press conference scheduling coming in next sprint.</p>
-                        </div>
+                        <PressConferencesPanel />
                     )}
 
                     {/* WORKSPACE TAB */}

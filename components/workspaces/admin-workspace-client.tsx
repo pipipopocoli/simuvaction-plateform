@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ShieldCheck, CalendarClock, BookOpen, Activity, Eye } from "lucide-react";
+import { ShieldCheck, CalendarClock, BookOpen, Activity, Eye, Video } from "lucide-react";
 import { AdminDeadlinesPanel } from "@/components/admin/admin-deadlines-panel";
-import { AdminDocumentsPanel } from "@/components/admin/admin-documents-panel";
 import { GameMasterDraftMonitor } from "@/components/admin/game-master-draft-monitor";
+import { MeetingHistoryPanel } from "@/components/admin/meeting-history-panel";
 import { Panel, StatTile } from "@/components/ui/commons";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
 import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
+import { DocumentLibrary } from "@/components/library/document-library";
 
 export function AdminWorkspaceClient({ userId }: { userId: string }) {
     const [activeTab, setActiveTab] = useState("overview");
@@ -19,6 +20,7 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
         { id: "monitoring", label: "Draft Monitoring" },
         { id: "deadlines", label: "Schedule & Deadlines" },
         { id: "documents", label: "Course Documents" },
+        { id: "meetings", label: "Meetings & Press" },
         { id: "journal", label: "Journal" },
     ];
 
@@ -89,7 +91,19 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
                             <p className="mb-4 text-sm text-ink/70">
                                 Upload syllabus documents, rubrics, and research material for the entire class.
                             </p>
-                            <AdminDocumentsPanel />
+                            <DocumentLibrary isAdmin teamId={null} />
+                        </div>
+                    )}
+
+                    {activeTab === "meetings" && (
+                        <div>
+                            <h2 className="mb-3 flex items-center gap-2 font-serif text-3xl font-bold text-ink">
+                                <Video className="h-6 w-6 text-ink-blue" /> Meetings & Press Conferences
+                            </h2>
+                            <p className="mb-4 text-sm text-ink/70">
+                                Observe every scheduled meeting and press conference without accessing private message content.
+                            </p>
+                            <MeetingHistoryPanel />
                         </div>
                     )}
 
