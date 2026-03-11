@@ -14,6 +14,7 @@ function hasGrantedConsent(): boolean {
 }
 
 export function ConsentedVercelAnalytics() {
+  const isVercelRuntime = Boolean(process.env.NEXT_PUBLIC_VERCEL_ENV);
   const enabled = useSyncExternalStore(
     (onStoreChange) => {
       if (typeof window === "undefined") {
@@ -29,6 +30,10 @@ export function ConsentedVercelAnalytics() {
     () => hasGrantedConsent(),
     () => false,
   );
+
+  if (!isVercelRuntime) {
+    return null;
+  }
 
   if (process.env.NEXT_PUBLIC_COOKIE_CONSENT_ENABLED !== "true") {
     return <Analytics />;

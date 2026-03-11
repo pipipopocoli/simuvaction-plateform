@@ -30,6 +30,7 @@ async function serializeRequests(
     status: string;
     proposedStartAt: Date;
     scheduledStartAt: Date | null;
+    durationMin: number;
     createdAt: Date;
     targetLabel: string | null;
     requester: { id: string; name: string; role: string; avatarUrl: string | null; preferredTimeZone?: string | null; team?: { countryCode: string } | null };

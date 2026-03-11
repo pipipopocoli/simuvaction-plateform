@@ -184,7 +184,6 @@ export async function POST(request: NextRequest) {
           roomType: "team",
           teamId: targetTeam.id,
           topic,
-          memberships: { some: { userId } },
         },
         include: { _count: { select: { messages: true, memberships: true } } },
       });

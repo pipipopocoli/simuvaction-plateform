@@ -8,6 +8,7 @@ import { TeamDraftEditor } from "@/components/teams/team-draft-editor";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { ActionButton, Panel, TimelineItem } from "@/components/ui/commons";
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
+import { MeetingRequestForm } from "@/components/meetings/meeting-request-form";
 import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
 import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
@@ -183,6 +184,7 @@ export function DelegateWorkspaceClient({ userId, role }: { userId: string; role
       </div>
 
       <div className="space-y-4 xl:col-span-4">
+        <MeetingRequestForm />
         <MeetingRequestsPanel />
 
         <Panel variant="soft">

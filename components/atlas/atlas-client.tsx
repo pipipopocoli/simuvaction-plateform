@@ -22,6 +22,7 @@ import {
   StatusBadge,
   TimelineItem,
 } from "@/components/ui/commons";
+import { MeetingRequestDialog, type MeetingRequestPreset } from "@/components/meetings/meeting-request-form";
 
 export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] }) {
   const router = useRouter();
@@ -30,8 +31,9 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
   const [showVotes, setShowVotes] = useState(true);
   const [selectedId, setSelectedId] = useState(delegations[0]?.id ?? "");
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
   const [isOpeningThread, setIsOpeningThread] = useState(false);
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [meetingDialogPreset, setMeetingDialogPreset] = useState<MeetingRequestPreset | undefined>();
 
   const filteredDelegations = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -55,40 +57,19 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
     [delegations],
   );
 
-  async function requestMeeting() {
+  function requestMeeting() {
     if (!selectedDelegation) {
       return;
     }
 
     setFeedback(null);
-    setIsRequestingMeeting(true);
-
-    try {
-      const response = await fetch("/api/meetings/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipientMode: "team",
-          targetTeamId: selectedDelegation.id,
-          title: `Bilateral with ${selectedDelegation.name}`,
-          note: "Request created from Atlas.",
-          proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          durationMin: 30,
-          organizerTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-          googleMeetRequested: true,
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setFeedback(payload.error || "Unable to send meeting request.");
-        return;
-      }
-
-      setFeedback("Meeting request sent.");
-    } finally {
-      setIsRequestingMeeting(false);
-    }
+    setMeetingDialogPreset({
+      recipientMode: "team",
+      targetTeamId: selectedDelegation.id,
+      title: `Bilateral with ${selectedDelegation.name}`,
+      note: "Request prepared from Atlas.",
+    });
+    setIsMeetingDialogOpen(true);
   }
 
   async function openDelegationThread() {
@@ -106,7 +87,7 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
           roomType: "team",
           targetTeamId: selectedDelegation.id,
           name: `Delegation channel · ${selectedDelegation.name}`,
-          topic: `atlas:${selectedDelegation.id}`,
+          topic: `team:${selectedDelegation.id}`,
         }),
       });
 
@@ -136,6 +117,13 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
 
   return (
     <div className="space-y-6">
+      <MeetingRequestDialog
+        isOpen={isMeetingDialogOpen}
+        onClose={() => setIsMeetingDialogOpen(false)}
+        preset={meetingDialogPreset}
+        onSuccess={() => setFeedback("Meeting request sent.")}
+      />
+
       <SectionHeader
         eyebrow="Geopolitical Monitor"
         title="Atlas"
@@ -306,10 +294,9 @@ export function AtlasClient({ delegations }: { delegations: AtlasDelegation[] })
               <ActionButton
                 className="w-full justify-between"
                 onClick={requestMeeting}
-                disabled={isRequestingMeeting}
               >
                 Request meeting
-                {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                <MessageSquare className="h-4 w-4" />
               </ActionButton>
               <ActionButton
                 variant="secondary"

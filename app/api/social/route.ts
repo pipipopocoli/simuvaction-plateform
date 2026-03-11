@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 import { z } from "zod";
+import {
+    DATABASE_UPDATE_IN_PROGRESS_MESSAGE,
+    isPrismaSchemaDriftError,
+    logPrismaSchemaDrift,
+} from "@/lib/prisma-runtime-guard";
 
 const postSchema = z.object({
     body: z.string().min(1, "Post cannot be empty").max(280, "Post is too long"),
@@ -42,6 +47,10 @@ export async function GET(request: Request) {
 
         return NextResponse.json(posts);
     } catch (error) {
+        if (isPrismaSchemaDriftError(error)) {
+            logPrismaSchemaDrift("Failed to fetch social posts", error);
+            return NextResponse.json([]);
+        }
         console.error("Failed to fetch social posts:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
@@ -86,6 +95,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json(post);
     } catch (error) {
+        if (isPrismaSchemaDriftError(error)) {
+            logPrismaSchemaDrift("Failed to create social post", error);
+            return NextResponse.json({ error: DATABASE_UPDATE_IN_PROGRESS_MESSAGE }, { status: 503 });
+        }
         console.error("Failed to extract social post:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }

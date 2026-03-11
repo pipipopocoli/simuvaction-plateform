@@ -6,6 +6,7 @@ import { Plus, Edit3, Trash2, Newspaper, Twitter, FileText, Send, Pen } from "lu
 import { TwitterFeedPanel } from "@/components/newsroom/twitter-feed-panel";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { Panel } from "@/components/ui/commons";
+import { MeetingRequestForm } from "@/components/meetings/meeting-request-form";
 import { MeetingRequestsPanel } from "@/components/meetings/meeting-requests-panel";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
 import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
@@ -242,6 +243,7 @@ export function JournalistWorkspaceClient({ payload }: { payload: RolePayload })
 
             {/* Sidebar */}
             <div className="xl:col-span-4 space-y-4">
+                <MeetingRequestForm />
                 <MeetingRequestsPanel />
 
                 <Panel variant="soft">

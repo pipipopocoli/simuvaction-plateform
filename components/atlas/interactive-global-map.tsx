@@ -9,13 +9,7 @@ import type { AtlasDelegation, AtlasMapPoint } from "@/lib/atlas";
 import { toSvgCountryIso2 } from "@/lib/atlas";
 import { isAdminLike } from "@/lib/authz";
 import { ClickableWorldMap } from "@/components/atlas/clickable-world-map";
-
-type ChatContact = {
-  id: string;
-  name: string;
-  role: string;
-  teamId: string | null;
-};
+import { MeetingRequestDialog, type MeetingRequestPreset } from "@/components/meetings/meeting-request-form";
 
 type MapVoteSignal = {
   id: string;
@@ -143,9 +137,10 @@ export function InteractiveGlobalMap({
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
   const [isOpeningThread, setIsOpeningThread] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [meetingDialogPreset, setMeetingDialogPreset] = useState<MeetingRequestPreset | undefined>();
   const [hostSize, setHostSize] = useState({ width: 0, height: 0 });
   const [popoverSize, setPopoverSize] = useState({ width: 0, height: 0 });
   const [countryCentersByIso, setCountryCentersByIso] = useState<CountryCentersByIso>({});
@@ -458,16 +453,6 @@ export function InteractiveGlobalMap({
     router.push("/newsroom");
   }
 
-  async function findTeamContact(teamId: string) {
-    const response = await fetch("/api/chat/contacts", { cache: "no-store" });
-    if (!response.ok) {
-      return null;
-    }
-
-    const contacts = (await response.json()) as ChatContact[];
-    return contacts.find((contact) => contact.teamId === teamId) ?? null;
-  }
-
   async function openDelegationThread() {
     if (!selectedCountryDelegation) {
       return;
@@ -477,23 +462,19 @@ export function InteractiveGlobalMap({
     setIsOpeningThread(true);
 
     try {
-      const contact = await findTeamContact(selectedCountryDelegation.id);
-      if (!contact) {
-        setFeedback("No contact available in this delegation yet.");
-        return;
-      }
-
       const response = await fetch("/api/chat/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roomType: "direct",
-          targetUserId: contact.id,
+          roomType: "team",
+          targetTeamId: selectedCountryDelegation.id,
+          name: `Delegation channel · ${selectedCountryDelegation.name}`,
+          topic: `team:${selectedCountryDelegation.id}`,
         }),
       });
 
       if (!response.ok) {
-        setFeedback("Unable to open direct thread.");
+        setFeedback("Unable to open delegation thread.");
         return;
       }
 
@@ -504,45 +485,19 @@ export function InteractiveGlobalMap({
     }
   }
 
-  async function requestMeeting() {
+  function requestMeeting() {
     if (!selectedCountryDelegation) {
       return;
     }
 
     setFeedback(null);
-    setIsRequestingMeeting(true);
-
-    try {
-      const contact = await findTeamContact(selectedCountryDelegation.id);
-      if (!contact) {
-        setFeedback("No contact available in this delegation yet.");
-        return;
-      }
-
-      const proposedStartAt = new Date(Date.now() + 1000 * 60 * 60).toISOString();
-
-      const response = await fetch("/api/meetings/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetUserId: contact.id,
-          targetTeamId: selectedCountryDelegation.id,
-          title: `Bilateral with ${selectedCountryDelegation.name}`,
-          note: "Request created from Global Activity Map.",
-          proposedStartAt,
-          durationMin: 30,
-        }),
-      });
-
-      if (!response.ok) {
-        setFeedback("Unable to send meeting request.");
-        return;
-      }
-
-      setFeedback("Meeting request sent.");
-    } finally {
-      setIsRequestingMeeting(false);
-    }
+    setMeetingDialogPreset({
+      recipientMode: "team",
+      targetTeamId: selectedCountryDelegation.id,
+      title: `Bilateral with ${selectedCountryDelegation.name}`,
+      note: "Request prepared from Global Activity Map.",
+    });
+    setIsMeetingDialogOpen(true);
   }
 
   const delegationList = (
@@ -584,6 +539,13 @@ export function InteractiveGlobalMap({
 
   return (
     <div className="w-full space-y-2">
+      <MeetingRequestDialog
+        isOpen={isMeetingDialogOpen}
+        onClose={() => setIsMeetingDialogOpen(false)}
+        preset={meetingDialogPreset}
+        onSuccess={() => setFeedback("Meeting request sent.")}
+      />
+
       <div className="relative isolate w-full overflow-hidden rounded-3xl border border-ink-border/80 bg-white shadow-[0_10px_22px_rgba(15,23,42,0.11)]">
         <div ref={stageRef} className="grid w-full overflow-hidden lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div ref={mapHostRef} className="relative aspect-[1010/666] w-full overflow-hidden bg-[#fcfdff]">
@@ -672,11 +634,10 @@ export function InteractiveGlobalMap({
                 <div className="mt-3 grid gap-2">
                   <button
                     onClick={requestMeeting}
-                    disabled={isRequestingMeeting}
                     className="inline-flex items-center justify-between rounded-lg border border-ink-blue/30 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-blue hover:bg-blue-50 disabled:opacity-60"
                   >
                     Request meeting
-                    {isRequestingMeeting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
+                    <Users className="h-3.5 w-3.5" />
                   </button>
 
                   <button

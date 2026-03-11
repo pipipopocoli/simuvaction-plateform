@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserSession } from "@/lib/server-auth";
 import { isAdminLike } from "@/lib/authz";
 import { getPublicEditorialByline } from "@/lib/news-author";
+import { isPrismaSchemaDriftError, logPrismaSchemaDrift } from "@/lib/prisma-runtime-guard";
 
 export async function GET() {
   try {
@@ -50,6 +51,10 @@ export async function GET() {
       })),
     );
   } catch (error) {
+    if (isPrismaSchemaDriftError(error)) {
+      logPrismaSchemaDrift("Failed to fetch documents", error);
+      return NextResponse.json([]);
+    }
     console.error("Failed to fetch documents:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

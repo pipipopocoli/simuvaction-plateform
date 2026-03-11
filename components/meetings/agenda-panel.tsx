@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { Panel, TimelineItem } from "@/components/ui/commons";
+import { subscribeMeetingDataChanged } from "@/lib/meeting-client-events";
 
 type CalendarEvent = {
   id: string;
@@ -29,7 +30,14 @@ export function AgendaPanel({ limit = 5 }: { limit?: number }) {
 
     load();
     const timer = setInterval(load, 15000);
-    return () => clearInterval(timer);
+    const unsubscribe = subscribeMeetingDataChanged(() => {
+      void load();
+    });
+
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, [limit]);
 
   return (

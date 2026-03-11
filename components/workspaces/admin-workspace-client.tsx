@@ -9,6 +9,7 @@ import { MeetingHistoryPanel } from "@/components/admin/meeting-history-panel";
 import { Panel, StatTile } from "@/components/ui/commons";
 import { NotionWorkspace } from "@/components/workspace/notion-workspace";
 import { AgendaPanel } from "@/components/meetings/agenda-panel";
+import { MeetingRequestForm } from "@/components/meetings/meeting-request-form";
 import { WorkspaceCalendar } from "@/components/meetings/workspace-calendar";
 import { DocumentLibrary } from "@/components/library/document-library";
 
@@ -158,6 +159,8 @@ export function AdminWorkspaceClient({ userId }: { userId: string }) {
                         </Link>
                     </div>
                 </Panel>
+
+                <MeetingRequestForm />
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
                     <AgendaPanel />

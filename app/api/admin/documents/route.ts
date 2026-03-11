@@ -9,6 +9,11 @@ import {
   sanitizeFileName,
   uploadEventFile,
 } from "@/lib/blob-storage";
+import {
+  DATABASE_UPDATE_IN_PROGRESS_MESSAGE,
+  isPrismaSchemaDriftError,
+  logPrismaSchemaDrift,
+} from "@/lib/prisma-runtime-guard";
 
 const createDocumentSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -73,6 +78,10 @@ export async function GET() {
 
     return NextResponse.json(documents);
   } catch (error) {
+    if (isPrismaSchemaDriftError(error)) {
+      logPrismaSchemaDrift("Fetch Documents Error", error);
+      return NextResponse.json([]);
+    }
     console.error("Fetch Documents Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -151,6 +160,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(document, { status: 201 });
   } catch (error) {
+    if (isPrismaSchemaDriftError(error)) {
+      logPrismaSchemaDrift("Create Document Error", error);
+      return NextResponse.json({ error: DATABASE_UPDATE_IN_PROGRESS_MESSAGE }, { status: 503 });
+    }
     console.error("Create Document Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -181,6 +194,10 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isPrismaSchemaDriftError(error)) {
+      logPrismaSchemaDrift("Delete Document Error", error);
+      return NextResponse.json({ error: DATABASE_UPDATE_IN_PROGRESS_MESSAGE }, { status: 503 });
+    }
     console.error("Delete Document Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

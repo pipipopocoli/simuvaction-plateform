@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
+const RUNTIME_PERMISSIONS_POLICY =
+  'camera=(self "https://meet.jit.si"), microphone=(self "https://meet.jit.si"), geolocation=()';
+
 function isPublicPath(rawPathname: string): boolean {
   // Normalize pathname by removing trailing slash if present (unless it's exactly "/").
   const pathname = rawPathname === "/" ? "/" : rawPathname.replace(/\/$/, "");
@@ -16,6 +19,7 @@ function isPublicPath(rawPathname: string): boolean {
   if (pathname === "/api/auth/login") return true;
   if (pathname === "/api/auth/logout") return true;
   if (pathname === "/api/auth/reset") return true;
+  if (pathname.startsWith("/_vercel")) return true;
 
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico") return true;
   if (/\.(?:png|svg|jpg|jpeg|gif|webp|ico|json|txt|xml|woff|woff2|ttf|otf)$/i.test(pathname)) {
@@ -49,7 +53,7 @@ function attachSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.headers.set("Permissions-Policy", RUNTIME_PERMISSIONS_POLICY);
   if (process.env.NODE_ENV === "production") {
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
@@ -81,5 +85,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico).*)"],
 };

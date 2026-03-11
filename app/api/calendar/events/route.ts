@@ -29,6 +29,7 @@ export async function GET() {
         OR: [
           { requesterId: session.userId },
           { targetUserId: session.userId },
+          { attendeeUserIds: { has: session.userId } },
           ...(session.teamId
             ? [{ requesterTeamId: session.teamId }, { targetTeamId: session.teamId }]
             : []),
@@ -90,7 +91,9 @@ export async function GET() {
     const startsAt = meeting.scheduledStartAt ?? meeting.proposedStartAt;
     const endsAt = new Date(startsAt.getTime() + meeting.durationMin * 60_000);
     const visibilityScope =
-      meeting.requesterId === session.userId || meeting.targetUserId === session.userId
+      meeting.requesterId === session.userId ||
+      meeting.targetUserId === session.userId ||
+      meeting.attendeeUserIds.includes(session.userId)
         ? "personal"
         : "team";
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DateTime } from "luxon";
 import { Calendar } from "lucide-react";
 import { Panel, StatusBadge } from "@/components/ui/commons";
+import { subscribeMeetingDataChanged } from "@/lib/meeting-client-events";
 
 type WorkspaceCalendarEvent = {
   id: string;
@@ -39,7 +40,14 @@ export function WorkspaceCalendar() {
 
     load();
     const timer = setInterval(load, 15000);
-    return () => clearInterval(timer);
+    const unsubscribe = subscribeMeetingDataChanged(() => {
+      void load();
+    });
+
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
   const daysInGrid = useMemo(() => {

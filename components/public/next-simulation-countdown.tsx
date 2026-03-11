@@ -49,15 +49,22 @@ export function NextSimulationCountdown({
   eventEndIsoParis,
   eventLabel,
 }: NextSimulationCountdownProps) {
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const browserZone = useMemo(() => resolveBrowserZone(), []);
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  const [browserZone, setBrowserZone] = useState("UTC");
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const syncState = () => {
+      setBrowserZone(resolveBrowserZone());
       setNowMs(Date.now());
-    }, 1000);
+    };
 
-    return () => window.clearInterval(timer);
+    const initialSync = window.setTimeout(syncState, 0);
+    const timer = window.setInterval(syncState, 1000);
+
+    return () => {
+      window.clearTimeout(initialSync);
+      window.clearInterval(timer);
+    };
   }, []);
 
   const start = useMemo(
@@ -77,8 +84,8 @@ export function NextSimulationCountdown({
     );
   }
 
-  const state = toCountdownState(nowMs, start.toMillis(), end.toMillis());
-  const duration = toDurationParts(start.toMillis() - nowMs);
+  const state = nowMs === null ? null : toCountdownState(nowMs, start.toMillis(), end.toMillis());
+  const duration = nowMs === null ? null : toDurationParts(start.toMillis() - nowMs);
   const localStart = start.setZone(browserZone);
 
   return (
@@ -87,10 +94,23 @@ export function NextSimulationCountdown({
       <h3 className="mt-2 font-serif text-2xl font-bold text-[#0f172a]">{eventLabel}</h3>
       <p className="mt-2 text-sm text-slate-700">March 25, 2026, 08:30 (Europe/Paris)</p>
       <p className="text-sm text-slate-700">
-        Your local time: {localStart.toFormat("LLLL dd, yyyy, HH:mm")} ({browserZone})
+        {nowMs !== null
+          ? `Your local time: ${localStart.toFormat("LLLL dd, yyyy, HH:mm")} (${browserZone})`
+          : "Your local time: Detecting browser time zone..."}
       </p>
 
-      {state === "before_start" ? (
+      {state === null ? (
+        <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+          {["Days", "Hours", "Minutes", "Seconds"].map((label) => (
+            <div key={label} className="rounded-xl border border-[#d7e2f6] bg-white px-2 py-3">
+              <p className="text-2xl font-bold text-[#0f172a]">--</p>
+              <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500">{label}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {state === "before_start" && duration ? (
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           <div className="rounded-xl border border-[#d7e2f6] bg-white px-2 py-3">
             <p className="text-2xl font-bold text-[#0f172a]">{pad(duration.days)}</p>

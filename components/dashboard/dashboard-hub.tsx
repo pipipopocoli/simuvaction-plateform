@@ -10,6 +10,7 @@ import type { AtlasDelegation } from "@/lib/atlas";
 import { InteractiveGlobalMap } from "@/components/atlas/interactive-global-map";
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
 import { LiveWirePanel } from "@/components/dashboard/live-wire-panel";
+import { MeetingRequestDialog, type MeetingRequestPreset } from "@/components/meetings/meeting-request-form";
 import { FrontPageNewsFeed } from "@/components/newsroom/front-page-news-feed";
 import { ArticlePreviewModal } from "@/components/newsroom/article-preview-modal";
 import { SocialFeed } from "@/components/x/social-feed";
@@ -87,8 +88,9 @@ export function DashboardHub({
   const [previewArticleId, setPreviewArticleId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
-  const [isRequestingMeeting, setIsRequestingMeeting] = useState(false);
   const [isOpeningThread, setIsOpeningThread] = useState(false);
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [meetingDialogPreset, setMeetingDialogPreset] = useState<MeetingRequestPreset | undefined>();
 
   const selectedDelegation = useMemo(() => {
     if (!selection || selection.type !== "delegation") {
@@ -116,60 +118,28 @@ export function DashboardHub({
     [upcomingEvents, selectedEventId],
   );
 
-  async function requestContextMeeting() {
-    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  function requestContextMeeting() {
     setActionFeedback(null);
-    setIsRequestingMeeting(true);
 
-    try {
-      if (selectedLeadership) {
-        const response = await fetch("/api/meetings/requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientMode: "individual",
-            targetUserId: selectedLeadership.id,
-            title: `Meeting with ${selectedLeadership.name}`,
-            note: "Request created from the dashboard profile detail.",
-            proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-            durationMin: 30,
-            organizerTimeZone: browserTimeZone,
-            googleMeetRequested: true,
-          }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          setActionFeedback(payload.error || "Unable to send meeting request.");
-          return;
-        }
-        setActionFeedback("Meeting request sent.");
-        return;
-      }
+    if (selectedLeadership) {
+      setMeetingDialogPreset({
+        recipientMode: "individual",
+        targetUserId: selectedLeadership.id,
+        title: `Meeting with ${selectedLeadership.name}`,
+        note: "Request prepared from the dashboard profile detail.",
+      });
+      setIsMeetingDialogOpen(true);
+      return;
+    }
 
-      if (selectedDelegation) {
-        const response = await fetch("/api/meetings/requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientMode: "team",
-            targetTeamId: selectedDelegation.id,
-            title: `Bilateral with ${selectedDelegation.name}`,
-            note: "Request created from the dashboard profile detail.",
-            proposedStartAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-            durationMin: 30,
-            organizerTimeZone: browserTimeZone,
-            googleMeetRequested: true,
-          }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          setActionFeedback(payload.error || "Unable to send meeting request.");
-          return;
-        }
-        setActionFeedback("Meeting request sent.");
-      }
-    } finally {
-      setIsRequestingMeeting(false);
+    if (selectedDelegation) {
+      setMeetingDialogPreset({
+        recipientMode: "team",
+        targetTeamId: selectedDelegation.id,
+        title: `Bilateral with ${selectedDelegation.name}`,
+        note: "Request prepared from the dashboard profile detail.",
+      });
+      setIsMeetingDialogOpen(true);
     }
   }
 
@@ -204,7 +174,7 @@ export function DashboardHub({
             roomType: "team",
             targetTeamId: selectedDelegation.id,
             name: `Delegation channel · ${selectedDelegation.name}`,
-            topic: `dashboard:${selectedDelegation.id}`,
+            topic: `team:${selectedDelegation.id}`,
           }),
         });
         const payload = await response.json().catch(() => ({}));
@@ -223,6 +193,12 @@ export function DashboardHub({
     <div className="space-y-4">
       <ArticlePreviewModal articleId={previewArticleId} onClose={() => setPreviewArticleId(null)} />
       <UpcomingEventsDrawer event={selectedUpcomingEvent} onClose={() => setSelectedEventId(null)} />
+      <MeetingRequestDialog
+        isOpen={isMeetingDialogOpen}
+        onClose={() => setIsMeetingDialogOpen(false)}
+        preset={meetingDialogPreset}
+        onSuccess={() => setActionFeedback("Meeting request sent.")}
+      />
 
       <SectionHeader
         eyebrow="SimuVaction 2026: AI & Education"
@@ -416,9 +392,9 @@ export function DashboardHub({
                 </p>
                 <p className="text-sm text-ink/80">{selectedLeadership.stance}</p>
                 <div className="grid gap-2">
-                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting} disabled={isRequestingMeeting}>
+                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting}>
                     Request meeting
-                    {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                    <Video className="h-4 w-4" />
                   </ActionButton>
                   <ActionButton variant="secondary" className="w-full justify-between" onClick={openContextThread} disabled={isOpeningThread}>
                     Open private thread
@@ -442,9 +418,9 @@ export function DashboardHub({
                 </h3>
                 <p className="text-sm text-ink/80">{selectedDelegation.stance}</p>
                 <div className="grid gap-2">
-                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting} disabled={isRequestingMeeting}>
+                  <ActionButton className="w-full justify-between" onClick={requestContextMeeting}>
                     Request meeting
-                    {isRequestingMeeting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                    <Video className="h-4 w-4" />
                   </ActionButton>
                   <ActionButton variant="secondary" className="w-full justify-between" onClick={openContextThread} disabled={isOpeningThread}>
                     Open delegation thread
