@@ -103,10 +103,14 @@ export async function POST(request: NextRequest) {
       mustChangePassword: user.mustChangePassword,
     });
 
+    // Include token in body for mobile clients (can't read httpOnly cookies)
+    const isMobileClient = request.headers.get("x-client-platform") === "mobile";
+
     const response = NextResponse.json({
       ok: true,
       role: user.role,
       mustChangePassword: user.mustChangePassword,
+      ...(isMobileClient && { token: jwt }),
     });
 
     response.cookies.set({
