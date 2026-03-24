@@ -49,7 +49,7 @@ export async function GET() {
                         id: true,
                         countryCode: true,
                         countryName: true,
-                        stance: true,
+                        stanceShort: true,
                         priorities: true,
                     },
                 },

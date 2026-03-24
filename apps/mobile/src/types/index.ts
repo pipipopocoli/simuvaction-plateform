@@ -18,8 +18,8 @@ export interface Team {
   id: string;
   countryCode: string;
   countryName: string;
-  stance: string | null;
-  priorities: string | null;
+  stanceShort: string | null;
+  priorities: string[];
 }
 
 // Chat types

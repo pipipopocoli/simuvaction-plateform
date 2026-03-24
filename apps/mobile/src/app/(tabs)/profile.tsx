@@ -97,16 +97,16 @@ export default function ProfileScreen() {
       {user.team && (
         <View style={styles.teamCard}>
           <Text style={styles.sectionTitle}>Mon équipe</Text>
-          {user.team.stance && (
+          {user.team.stanceShort && (
             <>
               <Text style={styles.teamLabel}>Position</Text>
-              <Text style={styles.teamValue}>{user.team.stance}</Text>
+              <Text style={styles.teamValue}>{user.team.stanceShort}</Text>
             </>
           )}
-          {user.team.priorities && (
+          {user.team.priorities?.join(', ') && (
             <>
               <Text style={styles.teamLabel}>Priorités</Text>
-              <Text style={styles.teamValue}>{user.team.priorities}</Text>
+              <Text style={styles.teamValue}>{user.team.priorities?.join(', ')}</Text>
             </>
           )}
         </View>
