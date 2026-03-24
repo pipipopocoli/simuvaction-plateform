@@ -27,13 +27,13 @@ const createDocumentSchema = z.object({
 async function parseDocumentRequest(req: NextRequest) {
   const contentType = req.headers.get("content-type") ?? "";
   if (contentType.includes("multipart/form-data")) {
-    const formData = await req.formData();
+    const formData: any = await req.formData();
     const title = String(formData.get("title") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
     const url = String(formData.get("url") ?? "").trim();
     const type = String(formData.get("type") ?? "file").trim();
     const isPublic = String(formData.get("isPublic") ?? "true") !== "false";
-    const targetTeamIds = formData.getAll("targetTeamIds").map((value) => String(value));
+    const targetTeamIds = formData.getAll("targetTeamIds").map((value: any) => String(value));
     const file = formData.get("file");
 
     return {

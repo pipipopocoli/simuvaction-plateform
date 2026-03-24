@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData().catch(() => null);
+  const formData: any = await request.formData().catch(() => null);
   const file = formData?.get("file");
 
   if (!(file instanceof File)) {

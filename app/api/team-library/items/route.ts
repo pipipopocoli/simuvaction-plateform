@@ -21,7 +21,7 @@ const createTeamLibraryItemSchema = z.object({
 async function parsePayload(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("multipart/form-data")) {
-    const formData = await request.formData();
+    const formData: any = await request.formData();
     return {
       parsed: createTeamLibraryItemSchema.safeParse({
         teamId: String(formData.get("teamId") ?? "").trim() || undefined,

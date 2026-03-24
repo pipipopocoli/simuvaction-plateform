@@ -42,8 +42,7 @@ export async function GET() {
                 avatarUrl: true,
                 teamId: true,
                 eventId: true,
-                countryCode: true,
-                timezone: true,
+                preferredTimeZone: true,
                 team: {
                     select: {
                         id: true,
