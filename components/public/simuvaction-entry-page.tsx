@@ -1,582 +1,364 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
-import { LoginForm } from "@/components/login-form";
-import { NextSimulationCountdown } from "@/components/public/next-simulation-countdown";
-import copyJson from "@/content/simuvaction-site-copy.json";
-import {
-  type MappedBlock,
-  type MappedSection,
-  type MappedSectionId,
-  type SimuvactionSiteCopy,
-  formatGeneratedAt,
-  mapSimuvactionHomeContent,
-  toMappedBlockKey,
-} from "@/lib/public/simuvaction-copy-mapper";
+import Link from "next/link";
+import { useState } from "react";
 
-const siteCopy = copyJson as SimuvactionSiteCopy;
-const mappedContent = mapSimuvactionHomeContent(siteCopy);
+const PRINCIPLES = [
+  {
+    num: 1,
+    title: "Human-Centredness",
+    text: "Equity, non-discrimination, transparency, accountability, and responsible data stewardship.",
+  },
+  {
+    num: 2,
+    title: "Balanced Governance",
+    text: "We reject the binary of \u201cno regulation\u201d vs. \u201ctotal restriction.\u201d We support tiered risk frameworks and mandatory Human Rights and Equity Impact Assessments (HRIA).",
+  },
+  {
+    num: 3,
+    title: "Responsible Innovation",
+    text: "AI can accelerate personalized learning, yet we challenge the tech-solutionist view by highlighting algorithmic bias, privacy infringement, and the erosion of pedagogical trust.",
+  },
+  {
+    num: 4,
+    title: "Evidence-Based Research",
+    text: "Long-term research via open consortia. Privacy-by-design and universal design standards, especially for sensitive biometric data and accessibility tools.",
+  },
+  {
+    num: 5,
+    title: "Interoperability & Green AI",
+    text: "Industrial development must adhere to open standards and environmental sustainability. We oppose monopolistic commercial lock-in.",
+  },
+  {
+    num: 6,
+    title: "SDG 4 \u2014 Quality Education",
+    text: "Advance inclusive and equitable quality education and co-create trustworthy AI ecosystems.",
+  },
+  {
+    num: 7,
+    title: "Transnational Coordination",
+    text: "Operate as a transnational coordinating body, aligning global standards in cooperation with UNESCO, the OECD, and regional education ministries.",
+  },
+];
 
-type ObjectiveCard = {
-  key: string;
-  title: string;
-  lines: string[];
-};
+const RED_LINES = [
+  {
+    boundary: "Commercial Resale of Data",
+    consequence:
+      "No framework that allows the commercial resale of educational behavioral data. Student information is a public trust, not a commercial asset.",
+  },
+  {
+    boundary: "Live Biometric Surveillance",
+    consequence:
+      "Block agreements permitting real-time facial recognition, affective surveillance, or emotion analytics in classrooms until demonstrably safe.",
+  },
+  {
+    boundary: "Social Scoring",
+    consequence:
+      "Immediate ban on social-scoring or behavioral-ranking systems in educational environments.",
+  },
+  {
+    boundary: "Black-Box Final Decisions",
+    consequence:
+      "No systems dictating critical decisions (admissions, discipline, grading) without mandatory human review and appeal procedures.",
+  },
+];
 
-type FaqItem = {
-  key: string;
-  question: string;
-  answer: string;
-};
+const OBJECTIVES = [
+  "Securing commitments for public funding of open-source educational AI projects and joint capacity-building programs for policymakers and teachers.",
+  "Mandatory, publicly accessible Human Rights and Equity Impact Assessment (HRIA) reports for all educational AI procurement.",
+  "Agreement to establish National Councils for AI in Education to ensure localized, multistakeholder oversight.",
+];
 
-function sectionAnchor(id: MappedSectionId): string {
-  return `section-${id}`;
-}
-
-function getSection(sectionId: MappedSectionId): MappedSection {
-  return (
-    mappedContent.sections.find((section) => section.id === sectionId) ?? {
-      id: sectionId,
-      title: sectionId,
-      subtitle: "",
-      blocks: [],
-    }
-  );
-}
-
-function findLabeledValue(blocks: MappedBlock[], label: string): string | null {
-  const expression = new RegExp(`^${label}\\s*\\?\\s*`, "i");
-  const candidate = blocks.find((block) => expression.test(block.text));
-  if (!candidate) return null;
-
-  const stripped = candidate.text.replace(expression, "").trim();
-  return stripped.length > 0 ? stripped : null;
-}
-
-function uniqueBlocks(blocks: MappedBlock[]): MappedBlock[] {
-  const seen = new Set<string>();
-  const output: MappedBlock[] = [];
-
-  for (const block of blocks) {
-    const key = toMappedBlockKey(block);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    output.push(block);
-  }
-
-  return output;
-}
-
-function buildFaqItems(blocks: MappedBlock[]): FaqItem[] {
-  const items: FaqItem[] = [];
-
-  for (let cursor = 0; cursor < blocks.length; cursor += 1) {
-    const block = blocks[cursor];
-    const text = block.text.trim();
-
-    if (!text.endsWith("?")) continue;
-    if (/^frequently asked questions$/i.test(text)) continue;
-
-    let answer = "Details are available in the source appendix.";
-    const next = blocks[cursor + 1];
-    if (next && !next.text.trim().endsWith("?")) {
-      answer = next.text;
-    }
-
-    items.push({
-      key: toMappedBlockKey(block),
-      question: text,
-      answer,
-    });
-  }
-
-  return items;
-}
-
-function buildObjectiveCards(blocks: MappedBlock[]): ObjectiveCard[] {
-  const headingMatcher =
-    /objectives:\s*create an ecosystem|an exercise for students|a way to consider collaboration|a way to develop international thinking|a way to engage with communities/i;
-
-  const cards: ObjectiveCard[] = [];
-  let currentCard: ObjectiveCard | null = null;
-
-  for (const block of blocks) {
-    if (headingMatcher.test(block.text)) {
-      if (currentCard) {
-        cards.push(currentCard);
-      }
-
-      currentCard = {
-        key: toMappedBlockKey(block),
-        title: block.text.replace(/^objectives:\s*/i, "").trim(),
-        lines: [],
-      };
-
-      continue;
-    }
-
-    if (currentCard && currentCard.lines.length < 3) {
-      currentCard.lines.push(block.text);
-    }
-  }
-
-  if (currentCard) {
-    cards.push(currentCard);
-  }
-
-  if (cards.length > 0) {
-    return cards;
-  }
-
-  return blocks.slice(0, 4).map((block) => ({
-    key: toMappedBlockKey(block),
-    title: block.text,
-    lines: [],
-  }));
-}
-
-function firstMatchingText(blocks: MappedBlock[], matcher: RegExp): string | null {
-  return blocks.find((block) => matcher.test(block.text))?.text ?? null;
-}
-
-function trimPrefix(value: string, matcher: RegExp): string {
-  return value.replace(matcher, "").trim();
-}
+const BASKETS = [
+  {
+    num: 1,
+    name: "Access & Equity",
+    focus: "Infrastructure, local languages, open-source funding",
+  },
+  {
+    num: 2,
+    name: "Safeguards & Governance",
+    focus: "HRIAs, data fiduciaries, child protection",
+  },
+  {
+    num: 3,
+    name: "Innovation & Flexibility",
+    focus: "IP safe harbors, regulatory sandboxes, national implementation discretion",
+  },
+];
 
 export function SimuvactionEntryPage() {
-  const generalSection = getSection("general");
-  const aboutSection = getSection("about");
-  const timelineSection = getSection("timeline");
-  const objectivesSection = getSection("objectives");
-  const enrollmentSection = getSection("enrollment");
-  const faqSection = getSection("faqs");
-  const mediaSection = getSection("media");
-  const contactsSection = getSection("contacts");
-  const sponsorsSection = getSection("sponsors");
-  const partnersSection = getSection("partners");
-
-  const visibleSections = mappedContent.sections.filter((section) => section.blocks.length > 0);
-  const visibleBlockCount = visibleSections.reduce((sum, section) => sum + section.blocks.length, 0);
-
-  const simulationLine =
-    firstMatchingText(generalSection.blocks, /\*\s*a simulation/i) ??
-    "A full-scale role-based simulation on global AI governance.";
-  const symposiumLine =
-    firstMatchingText(generalSection.blocks, /\*\s*a symposium/i) ??
-    "A companion symposium connecting academic and professional ecosystems.";
-  const missionLine =
-    firstMatchingText(generalSection.blocks, /opportunity for 40 university students|actively engage/i) ??
-    "SimuVaction is an experiential program where students research, negotiate, and produce actionable recommendations.";
-
-  const aboutBlocks = uniqueBlocks(aboutSection.blocks);
-  const whoValue =
-    findLabeledValue(aboutBlocks, "WHO") ??
-    "International and interdisciplinary student teams with diverse backgrounds.";
-  const whatValue =
-    findLabeledValue(aboutBlocks, "WHAT") ??
-    "Teams play assigned roles, debate, draft amendments, and vote policy recommendations.";
-  const whenValue =
-    findLabeledValue(aboutBlocks, "WHEN") ??
-    "January 12, 2026 to April 24, 2026, with a key in-person sequence in March.";
-  const whereValue =
-    findLabeledValue(aboutBlocks, "WHERE") ??
-    "Online collaboration with an in-person week in Paris-Versailles.";
-
-  const whyPoints = aboutBlocks
-    .filter((block) => /^to\s+/i.test(block.text))
-    .map((block) => trimPrefix(block.text, /^to\s+/i))
-    .slice(0, 4);
-
-  const timelineBlocks = uniqueBlocks(timelineSection.blocks);
-  const timelineStages = timelineBlocks.filter((block) =>
-    /kick-off meeting|^stage\s+\d|action-day|\*\s*a simulation|\*\s*a symposium/i.test(block.text),
-  );
-  const stageThreeSchedule = timelineBlocks.filter((block) =>
-    /arrival for international students|monday,\s*march|tuesday,\s*march|wednesday,\s*march|thursday,\s*march/i.test(
-      block.text,
-    ),
-  );
-
-  const objectiveCards = buildObjectiveCards(uniqueBlocks(objectivesSection.blocks));
-  const enrollmentHighlights = uniqueBlocks(enrollmentSection.blocks)
-    .map((block) => block.text)
-    .filter((text) => !/^registration$/i.test(text))
-    .slice(0, 6);
-  const faqItems = buildFaqItems(uniqueBlocks(faqSection.blocks));
-
-  const sponsorsItems = uniqueBlocks(sponsorsSection.blocks)
-    .map((block) => block.text)
-    .filter((text) => !/^sponsors/i.test(text));
-  const partnerItems = uniqueBlocks(partnersSection.blocks)
-    .map((block) => block.text)
-    .filter((text) => !/^our\s+\d{4}\s+partners/i.test(text));
-  const mediaItems = uniqueBlocks(mediaSection.blocks).map((block) => block.text);
-  const contactItems = uniqueBlocks(contactsSection.blocks).map((block) => block.text);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(29,78,216,0.08),transparent_40%),radial-gradient(circle_at_100%_0%,rgba(15,23,42,0.08),transparent_38%),linear-gradient(180deg,#f7f9ff_0%,#eef2fb_100%)]">
-      <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-10">
-        <section className="relative overflow-hidden rounded-3xl border border-[#cad7ef] bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.1)]">
-          <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-100/70 blur-3xl" aria-hidden="true" />
-          <div className="absolute -bottom-28 right-0 h-64 w-64 rounded-full bg-slate-200/60 blur-3xl" aria-hidden="true" />
+    <div className="min-h-screen bg-white text-[#1a1a2e]">
+      {/* ===== NAVBAR ===== */}
+      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/simuvaction-logo.png"
+              alt="SimuVaction"
+              width={160}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
 
-          <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:p-10">
-            <div className="space-y-6">
-              <div className="inline-flex rounded-2xl border border-[#1f2937] bg-black p-2 shadow-[0_10px_22px_rgba(2,6,23,0.18)]">
-                <Image
-                  src="/simuvaction-logo.png"
-                  alt="SimuVaction official logo"
-                  width={240}
-                  height={240}
-                  priority
-                  className="h-auto w-[180px] sm:w-[210px] lg:w-[240px]"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1d4ed8]">AI Governance Simulation Program</p>
-                <h1 className="max-w-4xl font-serif text-4xl font-bold leading-tight text-[#0f172a] lg:text-5xl">
-                  SimuVaction helps students understand, negotiate, and shape global AI governance.
-                </h1>
-                <p className="max-w-3xl text-base leading-relaxed text-slate-700">{missionLine}</p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Source pages</p>
-                  <p className="mt-1 text-2xl font-bold text-[#0f172a]">{mappedContent.pageCount}</p>
-                </div>
-                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Mapped content blocks</p>
-                  <p className="mt-1 text-2xl font-bold text-[#0f172a]">{visibleBlockCount}</p>
-                </div>
-                <div className="rounded-xl border border-[#d8e2f5] bg-[#f8fbff] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Source extraction</p>
-                  <p className="mt-1 text-sm font-semibold text-[#0f172a]">{formatGeneratedAt(mappedContent.generatedAt)}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="#login-anchor"
-                  className="rounded-lg bg-[#1d4ed8] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-[#1e40af]"
-                >
-                  Access Platform
-                </a>
-                <Link
-                  href={mappedContent.sourceUrl}
-                  className="rounded-lg border border-[#cbd5e1] bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Source website
-                </Link>
-              </div>
-
-              <NextSimulationCountdown
-                eventStartIsoParis="2026-03-25T08:30:00"
-                eventEndIsoParis="2026-03-25T18:00:00"
-                eventLabel="Action-Day - Paris-Versailles"
-              />
-            </div>
-
-            <aside
-              id="login-anchor"
-              className="self-start rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-[0_10px_24px_rgba(15,23,42,0.08)] lg:sticky lg:top-6"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Secure Login</p>
-              <h2 className="mt-2 font-serif text-2xl font-bold text-[#0f172a]">Enter SimuVaction</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Sign in with your official account to access your role workspace, surveys, votes, and newsroom tools.
-              </p>
-              <div className="mt-5">
-                <LoginForm />
-              </div>
-            </aside>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-[#cad7ef] bg-white p-5 shadow-sm lg:p-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Quick Navigation</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {visibleSections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${sectionAnchor(section.id)}`}
-                className="rounded-full border border-[#d6dff2] bg-[#f8faff] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#93b0ea] hover:text-[#1d4ed8]"
-              >
-                {section.title}
-              </a>
-            ))}
-            <a
-              href="#source-appendix"
-              className="rounded-full border border-[#d6dff2] bg-[#f8faff] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#93b0ea] hover:text-[#1d4ed8]"
-            >
-              Source Appendix
+          {/* Desktop nav */}
+          <div className="hidden items-center gap-8 md:flex">
+            <a href="#declaration" className="text-sm font-medium text-gray-600 transition hover:text-[#511E84]">
+              Declaration
             </a>
+            <a href="#principles" className="text-sm font-medium text-gray-600 transition hover:text-[#511E84]">
+              Principles
+            </a>
+            <a href="#red-lines" className="text-sm font-medium text-gray-600 transition hover:text-[#511E84]">
+              Red Lines
+            </a>
+            <a href="#objectives" className="text-sm font-medium text-gray-600 transition hover:text-[#511E84]">
+              Objectives
+            </a>
+            <Link
+              href="/login"
+              className="rounded-full bg-[#511E84] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#3d1663]"
+            >
+              Sign In
+            </Link>
           </div>
-        </section>
 
-        {generalSection.blocks.length > 0 ? (
-          <section id={sectionAnchor("general")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">What Is SimuVaction</p>
-            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">A simulation and symposium designed for real-world AI governance learning</h2>
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <article className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Simulation</p>
-                <p className="mt-2 text-base font-semibold text-[#0f172a]">{simulationLine}</p>
-                <p className="mt-2 text-sm text-slate-700">
-                  Students assume high-responsibility roles and work through research, negotiation, drafting, amendments,
-                  and policy voting.
-                </p>
-              </article>
-              <article className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Symposium</p>
-                <p className="mt-2 text-base font-semibold text-[#0f172a]">{symposiumLine}</p>
-                <p className="mt-2 text-sm text-slate-700">
-                  The symposium expands the academic and professional conversation on AI and education with partners and
-                  stakeholders.
-                </p>
-              </article>
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 text-gray-600 md:hidden"
+            aria-label="Toggle menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {menuOpen ? (
+                <path d="M18 6L6 18M6 6l12 12" />
+              ) : (
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="border-t border-gray-100 bg-white px-6 py-4 md:hidden">
+            <div className="flex flex-col gap-3">
+              <a href="#declaration" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Declaration</a>
+              <a href="#principles" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Principles</a>
+              <a href="#red-lines" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Red Lines</a>
+              <a href="#objectives" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Objectives</a>
+              <Link href="/login" className="mt-2 rounded-full bg-[#511E84] px-5 py-2 text-center text-sm font-semibold text-white">
+                Sign In
+              </Link>
             </div>
-          </section>
-        ) : null}
+          </div>
+        )}
+      </nav>
 
-        {aboutSection.blocks.length > 0 ? (
-          <section id={sectionAnchor("about")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Program At A Glance</p>
-            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Who participates, what happens, and why it matters</h2>
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#511E84] via-[#3d1663] to-[#1a1a2e] px-6 py-24 text-center text-white md:py-32">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute left-1/4 top-1/4 h-64 w-64 rounded-full bg-[#9ADBE8] blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 h-48 w-48 rounded-full bg-[#511E84] blur-[100px]" />
+        </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <article className="rounded-xl border border-[#dbe4f7] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Who</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whoValue}</p>
-              </article>
-              <article className="rounded-xl border border-[#dbe4f7] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">What</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whatValue}</p>
-              </article>
-              <article className="rounded-xl border border-[#dbe4f7] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">When</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whenValue}</p>
-              </article>
-              <article className="rounded-xl border border-[#dbe4f7] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Where</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{whereValue}</p>
-              </article>
-              <article className="rounded-xl border border-[#dbe4f7] p-4 md:col-span-2 lg:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Why</p>
-                <ul className="mt-2 space-y-1">
-                  {whyPoints.map((point) => (
-                    <li key={point} className="text-sm leading-relaxed text-slate-700">
-                      {point}
-                    </li>
-                  ))}
-                  {whyPoints.length === 0 ? (
-                    <li className="text-sm leading-relaxed text-slate-700">
-                      To discuss AI governance, build professional capability, and collaborate across cultures.
-                    </li>
-                  ) : null}
-                </ul>
-              </article>
-            </div>
-          </section>
-        ) : null}
+        <div className="relative mx-auto max-w-3xl">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#9ADBE8]">
+            <span className="h-2 w-2 rounded-full bg-[#9ADBE8]" />
+            Versailles &mdash; March 25, 2026
+          </div>
+          <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight md:text-6xl">
+            SimuVaction on AI
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-white/70 md:text-xl">
+            Global Consortium for Trusted Artificial Intelligence
+          </p>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-white/50">
+            A multistakeholder initiative bridging research, policy, and practice for human-centred AI in education.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+            <a
+              href="#declaration"
+              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#511E84] transition hover:bg-gray-100"
+            >
+              Read the Declaration
+            </a>
+            <Link
+              href="/login"
+              className="rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        {timelineSection.blocks.length > 0 ? (
-          <section id={sectionAnchor("timeline")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Timeline</p>
-            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">From Kick-off to Action-Day and closing review</h2>
+      {/* ===== DECLARATION INTRO ===== */}
+      <section id="declaration" className="mx-auto max-w-4xl px-6 py-20">
+        <div className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#511E84]">
+          Position Paper
+        </div>
+        <h2 className="font-serif text-3xl font-bold text-[#1a1a2e] md:text-4xl">
+          Advancing Human-Centred AI for Inclusive Education
+        </h2>
+        <div className="mt-6 space-y-4 text-base leading-relaxed text-gray-600">
+          <p>
+            The Global Consortium for Trusted Artificial Intelligence (GCTAI) submits this paper to contribute to
+            SimuVaction 2026&rsquo;s global discussions on the use of Artificial Intelligence in education.
+          </p>
+          <p>
+            GCTAI is a multistakeholder initiative that connects research, policy, and practice. It promotes the
+            development and use of AI based on human rights, inclusion, access, and democratic values.
+          </p>
+          <p>
+            We reaffirm that AI in education must support Sustainable Development Goal 4: inclusive and equitable
+            quality education for all.
+          </p>
+        </div>
+      </section>
 
-            <ol className="mt-5 space-y-3">
-              {timelineStages.map((block) => (
-                <li key={toMappedBlockKey(block)} className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] px-4 py-3 text-sm text-slate-700">
-                  {block.text}
-                </li>
-              ))}
-            </ol>
-
-            {stageThreeSchedule.length > 0 ? (
-              <details className="mt-5 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">Stage 3 in-person schedule (Paris-Versailles)</summary>
-                <ul className="mt-3 space-y-2">
-                  {stageThreeSchedule.map((block) => (
-                    <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
-                      {block.text}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-          </section>
-        ) : null}
-
-        {objectivesSection.blocks.length > 0 ? (
-          <section id={sectionAnchor("objectives")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Objectives</p>
-            <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Academic impact, collaboration, and civic capability</h2>
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              {objectiveCards.map((card) => (
-                <article key={card.key} className="rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-                  <h3 className="font-serif text-xl font-bold text-[#0f172a]">{card.title}</h3>
-                  {card.lines.length > 0 ? (
-                    <ul className="mt-3 space-y-2">
-                      {card.lines.map((line) => (
-                        <li key={`${card.key}::${line}`} className="text-sm leading-relaxed text-slate-700">
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {enrollmentSection.blocks.length > 0 || faqSection.blocks.length > 0 ? (
-          <section className="grid gap-6 lg:grid-cols-2">
-            {enrollmentSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("enrollment")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Enrollment</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Participation requirements</h2>
-                <ul className="mt-4 space-y-2">
-                  {enrollmentHighlights.map((line) => (
-                    <li key={line} className="rounded-lg border border-[#dbe4f7] bg-[#f8faff] px-3 py-2 text-sm text-slate-700">
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ) : null}
-
-            {faqSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("faqs")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">FAQs</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Common questions</h2>
-                <div className="mt-4 space-y-2">
-                  {faqItems.map((item) => (
-                    <details key={item.key} className="rounded-lg border border-[#dbe4f7] bg-[#f8faff] p-3">
-                      <summary className="cursor-pointer text-sm font-semibold text-[#0f172a]">{item.question}</summary>
-                      <p className="mt-2 text-sm text-slate-700">{item.answer}</p>
-                    </details>
-                  ))}
-                  {faqItems.length === 0 ? (
-                    <p className="text-sm text-slate-700">FAQ details are available in the source appendix.</p>
-                  ) : null}
-                </div>
-              </article>
-            ) : null}
-          </section>
-        ) : null}
-
-        {partnersSection.blocks.length > 0 ||
-        sponsorsSection.blocks.length > 0 ||
-        mediaSection.blocks.length > 0 ||
-        contactsSection.blocks.length > 0 ? (
-          <section className="grid gap-6 lg:grid-cols-2">
-            {partnersSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("partners")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Partners</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Academic and institutional network</h2>
-                <ul className="mt-4 space-y-2">
-                  {partnerItems.slice(0, 14).map((item) => (
-                    <li key={`partner-${item}`} className="text-sm text-slate-700">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ) : null}
-
-            {sponsorsSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("sponsors")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Sponsors</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Support by cycle</h2>
-                <ul className="mt-4 space-y-2">
-                  {sponsorsItems.slice(0, 14).map((item) => (
-                    <li key={`sponsor-${item}`} className="text-sm text-slate-700">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ) : null}
-
-            {mediaSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("media")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Media</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Public reports and references</h2>
-                <ul className="mt-4 space-y-2">
-                  {mediaItems.slice(0, 16).map((item) => (
-                    <li key={`media-${item}`} className="text-sm text-slate-700">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ) : null}
-
-            {contactsSection.blocks.length > 0 ? (
-              <article id={sectionAnchor("contacts")} className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Contacts</p>
-                <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Follow and connect</h2>
-                <ul className="mt-4 space-y-2">
-                  {contactItems.map((item) => (
-                    <li key={`contact-${item}`} className="text-sm text-slate-700">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ) : null}
-          </section>
-        ) : null}
-
-        <section id="source-appendix" className="rounded-2xl border border-[#cad7ef] bg-white p-6 shadow-sm lg:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">Source Appendix</p>
-          <h2 className="mt-2 font-serif text-3xl font-bold text-[#0f172a]">Full source integrity and traceability</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            This appendix preserves legacy and unmatched source blocks and keeps the full verbatim corpus accessible.
+      {/* ===== PRINCIPLES ===== */}
+      <section id="principles" className="bg-gray-50 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#511E84]">
+            Core Stance
+          </div>
+          <h2 className="font-serif text-3xl font-bold text-[#1a1a2e] md:text-4xl">
+            First Principles
+          </h2>
+          <p className="mt-3 max-w-2xl text-base text-gray-500">
+            Seven non-negotiable principles guiding GCTAI&rsquo;s position on AI governance in education.
           </p>
 
-          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">Legacy notes ({mappedContent.legacyBlocks.length})</summary>
-            <ul className="mt-3 space-y-2">
-              {mappedContent.legacyBlocks.map((block) => (
-                <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
-                  {block.text}
-                </li>
-              ))}
-            </ul>
-          </details>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {PRINCIPLES.map((p) => (
+              <div
+                key={p.num}
+                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-[#9ADBE8] hover:shadow-md"
+              >
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#511E84]/10 text-sm font-bold text-[#511E84]">
+                  {p.num}
+                </div>
+                <h3 className="text-base font-bold text-[#1a1a2e]">{p.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">{p.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">
-              Unmatched but preserved blocks ({mappedContent.unmatchedBlocks.length})
-            </summary>
-            <ul className="mt-3 space-y-2">
-              {mappedContent.unmatchedBlocks.map((block) => (
-                <li key={toMappedBlockKey(block)} className="text-sm text-slate-700">
-                  {block.text}
-                </li>
-              ))}
-            </ul>
-          </details>
+      {/* ===== RED LINES ===== */}
+      <section id="red-lines" className="mx-auto max-w-4xl px-6 py-20">
+        <div className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-red-600">
+          Non-Negotiable Boundaries
+        </div>
+        <h2 className="font-serif text-3xl font-bold text-[#1a1a2e] md:text-4xl">
+          Red Lines
+        </h2>
+        <p className="mt-3 max-w-2xl text-base text-gray-500">
+          Strict boundaries regarding data and surveillance to protect learners.
+        </p>
 
-          <details className="mt-4 rounded-xl border border-[#dbe4f7] bg-[#f8faff] p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-[#1d4ed8]">
-              Full verbatim source copy ({mappedContent.allBlocks.length})
-            </summary>
-            <ul className="mt-3 space-y-2">
-              {mappedContent.allBlocks.map((block) => (
-                <li key={toMappedBlockKey(block)} className="rounded-lg border border-[#dbe4f7] bg-white px-3 py-2 text-sm text-slate-700">
-                  <p>{block.text}</p>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Source: {block.path}</p>
-                </li>
-              ))}
-            </ul>
-          </details>
-        </section>
-      </main>
+        <div className="mt-10 space-y-4">
+          {RED_LINES.map((rl) => (
+            <div
+              key={rl.boundary}
+              className="rounded-xl border border-red-100 bg-red-50/50 p-6"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-600">
+                  &#10005;
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#1a1a2e]">{rl.boundary}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{rl.consequence}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ===== OBJECTIVES ===== */}
+      <section id="objectives" className="bg-gray-50 px-6 py-20">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#511E84]">
+            Terms of Satisfaction
+          </div>
+          <h2 className="font-serif text-3xl font-bold text-[#1a1a2e] md:text-4xl">
+            The Global Ethical Compact
+          </h2>
+          <p className="mt-3 max-w-2xl text-base text-gray-500">
+            The Secretariat will consider the negotiations successful if these deliverables are secured.
+          </p>
+
+          <div className="mt-10 space-y-4">
+            {OBJECTIVES.map((obj, i) => (
+              <div
+                key={i}
+                className="flex gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#511E84] text-sm font-bold text-white">
+                  {i + 1}
+                </div>
+                <p className="text-sm leading-relaxed text-gray-600">{obj}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== NEGOTIATION BASKETS ===== */}
+      <section className="mx-auto max-w-4xl px-6 py-20">
+        <div className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#511E84]">
+          Organization
+        </div>
+        <h2 className="font-serif text-3xl font-bold text-[#1a1a2e] md:text-4xl">
+          Negotiation Tracks
+        </h2>
+        <p className="mt-3 max-w-2xl text-base text-gray-500">
+          Negotiations compartmentalized into three concurrent tracks for interest-based bargaining.
+        </p>
+
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {BASKETS.map((b) => (
+            <div
+              key={b.num}
+              className="rounded-xl border border-[#9ADBE8]/40 bg-gradient-to-b from-[#9ADBE8]/5 to-white p-6"
+            >
+              <div className="mb-3 text-xs font-bold uppercase tracking-wider text-[#511E84]">
+                Basket {b.num}
+              </div>
+              <h3 className="text-lg font-bold text-[#1a1a2e]">{b.name}</h3>
+              <p className="mt-2 text-sm text-gray-500">{b.focus}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="border-t border-gray-100 bg-[#1a1a2e] px-6 py-12 text-center text-white">
+        <Image
+          src="/simuvaction-logo.png"
+          alt="SimuVaction"
+          width={140}
+          height={35}
+          className="mx-auto h-9 w-auto"
+        />
+        <p className="mt-4 text-sm text-white/50">
+          &copy; {new Date().getFullYear()} SimuVaction on AI &mdash; Global Consortium for Trusted Artificial Intelligence
+        </p>
+        <p className="mt-1 text-xs text-white/30">
+          Versailles, France
+        </p>
+      </footer>
     </div>
   );
 }
